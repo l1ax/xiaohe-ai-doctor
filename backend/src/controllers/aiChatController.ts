@@ -43,13 +43,11 @@ export class AIChatController {
       throw new ValidationError('Message is required');
     }
 
-    // Ensure message is a string, not an array
+    // I1: Ensure message is a string, not an array
+    // After String() conversion, the value is always a string, so no need to check type again
     const messageStr = String(Array.isArray(messageQuery) ? messageQuery[0] : messageQuery);
 
-    // Validate message is string and max 5000 chars
-    if (typeof messageStr !== 'string') {
-      throw new ValidationError('Message must be a string');
-    }
+    // Validate message max 5000 chars
     if (messageStr.length > 5000) {
       throw new ValidationError('Message must not exceed 5000 characters');
     }
@@ -58,7 +56,7 @@ export class AIChatController {
       ? (Array.isArray(conversationIdQuery) ? conversationIdQuery[0] : conversationIdQuery)
       : `conv_${Date.now()}`;
 
-    // Type guard to ensure conversationId is a string
+    // Ensure conversationId is a string
     const conversationIdStr = String(conversationId);
 
     logger.info('Stream chat request received', { conversationId: conversationIdStr, messageLength: messageStr.length });
@@ -103,9 +101,9 @@ export class AIChatController {
     } catch (error: any) {
       logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
 
-      // Determine if it's an LLM error
-      const isLLMError = error.message?.toLowerCase().includes('llm') ||
-                         error.message?.toLowerCase().includes('api') ||
+      // I2: Improve LLM error detection using error instance/name checks
+      const isLLMError = error instanceof LLMError ||
+                         error.name === 'LLMError' ||
                          error.code === 'LLM_ERROR';
 
       if (isLLMError) {
@@ -137,63 +135,53 @@ export class AIChatController {
 
   /**
    * Create a new conversation
+   * C3: Removed try-catch to let errors propagate to error handler middleware
+   * All error responses now use standard { code, message, data } format
    */
   async createConversation(req: Request, res: Response): Promise<void> {
-    try {
-      const { type = 'ai_consultation', patientId, doctorId } = req.body;
+    const { type = 'ai_consultation', patientId, doctorId } = req.body;
 
-      if (!patientId) {
-        throw new ValidationError('Patient ID is required');
-      }
-
-      const conversation = this.messageWriter.createConversation(
-        type,
-        patientId,
-        doctorId
-      );
-
-      logger.info('Conversation created', { conversationId: conversation.id, patientId });
-
-      res.status(201).json({
-        success: true,
-        data: conversation,
-      });
-    } catch (error: any) {
-      logger.error('Failed to create conversation', error, { body: req.body });
-      res.status(500).json({
-        error: 'Failed to create conversation',
-        message: error.message,
-      });
+    if (!patientId) {
+      throw new ValidationError('Patient ID is required');
     }
+
+    const conversation = this.messageWriter.createConversation(
+      type,
+      patientId,
+      doctorId
+    );
+
+    logger.info('Conversation created', { conversationId: conversation.id, patientId });
+
+    res.status(201).json({
+      code: 'SUCCESS',
+      message: 'Conversation created successfully',
+      data: conversation,
+    });
   }
 
   /**
    * Get messages for a conversation
+   * C3: Removed try-catch to let errors propagate to error handler middleware
+   * All error responses now use standard { code, message, data } format
    */
   async getMessages(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
+    const { id } = req.params;
 
-      if (!id) {
-        throw new ValidationError('Conversation ID is required');
-      }
-
-      const conversationId = Array.isArray(id) ? id[0] : id;
-      const messages = await this.messageWriter.getMessages(conversationId);
-
-      logger.info('Messages retrieved', { conversationId, count: messages.length });
-
-      res.status(200).json({
-        success: true,
-        data: messages,
-      });
-    } catch (error: any) {
-      logger.error('Failed to get messages', error, { conversationId: String(req.params.id) });
-      res.status(500).json({
-        error: 'Failed to get messages',
-        message: error.message,
-      });
+    if (!id) {
+      throw new ValidationError('Conversation ID is required');
     }
+
+    const conversationId = Array.isArray(id) ? id[0] : id;
+    const messages = await this.messageWriter.getMessages(conversationId);
+
+    logger.info('Messages retrieved', { conversationId, count: messages.length });
+
+    res.status(200).json({
+      code: 'SUCCESS',
+      message: 'Messages retrieved successfully',
+      data: messages,
+    });
   }
 
   /**

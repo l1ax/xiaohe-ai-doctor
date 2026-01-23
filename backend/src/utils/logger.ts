@@ -39,9 +39,17 @@ class Logger {
   }
 
   error(message: string, error?: any, context?: LogContext): void {
+    // I3: Capture and include stack trace in structured format
+    const errorData = error ? {
+      message: error.message || String(error),
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+    } : {};
+
     console.error(
       this.formatMessage(LogLevel.ERROR, message, context),
-      error || ''
+      JSON.stringify(errorData)
     );
   }
 

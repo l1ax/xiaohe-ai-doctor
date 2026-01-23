@@ -30,6 +30,8 @@ export class ValidationError extends AgentError {
 
 /**
  * 错误处理中间件
+ * @deprecated This utility is currently unused. It's kept for potential future use with async route handlers.
+ * If you start using it, remove this comment and document its usage in the codebase.
  */
 export function asyncHandler<T extends any[], R>(
   fn: (...args: T) => Promise<R>
@@ -53,6 +55,7 @@ export function asyncHandler<T extends any[], R>(
  * Express 错误处理中间件
  */
 import { Request, Response, NextFunction } from 'express';
+import { logger } from './logger';
 
 export function errorHandler(
   err: Error,
@@ -60,7 +63,22 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ): void {
-  console.error('Error:', err);
+  // C1: Use logger.error instead of console.error
+  // I3: Include stack trace in structured format
+  logger.error(
+    'Error handled by middleware',
+    {
+      message: err.message,
+      stack: err.stack,
+      name: err.name,
+      code: (err as any).code,
+    },
+    {
+      path: req.path,
+      method: req.method,
+      ip: req.ip,
+    }
+  );
 
   if (err instanceof AgentError) {
     res.status(err.statusCode).json({

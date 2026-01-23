@@ -13,12 +13,36 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Request logging middleware
+// I4: Request logging middleware with response status and duration tracking
 app.use((req, res, next) => {
+  const startTime = Date.now();
+
+  // Log request
   logger.info(`${req.method} ${req.path}`, {
     ip: req.ip,
     userAgent: req.get('user-agent'),
   });
+
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const level = res.statusCode >= 400 ? 'warn' : 'info';
+
+    if (level === 'warn') {
+      logger.warn(`${req.method} ${req.path} - ${res.statusCode}`, {
+        statusCode: res.statusCode,
+        duration: `${duration}ms`,
+        ip: req.ip,
+      });
+    } else {
+      logger.info(`${req.method} ${req.path} - ${res.statusCode}`, {
+        statusCode: res.statusCode,
+        duration: `${duration}ms`,
+        ip: req.ip,
+      });
+    }
+  });
+
   next();
 });
 
