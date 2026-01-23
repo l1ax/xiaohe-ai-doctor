@@ -12,17 +12,6 @@ describe('MessageWriter', () => {
   beforeEach(() => {
     eventEmitter = new AgentEventEmitter();
     config = {
-      database: {
-        host: 'localhost',
-        port: 5432,
-        username: 'test',
-        password: 'test',
-        database: 'test',
-      },
-      supabase: {
-        url: 'https://test.supabase.co',
-        key: 'test-key',
-      },
       enabled: true,
       batch: {
         maxSize: 10,

@@ -64,17 +64,6 @@ export interface Message {
 }
 
 export interface WriterConfig {
-  database: {
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    database: string;
-  };
-  supabase: {
-    url: string;
-    key: string;
-  };
   enabled: boolean;
   batch: {
     maxSize: number;

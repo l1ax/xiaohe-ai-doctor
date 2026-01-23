@@ -1,8 +1,7 @@
 import express from 'express';
-import { AIChatController } from '../controllers/aiChatController';
+import { aiChatController } from '../controllers/aiChatController';
 
 const router = express.Router();
-const aiChatController = new AIChatController();
 
 /**
  * GET /api/ai-chat/stream

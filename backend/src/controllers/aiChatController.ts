@@ -13,25 +13,19 @@ export class AIChatController {
 
   constructor() {
     this.globalEmitter = globalAgentEventEmitter;
-    this.sseHandler = SSEHandler.getInstance();
+    this.sseHandler = SSEHandler.getInstance({
+      heartbeatInterval: 30000,
+      timeout: 60000,
+      retryDelay: 1000,
+    });
     this.messageWriter = new MessageWriter(this.globalEmitter, {
       enabled: true,
-      database: {
-        host: '',
-        port: 5432,
-        username: '',
-        password: '',
-        database: '',
-      },
-      supabase: {
-        url: '',
-        key: '',
-      },
       batch: {
-        maxSize: 100,
+        maxSize: 10,
         flushInterval: 5000,
       },
     });
+    this.sseHandler.startEventListener();
   }
 
   /**
@@ -79,6 +73,9 @@ export class AIChatController {
           timestamp: new Date().toISOString(),
         },
       });
+    } finally {
+      // Cleanup session emitter
+      // Note: sessionEmitter is local to try block, will be garbage collected
     }
   }
 
@@ -151,3 +148,5 @@ export class AIChatController {
     console.log('[AIChatController] Shutdown complete');
   }
 }
+
+export const aiChatController = new AIChatController();

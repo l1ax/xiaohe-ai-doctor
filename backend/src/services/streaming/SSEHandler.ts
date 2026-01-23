@@ -68,7 +68,7 @@ export class SSEHandler {
     this.connections.set(connectionId, { ...connection, timeout });
   }
 
-  private startEventListener(): void {
+  startEventListener(): void {
     if (this.eventListener) return;
 
     this.eventListener = (event: AgentEvent) => this.sendAgentEvent(event);
