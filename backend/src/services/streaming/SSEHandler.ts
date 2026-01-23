@@ -117,7 +117,16 @@ export class SSEHandler {
       data: agentEvent.data,
     };
 
-    this.broadcastEvent(eventData);
+    // Extract conversationId from event data (C2) - added by controller
+    const conversationId = (agentEvent.data as any).conversationId as string | undefined;
+
+    if (conversationId) {
+      // Send only to connections for this conversation
+      this.sendToConversation(conversationId, eventData);
+    } else {
+      // Fallback to broadcast if no conversationId (shouldn't happen in normal flow)
+      this.broadcastEvent(eventData);
+    }
   }
 
   private sendSSEEvent(res: ServerResponse, event: string, data: any): boolean {

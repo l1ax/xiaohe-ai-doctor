@@ -32,50 +32,80 @@ export class AIChatController {
    * Stream chat endpoint using SSE
    */
   async streamChat(req: Request, res: Response): Promise<void> {
-    const { message, conversationId = `conv_${Date.now()}` } = req.query;
+    // Validate query parameters are strings, not arrays (I1)
+    const messageQuery = req.query.message;
+    const conversationIdQuery = req.query.conversationId;
 
-    if (!message) {
+    if (!messageQuery) {
       res.status(400).json({ error: 'Message is required' });
       return;
     }
 
+    // Ensure message is a string, not an array
+    const messageStr = String(Array.isArray(messageQuery) ? messageQuery[0] : messageQuery);
+    const conversationId = conversationIdQuery
+      ? (Array.isArray(conversationIdQuery) ? conversationIdQuery[0] : conversationIdQuery)
+      : `conv_${Date.now()}`;
+
+    // Type guard to ensure conversationId is a string
+    const conversationIdStr = String(conversationId);
+
+    // Create session-specific event emitter for this request
+    const sessionEmitter = new AgentEventEmitter();
+
+    // Forward session events to global emitter - store listener reference (C1)
+    const eventForwarder = (event: any) => {
+      // Attach conversationId to all events for proper routing (C2)
+      const eventWithConversationId = {
+        ...event,
+        data: {
+          ...event.data,
+          conversationId: conversationIdStr,
+        },
+      };
+      this.globalEmitter.emit(event.type, eventWithConversationId);
+    };
+    sessionEmitter.on('*', eventForwarder);
+
     try {
-      // Create session-specific event emitter for this request
-      const sessionEmitter = new AgentEventEmitter();
-
-      // Forward session events to global emitter
-      sessionEmitter.on('*', (event) => {
-        this.globalEmitter.emit(event.type, event);
-      });
-
       // Handle SSE connection
-      this.sseHandler.handleConnection(req, res, conversationId as string);
+      this.sseHandler.handleConnection(req, res, conversationIdStr);
 
       // Prepare messages
       const messages: Message[] = [
-        { role: 'user', content: message as string }
+        { role: 'user', content: messageStr }
       ];
 
       // Run agent with session emitter
       await runAgent({
         messages,
-        conversationId: conversationId as string,
+        conversationId: conversationIdStr,
         eventEmitter: sessionEmitter,
       });
 
     } catch (error: any) {
       console.error('[AIChatController] Agent error:', error);
-      this.globalEmitter.emit('agent:error', {
+
+      const errorData = {
         type: 'agent:error',
         data: {
           error: error.message || 'Unknown error',
           code: 'AGENT_ERROR',
           timestamp: new Date().toISOString(),
+          conversationId: conversationIdStr,
         },
+      };
+
+      // Send error to SSE client before global emitter (C3)
+      this.sseHandler.sendToConversation(conversationIdStr, {
+        type: 'error',
+        data: errorData.data,
       });
+
+      this.globalEmitter.emit('agent:error', errorData);
     } finally {
-      // Cleanup session emitter
-      // Note: sessionEmitter is local to try block, will be garbage collected
+      // Cleanup session emitter and its listeners (C1)
+      sessionEmitter.removeListener('*', eventForwarder);
     }
   }
 

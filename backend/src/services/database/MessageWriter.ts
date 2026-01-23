@@ -19,7 +19,10 @@ export class MessageWriter {
   private conversationMetadata: Map<string, MessageMetadata>;
   private userMessages: Map<string, Partial<Message>>;
   private flushTimer?: NodeJS.Timeout;
-  private currentConversationId: string | null = null;
+  // Fix I2: Use Map to track current conversationId per active session
+  private activeConversations: Map<string, string> = new Map();
+  // Fix I3: Store listener references to remove only specific listeners
+  private listenerRefs: Map<string, (event: AgentEvent) => void> = new Map();
   private flushedConversations: Set<string> = new Set();
 
   constructor(eventEmitter: AgentEventEmitter, config: WriterConfig) {
@@ -36,11 +39,19 @@ export class MessageWriter {
   }
 
   private setupEventListeners(): void {
-    this.eventEmitter.on('agent:intent', this.handleIntentEvent.bind(this));
-    this.eventEmitter.on('agent:content', this.handleContentEvent.bind(this));
-    this.eventEmitter.on('agent:metadata', this.handleMetadataEvent.bind(this));
-    this.eventEmitter.on('agent:done', this.handleDoneEvent.bind(this));
-    this.eventEmitter.on('agent:error', this.handleErrorEvent.bind(this));
+    // Fix I3: Store listener references for proper cleanup
+    this.listenerRefs.set('agent:intent', this.handleIntentEvent.bind(this));
+    this.listenerRefs.set('agent:content', this.handleContentEvent.bind(this));
+    this.listenerRefs.set('agent:metadata', this.handleMetadataEvent.bind(this));
+    this.listenerRefs.set('agent:done', this.handleDoneEvent.bind(this));
+    this.listenerRefs.set('agent:error', this.handleErrorEvent.bind(this));
+
+    // Use stored listener references
+    this.eventEmitter.on('agent:intent', this.listenerRefs.get('agent:intent')!);
+    this.eventEmitter.on('agent:content', this.listenerRefs.get('agent:content')!);
+    this.eventEmitter.on('agent:metadata', this.listenerRefs.get('agent:metadata')!);
+    this.eventEmitter.on('agent:done', this.listenerRefs.get('agent:done')!);
+    this.eventEmitter.on('agent:error', this.listenerRefs.get('agent:error')!);
   }
 
   private setupBatchFlush(): void {
@@ -61,8 +72,10 @@ export class MessageWriter {
       return;
     }
 
-    // Store current conversation ID for subsequent content/metadata events
-    this.currentConversationId = conversationId;
+    // Fix I2: Use Map to track active conversation per session
+    // Use a unique session key if available, otherwise use conversationId
+    const sessionKey = entities.sessionId as string || conversationId;
+    this.activeConversations.set(sessionKey, conversationId);
 
     // Buffer the user message
     const partialMessage: Partial<Message> = {
@@ -85,10 +98,11 @@ export class MessageWriter {
     if (event.type !== 'agent:content') return;
 
     const { delta } = event.data;
-    const conversationId = this.currentConversationId;
+    // Fix I2: Extract conversationId from event data (added by controller)
+    const conversationId = (event.data as any).conversationId as string | undefined;
 
     if (!conversationId) {
-      console.warn('[MessageWriter] No current conversation ID for content event');
+      console.warn('[MessageWriter] No conversationId in content event');
       return;
     }
 
@@ -118,17 +132,19 @@ export class MessageWriter {
   private handleMetadataEvent(event: AgentEvent): void {
     if (event.type !== 'agent:metadata') return;
 
-    const conversationId = this.currentConversationId;
+    // Fix I2: Extract conversationId from event data (added by controller)
+    const conversationId = (event.data as any).conversationId as string | undefined;
+
+    if (!conversationId) {
+      console.warn('[MessageWriter] No conversationId in metadata event');
+      return;
+    }
+
     const metadata: MessageMetadata = {
       sources: event.data.sources,
       medicalAdvice: event.data.medicalAdvice,
       actions: event.data.actions,
     };
-
-    if (!conversationId) {
-      console.warn('[MessageWriter] No current conversation ID for metadata event');
-      return;
-    }
 
     // Accumulate metadata in memory
     if (!this.conversationMetadata.has(conversationId)) {
@@ -155,20 +171,23 @@ export class MessageWriter {
     // Flush the assistant message
     this.flushConversation(conversationId);
 
-    // Clear current conversation ID
-    this.currentConversationId = null;
+    // Fix I2: Clear from active conversations map
+    this.activeConversations.delete(conversationId);
   }
 
   private handleErrorEvent(event: AgentEvent): void {
     if (event.type !== 'agent:error') return;
 
     const { error, code } = event.data;
+    // Fix I2: Extract conversationId from event data (added by controller)
+    const conversationId = (event.data as any).conversationId as string | undefined;
+
     console.error(`[MessageWriter] Agent error occurred: ${error}${code ? ` (code: ${code})` : ''}`);
 
-    // Flush any pending messages for the current conversation
-    if (this.currentConversationId) {
-      this.flushConversation(this.currentConversationId);
-      this.currentConversationId = null;
+    // Flush any pending messages for the specific conversation
+    if (conversationId) {
+      this.flushConversation(conversationId);
+      this.activeConversations.delete(conversationId);
     }
   }
 
@@ -268,12 +287,31 @@ export class MessageWriter {
     // Flush all pending messages
     this.flushAllConversations();
 
-    // Remove all event listeners
-    this.eventEmitter.removeAllListeners('agent:intent');
-    this.eventEmitter.removeAllListeners('agent:content');
-    this.eventEmitter.removeAllListeners('agent:metadata');
-    this.eventEmitter.removeAllListeners('agent:done');
-    this.eventEmitter.removeAllListeners('agent:error');
+    // Fix I3: Remove only the listeners we added, not all listeners
+    const intentListener = this.listenerRefs.get('agent:intent');
+    const contentListener = this.listenerRefs.get('agent:content');
+    const metadataListener = this.listenerRefs.get('agent:metadata');
+    const doneListener = this.listenerRefs.get('agent:done');
+    const errorListener = this.listenerRefs.get('agent:error');
+
+    if (intentListener) {
+      this.eventEmitter.removeListener('agent:intent', intentListener);
+    }
+    if (contentListener) {
+      this.eventEmitter.removeListener('agent:content', contentListener);
+    }
+    if (metadataListener) {
+      this.eventEmitter.removeListener('agent:metadata', metadataListener);
+    }
+    if (doneListener) {
+      this.eventEmitter.removeListener('agent:done', doneListener);
+    }
+    if (errorListener) {
+      this.eventEmitter.removeListener('agent:error', errorListener);
+    }
+
+    // Clear listener references
+    this.listenerRefs.clear();
 
     console.log('[MessageWriter] Stopped and cleaned up');
   }
