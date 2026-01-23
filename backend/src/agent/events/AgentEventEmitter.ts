@@ -77,7 +77,7 @@ export class AgentEventEmitter extends EventEmitter {
     this.emit('*', event);
   }
 
-  emitMetadata(metadata: MetadataEvent['data']): void {
+  emitMetadata(metadata: Omit<MetadataEvent['data'], 'timestamp'>): void {
     const event: MetadataEvent = {
       type: 'agent:metadata',
       data: {

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { StateGraph, END } from "@langchain/langgraph";
 import { AgentState } from "./state";
 import { classifyIntent } from "./nodes/classifyIntent";
