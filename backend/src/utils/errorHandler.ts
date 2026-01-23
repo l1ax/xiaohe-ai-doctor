@@ -1,0 +1,78 @@
+// backend/src/utils/errorHandler.ts
+
+/**
+ * 自定义错误类型
+ */
+export class AgentError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number = 500
+  ) {
+    super(message);
+    this.name = 'AgentError';
+  }
+}
+
+export class LLMError extends AgentError {
+  constructor(message: string, public originalError?: any) {
+    super(message, 'LLM_ERROR', 503);
+    this.name = 'LLMError';
+  }
+}
+
+export class ValidationError extends AgentError {
+  constructor(message: string) {
+    super(message, 'VALIDATION_ERROR', 400);
+    this.name = 'ValidationError';
+  }
+}
+
+/**
+ * 错误处理中间件
+ */
+export function asyncHandler<T extends any[], R>(
+  fn: (...args: T) => Promise<R>
+) {
+  return (...args: T): Promise<R> => {
+    return fn(...args).catch((error) => {
+      if (error instanceof AgentError) {
+        throw error;
+      }
+      // 将未知错误包装为 AgentError
+      throw new AgentError(
+        error.message || 'Internal server error',
+        'INTERNAL_ERROR',
+        500
+      );
+    });
+  };
+}
+
+/**
+ * Express 错误处理中间件
+ */
+import { Request, Response, NextFunction } from 'express';
+
+export function errorHandler(
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  console.error('Error:', err);
+
+  if (err instanceof AgentError) {
+    res.status(err.statusCode).json({
+      code: err.code,
+      message: err.message,
+      data: null,
+    });
+  } else {
+    res.status(500).json({
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error',
+      data: null,
+    });
+  }
+}

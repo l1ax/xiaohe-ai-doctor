@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import aiChatRouter, { aiChatController } from './routes/aiChat';
+import { logger } from './utils/logger';
+import { errorHandler } from './utils/errorHandler';
 
 dotenv.config();
 
@@ -11,6 +13,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.path}`, {
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+  next();
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -18,27 +29,40 @@ app.get('/health', (req, res) => {
 // AI Chat routes
 app.use('/api/ai-chat', aiChatRouter);
 
+// 404 handler
+app.use((req, res) => {
+  logger.warn(`Route not found: ${req.method} ${req.path}`);
+  res.status(404).json({
+    code: 'NOT_FOUND',
+    message: 'Route not found',
+    data: null,
+  });
+});
+
+// Error handler middleware (must be last)
+app.use(errorHandler);
+
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
 
 // Graceful shutdown handlers
 const gracefulShutdown = (signal: string) => {
-  console.log(`\n💡 Received ${signal}, shutting down gracefully...`);
+  logger.info(`Received ${signal}, shutting down gracefully...`);
 
   server.close(() => {
-    console.log('📡 HTTP server closed');
+    logger.info('HTTP server closed');
 
     // Cleanup controller resources
     aiChatController.shutdown();
 
-    console.log('✅ Graceful shutdown complete');
+    logger.info('Graceful shutdown complete');
     process.exit(0);
   });
 
   // Force shutdown after 10 seconds
   setTimeout(() => {
-    console.error('❌ Forced shutdown after timeout');
+    logger.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 };
@@ -49,12 +73,12 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  logger.error('Uncaught Exception', error);
   gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('Unhandled Rejection', reason, { promise });
   gracefulShutdown('unhandledRejection');
 });
 

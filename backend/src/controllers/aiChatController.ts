@@ -5,6 +5,8 @@ import { AgentEventEmitter, globalAgentEventEmitter } from '../agent/events/Agen
 import { SSEHandler } from '../services/streaming/SSEHandler';
 import { MessageWriter } from '../services/database/MessageWriter';
 import { Message } from '../agent/types';
+import { logger } from '../utils/logger';
+import { ValidationError, LLMError } from '../utils/errorHandler';
 
 export class AIChatController {
   private sseHandler: SSEHandler;
@@ -26,6 +28,7 @@ export class AIChatController {
       },
     });
     this.sseHandler.startEventListener();
+    logger.info('AIChatController initialized');
   }
 
   /**
@@ -37,18 +40,28 @@ export class AIChatController {
     const conversationIdQuery = req.query.conversationId;
 
     if (!messageQuery) {
-      res.status(400).json({ error: 'Message is required' });
-      return;
+      throw new ValidationError('Message is required');
     }
 
     // Ensure message is a string, not an array
     const messageStr = String(Array.isArray(messageQuery) ? messageQuery[0] : messageQuery);
+
+    // Validate message is string and max 5000 chars
+    if (typeof messageStr !== 'string') {
+      throw new ValidationError('Message must be a string');
+    }
+    if (messageStr.length > 5000) {
+      throw new ValidationError('Message must not exceed 5000 characters');
+    }
+
     const conversationId = conversationIdQuery
       ? (Array.isArray(conversationIdQuery) ? conversationIdQuery[0] : conversationIdQuery)
       : `conv_${Date.now()}`;
 
     // Type guard to ensure conversationId is a string
     const conversationIdStr = String(conversationId);
+
+    logger.info('Stream chat request received', { conversationId: conversationIdStr, messageLength: messageStr.length });
 
     // Create session-specific event emitter for this request
     const sessionEmitter = new AgentEventEmitter();
@@ -76,6 +89,8 @@ export class AIChatController {
         { role: 'user', content: messageStr }
       ];
 
+      logger.agent('Starting agent execution', { conversationId: conversationIdStr });
+
       // Run agent with session emitter
       await runAgent({
         messages,
@@ -83,8 +98,19 @@ export class AIChatController {
         eventEmitter: sessionEmitter,
       });
 
+      logger.agent('Agent execution completed', { conversationId: conversationIdStr });
+
     } catch (error: any) {
-      console.error('[AIChatController] Agent error:', error);
+      logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
+
+      // Determine if it's an LLM error
+      const isLLMError = error.message?.toLowerCase().includes('llm') ||
+                         error.message?.toLowerCase().includes('api') ||
+                         error.code === 'LLM_ERROR';
+
+      if (isLLMError) {
+        throw new LLMError(error.message || 'LLM service error', error);
+      }
 
       const errorData = {
         type: 'agent:error',
@@ -117,8 +143,7 @@ export class AIChatController {
       const { type = 'ai_consultation', patientId, doctorId } = req.body;
 
       if (!patientId) {
-        res.status(400).json({ error: 'Patient ID is required' });
-        return;
+        throw new ValidationError('Patient ID is required');
       }
 
       const conversation = this.messageWriter.createConversation(
@@ -127,12 +152,14 @@ export class AIChatController {
         doctorId
       );
 
+      logger.info('Conversation created', { conversationId: conversation.id, patientId });
+
       res.status(201).json({
         success: true,
         data: conversation,
       });
     } catch (error: any) {
-      console.error('Create conversation error:', error);
+      logger.error('Failed to create conversation', error, { body: req.body });
       res.status(500).json({
         error: 'Failed to create conversation',
         message: error.message,
@@ -148,19 +175,20 @@ export class AIChatController {
       const { id } = req.params;
 
       if (!id) {
-        res.status(400).json({ error: 'Conversation ID is required' });
-        return;
+        throw new ValidationError('Conversation ID is required');
       }
 
       const conversationId = Array.isArray(id) ? id[0] : id;
       const messages = await this.messageWriter.getMessages(conversationId);
+
+      logger.info('Messages retrieved', { conversationId, count: messages.length });
 
       res.status(200).json({
         success: true,
         data: messages,
       });
     } catch (error: any) {
-      console.error('Get messages error:', error);
+      logger.error('Failed to get messages', error, { conversationId: String(req.params.id) });
       res.status(500).json({
         error: 'Failed to get messages',
         message: error.message,
@@ -172,10 +200,10 @@ export class AIChatController {
    * Shutdown the controller and cleanup resources
    */
   shutdown(): void {
-    console.log('[AIChatController] Shutting down...');
+    logger.info('Shutting down AIChatController');
     this.sseHandler.closeAllConnections();
     this.messageWriter.stop();
-    console.log('[AIChatController] Shutdown complete');
+    logger.info('AIChatController shutdown complete');
   }
 }
 
