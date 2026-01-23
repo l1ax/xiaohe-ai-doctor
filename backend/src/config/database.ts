@@ -15,15 +15,37 @@ export interface DatabaseConfig {
 }
 
 /**
+ * 解析并验证正整数环境变量
+ * @param value 环境变量值
+ * @param defaultValue 默认值
+ * @returns 解析后的正整数
+ * @throws 如果值为 NaN 或不是正整数
+ */
+function parsePositiveInt(value: string | undefined, defaultValue: string): number {
+  const inputValue = value || defaultValue;
+  const parsed = parseInt(inputValue, 10);
+
+  if (isNaN(parsed)) {
+    throw new Error(`Invalid configuration: expected a positive integer, got "${inputValue}"`);
+  }
+
+  if (parsed <= 0) {
+    throw new Error(`Invalid configuration: expected a positive integer > 0, got ${parsed}`);
+  }
+
+  return parsed;
+}
+
+/**
  * 加载数据库配置
  */
 export function loadDatabaseConfig(): DatabaseConfig {
   return {
     writer: {
-      enabled: process.env.DB_WRITE_ENABLED !== 'false',
+      enabled: process.env.DB_WRITE_ENABLED === 'true',
       batch: {
-        maxSize: parseInt(process.env.DB_BATCH_SIZE || '10'),
-        flushInterval: parseInt(process.env.DB_FLUSH_INTERVAL || '5000'),
+        maxSize: parsePositiveInt(process.env.DB_BATCH_SIZE, '10'),
+        flushInterval: parsePositiveInt(process.env.DB_FLUSH_INTERVAL, '5000'),
       },
     },
     supabase: process.env.SUPABASE_URL
