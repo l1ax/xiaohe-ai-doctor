@@ -25,17 +25,20 @@ const INTENT_PROMPT = `你是一个医疗健康助手的意图识别模块。分
 }`;
 
 export async function classifyIntent(state: typeof AgentState.State) {
+  const emitter = state.eventEmitter;
   const lastMessage = state.messages[state.messages.length - 1];
   const userInput = lastMessage.content;
 
+  emitter.emitThinking('正在识别您的意图...');
+
   const prompt = INTENT_PROMPT.replace('{input}', userInput);
-  
+
   const response = await llm.invoke([
     { role: "user", content: prompt },
   ]);
 
   let result: { intent: UserIntent; entities: any };
-  
+
   try {
     const content = (response.content as string).trim();
     // 提取JSON（可能包含```json```标记）
@@ -52,6 +55,8 @@ export async function classifyIntent(state: typeof AgentState.State) {
   }
 
   console.log('✅ Intent classified:', result.intent);
+
+  emitter.emitIntent(result.intent, result.entities);
 
   return {
     userIntent: result.intent,

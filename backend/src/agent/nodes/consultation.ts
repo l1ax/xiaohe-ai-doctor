@@ -14,17 +14,25 @@ const CONSULTATION_PROMPT = `你是一位专业的医疗健康顾问助手。请
 - 涉及用药时强调遵医嘱`;
 
 export async function consultation(state: typeof AgentState.State) {
+  const emitter = state.eventEmitter;
   const lastMessage = state.messages[state.messages.length - 1];
   const userQuery = lastMessage.content;
 
+  emitter.emitThinking('正在为您查找相关资料...');
+
   const prompt = CONSULTATION_PROMPT.replace('{query}', userQuery);
-  
+
   const response = await llm.invoke([
     { role: "user", content: prompt },
   ]);
 
   const answer = response.content as string;
   console.log('💬 Consultation completed');
+
+  // Emit content character by character
+  for (const char of answer) {
+    emitter.emitContent(char);
+  }
 
   return {
     branchResult: answer,

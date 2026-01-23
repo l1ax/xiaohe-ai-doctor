@@ -18,17 +18,44 @@ const SYMPTOM_PROMPT = `你是一位专业的医疗健康顾问。用户描述�
 - 语气温和、关切`;
 
 export async function symptomAnalysis(state: typeof AgentState.State) {
+  const emitter = state.eventEmitter;
   const lastMessage = state.messages[state.messages.length - 1];
   const userQuery = lastMessage.content;
 
+  emitter.emitThinking('正在分析您的症状...');
+
+  emitter.emitToolCall('symptom_analysis', 'running', {
+    input: { query: userQuery },
+  });
+
   const prompt = SYMPTOM_PROMPT.replace('{query}', userQuery);
-  
+
   const response = await llm.invoke([
     { role: "user", content: prompt },
   ]);
 
   const analysis = response.content as string;
   console.log('🩺 Symptom analysis completed');
+
+  emitter.emitToolCall('symptom_analysis', 'completed', {
+    output: { analysis },
+  });
+
+  // Emit content character by character
+  for (const char of analysis) {
+    emitter.emitContent(char);
+  }
+
+  // Emit metadata with medical advice
+  emitter.emitMetadata({
+    medicalAdvice: {
+      symptoms: [],
+      possibleConditions: [],
+      suggestions: [],
+      urgencyLevel: 'low',
+    },
+    actions: [],
+  });
 
   return {
     branchResult: analysis,

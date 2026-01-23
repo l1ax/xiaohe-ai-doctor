@@ -5,7 +5,7 @@ import { AgentState } from "../state";
  * MVP阶段直接返回分支结果，后续可优化为多分支结果整合
  */
 export async function synthesizeResponse(state: typeof AgentState.State) {
-  const { branchResult, userIntent } = state;
+  const { branchResult, userIntent, conversationId, eventEmitter } = state;
 
   // MVP阶段直接使用分支结果
   const finalResponse = {
@@ -14,6 +14,9 @@ export async function synthesizeResponse(state: typeof AgentState.State) {
   };
 
   console.log(`✅ Final response synthesized for intent: ${userIntent}`);
+
+  // Emit done event
+  eventEmitter.emitDone(conversationId);
 
   return {
     messages: [finalResponse],

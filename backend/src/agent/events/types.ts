@@ -12,7 +12,7 @@ export type AgentEventType =
   | 'agent:done'
   | 'agent:error';
 
-export type ToolType = 'coze_knowledge' | 'web_search' | 'hospital_query' | 'ocr';
+export type ToolType = 'coze_knowledge' | 'web_search' | 'hospital_query' | 'ocr' | 'symptom_analysis' | 'medicine_query';
 
 export interface ThinkingEvent {
   type: 'agent:thinking';

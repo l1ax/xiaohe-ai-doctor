@@ -19,17 +19,34 @@ const MEDICINE_PROMPT = `你是一位药品咨询顾问。用户询问药品相�
 - 语气专业、关切`;
 
 export async function medicineInfo(state: typeof AgentState.State) {
+  const emitter = state.eventEmitter;
   const lastMessage = state.messages[state.messages.length - 1];
   const userQuery = lastMessage.content;
+  const medicineName = state.extractedInfo?.medicineName || '相关药品';
+
+  emitter.emitThinking(`正在查询${medicineName}的药品信息...`);
+
+  emitter.emitToolCall('medicine_query', 'running', {
+    input: { medicineName },
+  });
 
   const prompt = MEDICINE_PROMPT.replace('{query}', userQuery);
-  
+
   const response = await llm.invoke([
     { role: "user", content: prompt },
   ]);
 
   const info = response.content as string;
   console.log('💊 Medicine info completed');
+
+  emitter.emitToolCall('medicine_query', 'completed', {
+    output: { info },
+  });
+
+  // Emit content character by character
+  for (const char of info) {
+    emitter.emitContent(char);
+  }
 
   return {
     branchResult: info,

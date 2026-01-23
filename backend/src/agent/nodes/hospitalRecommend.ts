@@ -17,17 +17,45 @@ const HOSPITAL_PROMPT = `你是一位医疗咨询顾问。用户想要咨询医�
 - 语气专业、友好`;
 
 export async function hospitalRecommend(state: typeof AgentState.State) {
+  const emitter = state.eventEmitter;
   const lastMessage = state.messages[state.messages.length - 1];
   const userQuery = lastMessage.content;
+  const location = state.extractedInfo?.location || '您的地区';
+
+  emitter.emitThinking(`正在为您查找${location}的医院信息...`);
+
+  emitter.emitToolCall('hospital_query', 'running', {
+    input: { query: userQuery, location },
+  });
 
   const prompt = HOSPITAL_PROMPT.replace('{query}', userQuery);
-  
+
   const response = await llm.invoke([
     { role: "user", content: prompt },
   ]);
 
   const recommendation = response.content as string;
   console.log('🏥 Hospital recommendation completed');
+
+  emitter.emitToolCall('hospital_query', 'completed', {
+    output: { recommendation },
+  });
+
+  // Emit content character by character
+  for (const char of recommendation) {
+    emitter.emitContent(char);
+  }
+
+  // Emit metadata with actions
+  emitter.emitMetadata({
+    actions: [
+      {
+        type: 'book_appointment',
+        label: '预约挂号',
+        data: { location },
+      },
+    ],
+  });
 
   return {
     branchResult: recommendation,
