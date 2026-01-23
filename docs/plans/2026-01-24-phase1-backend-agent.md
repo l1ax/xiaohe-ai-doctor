@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 搭建基于 LangGraph.js 的 AI Agent 后端服务，集成 Coze 知识库工具，实现意图识别、工具调度、流式响应等核心功能。
+**Goal:** 搭建基于 LangGraph.js 的 AI Agent 后端服务，实现意图分类路由，根据用户意图分发到不同处理分支，最后综合生成回复。
 
-**Architecture:** 使用 LangGraph.js 构建 Agent 工作流，通过 LangGraph SDK 与服务端集成。Agent 包含意图识别、工具调度（Coze知识库、网络搜索、医院查询、OCR）、信息整合、响应生成四个核心节点。后端通过 Express 提供 SSE 流式接口供前端调用。
+**Architecture:** 使用 LangGraph.js 构建条件路由工作流。流程为：意图分类 → 条件路由 → 4个处理分支（患处分析、问诊、医生推荐、药品识别）→ 综合回答。MVP阶段所有分支均使用智谱AI大模型调用，后续迭代时再集成专业工具（知识库、搜索、OCR等）。后端通过 Express 提供 SSE 流式接口供前端调用。
 
-**Tech Stack:** Node.js 20+, TypeScript, Express, LangGraph.js, @langchain/langgraph-sdk, Coze API, OpenAI/Anthropic API
+**Tech Stack:** Node.js 20+, TypeScript, Express, LangGraph.js, Zhipu AI (glm-4.7)
 
 ---
 
@@ -206,7 +206,7 @@ export interface AgentStep {
 
 ```typescript
 import { Annotation } from "@langchain/langgraph";
-import { Message, UserIntent, SearchResult, ToolCall } from "./types";
+import { Message, UserIntent } from "./types";
 
 export const AgentState = Annotation.Root({
   messages: Annotation<Message[]>({
@@ -221,17 +221,10 @@ export const AgentState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => ({}),
   }),
-  searchResults: Annotation<SearchResult[]>({
-    reducer: (_, update) => update,
-    default: () => [],
-  }),
-  cozeKnowledge: Annotation<any>({
+  // 各分支的处理结果
+  branchResult: Annotation<string | null>({
     reducer: (_, update) => update,
     default: () => null,
-  }),
-  toolResults: Annotation<ToolCall[]>({
-    reducer: (current, update) => [...current, ...update],
-    default: () => [],
   }),
   conversationId: Annotation<string>({
     reducer: (_, update) => update,
