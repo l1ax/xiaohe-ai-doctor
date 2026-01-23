@@ -1,6 +1,10 @@
 import { ChatOpenAI } from "@langchain/openai";
 
 export function createZhipuLLM(temperature: number = 0.7) {
+  if (!process.env.ZHIPU_API_KEY) {
+    throw new Error('ZHIPU_API_KEY is not set in environment variables');
+  }
+  
   return new ChatOpenAI({
     model: "glm-4-flash",
     apiKey: process.env.ZHIPU_API_KEY,
