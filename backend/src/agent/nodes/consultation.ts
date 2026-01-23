@@ -20,7 +20,7 @@ export async function consultation(state: typeof AgentState.State) {
   const prompt = CONSULTATION_PROMPT.replace('{query}', userQuery);
   
   const response = await llm.invoke([
-    { role: "system", content: prompt },
+    { role: "user", content: prompt },
   ]);
 
   const answer = response.content as string;

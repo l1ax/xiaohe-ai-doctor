@@ -23,7 +23,7 @@ export async function hospitalRecommend(state: typeof AgentState.State) {
   const prompt = HOSPITAL_PROMPT.replace('{query}', userQuery);
   
   const response = await llm.invoke([
-    { role: "system", content: prompt },
+    { role: "user", content: prompt },
   ]);
 
   const recommendation = response.content as string;

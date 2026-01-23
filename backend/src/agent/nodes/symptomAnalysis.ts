@@ -24,7 +24,7 @@ export async function symptomAnalysis(state: typeof AgentState.State) {
   const prompt = SYMPTOM_PROMPT.replace('{query}', userQuery);
   
   const response = await llm.invoke([
-    { role: "system", content: prompt },
+    { role: "user", content: prompt },
   ]);
 
   const analysis = response.content as string;

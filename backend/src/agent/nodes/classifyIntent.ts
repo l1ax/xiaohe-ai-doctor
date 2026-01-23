@@ -31,7 +31,7 @@ export async function classifyIntent(state: typeof AgentState.State) {
   const prompt = INTENT_PROMPT.replace('{input}', userInput);
   
   const response = await llm.invoke([
-    { role: "system", content: prompt },
+    { role: "user", content: prompt },
   ]);
 
   let result: { intent: UserIntent; entities: any };

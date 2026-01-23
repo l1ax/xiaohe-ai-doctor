@@ -25,7 +25,7 @@ export async function medicineInfo(state: typeof AgentState.State) {
   const prompt = MEDICINE_PROMPT.replace('{query}', userQuery);
   
   const response = await llm.invoke([
-    { role: "system", content: prompt },
+    { role: "user", content: prompt },
   ]);
 
   const info = response.content as string;
