@@ -1,0 +1,14 @@
+# Worktrees
+.worktrees/
+
+# Backend
+backend/node_modules/
+backend/dist/
+backend/.env
+
+# Logs
+*.log
+.DS_Store
+
+# LangGraph API
+.langgraph_api
