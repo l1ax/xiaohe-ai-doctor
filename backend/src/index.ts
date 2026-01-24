@@ -6,6 +6,7 @@ import aiChatRouter, { aiChatController } from './routes/aiChat';
 import authRouter from './routes/auth';
 import consultationsRouter from './routes/consultations';
 import appointmentsRouter from './routes/appointments';
+import uploadRouter from './routes/upload';
 import { wsManager } from './services/websocket/WebSocketManager';
 import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
@@ -66,6 +67,9 @@ app.use('/api/consultations', consultationsRouter);
 
 // Appointments routes
 app.use('/api/appointments', appointmentsRouter);
+
+// Upload routes
+app.use('/api/upload', uploadRouter);
 
 // 404 handler
 app.use((req, res) => {
