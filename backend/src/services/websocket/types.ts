@@ -6,6 +6,7 @@ import { WebSocket } from 'ws';
 export enum WSMessageType {
   MESSAGE = 'message',
   TYPING = 'typing',
+  // READ type is kept for future read receipt functionality
   READ = 'read',
   HEARTBEAT = 'heartbeat',
   SYSTEM = 'system',
@@ -77,6 +78,7 @@ export interface WSConnection {
   userRole: 'patient' | 'doctor';
   connectedAt: number;
   lastHeartbeat: number;
+  isClosing: boolean; // Flag to prevent race conditions during connection close
 }
 
 /**

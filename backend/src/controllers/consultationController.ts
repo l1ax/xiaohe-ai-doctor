@@ -6,6 +6,17 @@ import { wsManager } from '../services/websocket/WebSocketManager';
 import { getDoctorList, getDoctorById, getDepartments, getHospitals } from '../services/doctors/doctorService';
 
 /**
+ * Utility function to safely extract route parameter
+ * Handles both string and string[] types from Express route params
+ */
+function getRouteParam(param: string | string[] | undefined): string {
+  if (Array.isArray(param)) {
+    return param[0];
+  }
+  return param || '';
+}
+
+/**
  * 问诊信息
  */
 interface Consultation {
@@ -18,7 +29,8 @@ interface Consultation {
   updatedAt: string;
 }
 
-// 临时存储问诊数据（MVP 阶段）
+// WARNING: In-memory storage only - data will be lost on server restart
+// TODO: Implement persistent storage for production use (e.g., database)
 const mockConsultations: Map<string, Consultation> = new Map();
 
 /**
@@ -54,8 +66,7 @@ export const getDoctors = async (req: Request, res: Response): Promise<void> => 
  */
 export const getDoctorDetail = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const doctorId = typeof id === 'string' ? id : id[0];
+    const doctorId = getRouteParam(req.params.id);
 
     const doctor = getDoctorById(doctorId);
 
@@ -213,8 +224,7 @@ export const getConsultationDetail = async (req: Request, res: Response): Promis
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { id } = req.params;
-    const consultationId = typeof id === 'string' ? id : id[0];
+    const consultationId = getRouteParam(req.params.id);
     const consultation = mockConsultations.get(consultationId);
 
     if (!consultation) {
@@ -253,8 +263,7 @@ export const updateConsultationStatus = async (
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { id } = req.params;
-    const consultationId = typeof id === 'string' ? id : id[0];
+    const consultationId = getRouteParam(req.params.id);
     const { status } = req.body;
 
     if (!['pending', 'active', 'closed', 'cancelled'].includes(status)) {
@@ -302,8 +311,7 @@ export const joinConsultation = async (req: Request, res: Response): Promise<voi
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { id } = req.params;
-    const consultationId = typeof id === 'string' ? id : id[0];
+    const consultationId = getRouteParam(req.params.id);
     const consultation = mockConsultations.get(consultationId);
 
     if (!consultation) {
@@ -353,8 +361,7 @@ export const leaveConsultation = async (req: Request, res: Response): Promise<vo
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { id } = req.params;
-    const consultationId = typeof id === 'string' ? id : id[0];
+    const consultationId = getRouteParam(req.params.id);
 
     // 用户离开 WebSocket 会话
     wsManager.leaveConversation(req.user.userId, consultationId);

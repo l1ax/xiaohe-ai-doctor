@@ -24,10 +24,16 @@ import { v4 as uuidv4 } from 'uuid';
 export class WebSocketManager {
   private wss: WebSocketServer | null = null;
   private connections: Map<string, WSConnection> = new Map();
+  // WARNING: In-memory storage only - data will be lost on server restart
+  // TODO: Implement persistent storage for production use
   private conversations: Map<string, Set<string>> = new Map(); // conversationId -> userIds
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_INTERVAL = 30000; // 30秒
   private readonly HEARTBEAT_TIMEOUT = 60000; // 60秒无心跳则断开
+  private readonly MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB max message size
+  private readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
+  private readonly RATE_LIMIT_MAX = 60; // 60 messages per minute
+  private rateLimitMap: Map<string, { count: number; resetTime: number }> = new Map();
 
   /**
    * 初始化 WebSocket 服务器
@@ -65,8 +71,12 @@ export class WebSocketManager {
       // 检查是否已有连接
       const existingConnection = this.connections.get(payload.userId);
       if (existingConnection) {
-        logger.info('Closing existing connection', { userId: payload.userId });
-        existingConnection.ws.close();
+        // Prevent race condition by checking isClosing flag
+        if (!existingConnection.isClosing) {
+          logger.info('Closing existing connection', { userId: payload.userId });
+          existingConnection.isClosing = true;
+          existingConnection.ws.close();
+        }
       }
 
       // 创建新连接
@@ -76,6 +86,7 @@ export class WebSocketManager {
         userRole: payload.role,
         connectedAt: Date.now(),
         lastHeartbeat: Date.now(),
+        isClosing: false,
       };
 
       this.connections.set(payload.userId, connection);
@@ -122,7 +133,66 @@ export class WebSocketManager {
    */
   private handleMessage(userId: string, data: Buffer): void {
     try {
-      const message: ClientMessage = JSON.parse(data.toString());
+      // Validate message size
+      if (data.length > this.MAX_MESSAGE_SIZE) {
+        logger.warn('Message size exceeds limit', {
+          userId,
+          size: data.length,
+          maxSize: this.MAX_MESSAGE_SIZE,
+        });
+        const connection = this.connections.get(userId);
+        if (connection) {
+          this.sendToUser(userId, {
+            type: WSMessageType.SYSTEM,
+            conversationId: '',
+            data: { text: 'Message too large' },
+          });
+        }
+        return;
+      }
+
+      // Validate and parse JSON
+      let message: ClientMessage;
+      try {
+        message = JSON.parse(data.toString());
+      } catch (parseError) {
+        logger.warn('Invalid JSON message', { userId });
+        const connection = this.connections.get(userId);
+        if (connection) {
+          this.sendToUser(userId, {
+            type: WSMessageType.SYSTEM,
+            conversationId: '',
+            data: { text: 'Invalid message format' },
+          });
+        }
+        return;
+      }
+
+      // Validate message format
+      if (!message.type || !message.conversationId) {
+        logger.warn('Invalid message format', { userId });
+        const connection = this.connections.get(userId);
+        if (connection) {
+          this.sendToUser(userId, {
+            type: WSMessageType.SYSTEM,
+            conversationId: '',
+            data: { text: 'Invalid message format' },
+          });
+        }
+        return;
+      }
+
+      // Check rate limit
+      if (!this.checkRateLimit(userId)) {
+        logger.warn('Rate limit exceeded', { userId });
+        this.sendToUser(userId, {
+          type: WSMessageType.SYSTEM,
+          conversationId: '',
+          data: { text: 'Rate limit exceeded' },
+        });
+        return;
+      }
+
       const connection = this.connections.get(userId);
 
       if (!connection) {
@@ -160,6 +230,21 @@ export class WebSocketManager {
   private handleChatMessage(userId: string, clientMessage: ClientMessage): void {
     const connection = this.connections.get(userId);
     if (!connection) return;
+
+    // Validate user is in the conversation
+    const conversationUsers = this.conversations.get(clientMessage.conversationId);
+    if (!conversationUsers || !conversationUsers.has(userId)) {
+      logger.warn('User not in conversation', {
+        userId,
+        conversationId: clientMessage.conversationId,
+      });
+      this.sendToUser(userId, {
+        type: WSMessageType.SYSTEM,
+        conversationId: clientMessage.conversationId,
+        data: { text: 'You are not in this conversation' },
+      });
+      return;
+    }
 
     // 构建服务端消息
     const serverMessage: ServerMessage = {
@@ -212,7 +297,10 @@ export class WebSocketManager {
     excludeUserId?: string
   ): void {
     const userIds = this.conversations.get(conversationId);
-    if (!userIds) return;
+    if (!userIds) {
+      logger.warn('Conversation not found', { conversationId });
+      return;
+    }
 
     for (const userId of userIds) {
       if (userId !== excludeUserId) {
@@ -226,7 +314,7 @@ export class WebSocketManager {
    */
   sendToUser(userId: string, message: ServerMessage): boolean {
     const connection = this.connections.get(userId);
-    if (!connection || connection.ws.readyState !== WebSocket.OPEN) {
+    if (!connection || connection.ws.readyState !== WebSocket.OPEN || connection.isClosing) {
       return false;
     }
 
@@ -271,6 +359,7 @@ export class WebSocketManager {
    */
   private handleDisconnection(userId: string): void {
     this.connections.delete(userId);
+    this.rateLimitMap.delete(userId);
 
     // 从所有会话中移除用户
     for (const [conversationId, userIds] of this.conversations.entries()) {
@@ -299,9 +388,15 @@ export class WebSocketManager {
     this.heartbeatInterval = setInterval(() => {
       const now = Date.now();
       for (const [userId, connection] of this.connections.entries()) {
+        // Skip if connection is already closing
+        if (connection.isClosing) {
+          continue;
+        }
+
         // 超时检测
         if (now - connection.lastHeartbeat > this.HEARTBEAT_TIMEOUT) {
           logger.info('Connection timeout, closing', { userId });
+          connection.isClosing = true;
           connection.ws.close();
           this.handleDisconnection(userId);
         } else {
@@ -330,6 +425,34 @@ export class WebSocketManager {
   }
 
   /**
+   * 检查用户速率限制
+   */
+  private checkRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const userLimit = this.rateLimitMap.get(userId);
+
+    if (!userLimit) {
+      this.rateLimitMap.set(userId, { count: 1, resetTime: now + this.RATE_LIMIT_WINDOW });
+      return true;
+    }
+
+    // Reset if window expired
+    if (now > userLimit.resetTime) {
+      userLimit.count = 1;
+      userLimit.resetTime = now + this.RATE_LIMIT_WINDOW;
+      return true;
+    }
+
+    // Check limit
+    if (userLimit.count >= this.RATE_LIMIT_MAX) {
+      return false;
+    }
+
+    userLimit.count++;
+    return true;
+  }
+
+  /**
    * 关闭服务器
    */
   shutdown(): void {
@@ -343,6 +466,7 @@ export class WebSocketManager {
 
     this.connections.clear();
     this.conversations.clear();
+    this.rateLimitMap.clear();
 
     if (this.wss) {
       this.wss.close();
