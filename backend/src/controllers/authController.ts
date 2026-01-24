@@ -127,7 +127,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     }
     res.json({
       code: 0,
-      data: { id: user.id, phone: user.phone, nickname: user.nickname, avatarUrl: user.avatarUrl, role: user.role },
+      data: { user: { id: user.id, phone: user.phone, nickname: user.nickname, avatarUrl: user.avatarUrl, role: user.role } },
       message: 'success',
     });
   } catch (error) {
@@ -152,7 +152,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     logger.info('User profile updated', { userId: user.id });
     res.json({
       code: 0,
-      data: { id: user.id, phone: user.phone, nickname: user.nickname, avatarUrl: user.avatarUrl, role: user.role },
+      data: { user: { id: user.id, phone: user.phone, nickname: user.nickname, avatarUrl: user.avatarUrl, role: user.role } },
       message: 'success',
     });
   } catch (error) {

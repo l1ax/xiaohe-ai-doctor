@@ -1,14 +1,16 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import consultationsRouter from '../../routes/consultations';
 import authRouter from '../../routes/auth';
+import { errorHandler } from '../../utils/errorHandler';
 
 // 创建测试应用
 const app = express();
 app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/consultations', consultationsRouter);
+app.use(errorHandler);
 
 describe('Consultation Integration Tests', () => {
   let authToken: string;
@@ -51,6 +53,8 @@ describe('Consultation Integration Tests', () => {
         .get('/api/consultations/doctors');
 
       expect(response.status).toBe(401);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
     });
   });
 
@@ -71,6 +75,8 @@ describe('Consultation Integration Tests', () => {
         .get('/api/consultations/departments');
 
       expect(response.status).toBe(401);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
     });
   });
 
@@ -94,6 +100,8 @@ describe('Consultation Integration Tests', () => {
         .send({});
 
       expect(response.status).toBe(400);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
     });
 
     it('should reject consultation creation without authentication', async () => {
@@ -102,6 +110,8 @@ describe('Consultation Integration Tests', () => {
         .send({ doctorId: 'doctor-001' });
 
       expect(response.status).toBe(401);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
     });
   });
 
@@ -121,6 +131,53 @@ describe('Consultation Integration Tests', () => {
         .get('/api/consultations');
 
       expect(response.status).toBe(401);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
+    });
+  });
+
+  describe('GET /api/consultations/doctors/:id', () => {
+    it('should get doctor detail with authentication', async () => {
+      const response = await request(app)
+        .get('/api/consultations/doctors/doctor_001')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.code).toBe(0);
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.id).toBeDefined();
+      expect(response.body.data.name).toBeDefined();
+    });
+
+    it('should reject request without authentication', async () => {
+      const response = await request(app)
+        .get('/api/consultations/doctors/doctor_001');
+
+      expect(response.status).toBe(401);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
+    });
+  });
+
+  describe('GET /api/consultations/hospitals', () => {
+    it('should get hospitals list with authentication', async () => {
+      const response = await request(app)
+        .get('/api/consultations/hospitals')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.code).toBe(0);
+      expect(response.body.data).toBeDefined();
+      expect(Array.isArray(response.body.data)).toBe(true);
+    });
+
+    it('should reject request without authentication', async () => {
+      const response = await request(app)
+        .get('/api/consultations/hospitals');
+
+      expect(response.status).toBe(401);
+      expect(response.body.code).toBeDefined();
+      expect(response.body.message).toBeDefined();
     });
   });
 });
