@@ -11,6 +11,17 @@ import {
 } from '../services/appointments/appointmentService';
 
 /**
+ * Utility function to safely extract route parameter
+ * Handles both string and string[] types from Express route params
+ */
+function getRouteParam(param: string | string[] | undefined): string {
+  if (Array.isArray(param)) {
+    return param[0];
+  }
+  return param || '';
+}
+
+/**
  * 获取医生排班
  * GET /api/appointments/schedule
  */
@@ -112,10 +123,13 @@ export const getAppointments = async (req: Request, res: Response): Promise<void
       throw new UnauthorizedError('Authentication required');
     }
 
-    const appointments = getUserAppointments(req.user.userId).map((a) => ({
-      ...a,
-      doctor: getDoctorById(a.doctorId),
-    }));
+    const appointments = getUserAppointments(req.user.userId).map((a) => {
+      const doctor = getDoctorById(a.doctorId);
+      return {
+        ...a,
+        doctor,
+      };
+    });
 
     res.json({
       code: 0,
@@ -138,7 +152,7 @@ export const getAppointmentDetail = async (req: Request, res: Response): Promise
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { id } = req.params;
+    const id = getRouteParam(req.params.id);
     const appointment = getAppointmentById(id);
 
     if (!appointment) {
@@ -150,11 +164,13 @@ export const getAppointmentDetail = async (req: Request, res: Response): Promise
       throw new UnauthorizedError('Access denied');
     }
 
+    const doctor = getDoctorById(appointment.doctorId);
+
     res.json({
       code: 0,
       data: {
         ...appointment,
-        doctor: getDoctorById(appointment.doctorId),
+        doctor,
       },
       message: 'success',
     });
@@ -174,7 +190,7 @@ export const cancelAppointmentHandler = async (req: Request, res: Response): Pro
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { id } = req.params;
+    const id = getRouteParam(req.params.id);
     const appointment = cancelAppointment(id);
 
     if (!appointment) {
