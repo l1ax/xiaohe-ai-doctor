@@ -1,0 +1,203 @@
+import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
+import { ValidationError, NotFoundError, UnauthorizedError } from '../utils/errorHandler';
+import { getDoctorById } from '../services/doctors/doctorService';
+import {
+  getDoctorSchedule,
+  createAppointment,
+  getUserAppointments,
+  getAppointmentById,
+  cancelAppointment,
+} from '../services/appointments/appointmentService';
+
+/**
+ * 获取医生排班
+ * GET /api/appointments/schedule
+ */
+export const getSchedule = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { doctorId, startDate, endDate } = req.query;
+
+    if (!doctorId || !startDate || !endDate) {
+      throw new ValidationError('Missing required parameters');
+    }
+
+    // 验证医生存在
+    const doctor = getDoctorById(doctorId as string);
+    if (!doctor) {
+      throw new NotFoundError('Doctor not found');
+    }
+
+    const schedules = getDoctorSchedule(
+      doctorId as string,
+      startDate as string,
+      endDate as string
+    );
+
+    res.json({
+      code: 0,
+      data: {
+        doctor,
+        schedules,
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get schedule error', error);
+    throw error;
+  }
+};
+
+/**
+ * 创建预约
+ * POST /api/appointments
+ */
+export const createAppointmentHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { doctorId, appointmentTime, patientName } = req.body;
+
+    if (!doctorId || !appointmentTime) {
+      throw new ValidationError('Missing required fields');
+    }
+
+    // 验证医生存在
+    const doctor = getDoctorById(doctorId);
+    if (!doctor) {
+      throw new NotFoundError('Doctor not found');
+    }
+
+    // 创建预约
+    const appointment = createAppointment(
+      req.user.userId,
+      patientName || '患者',
+      req.user.phone,
+      doctorId,
+      doctor.name,
+      doctor.hospital,
+      doctor.department,
+      appointmentTime
+    );
+
+    logger.info('Appointment created', {
+      appointmentId: appointment.id,
+      patientId: req.user.userId,
+      doctorId,
+    });
+
+    res.status(201).json({
+      code: 0,
+      data: {
+        ...appointment,
+        doctor,
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Create appointment error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取我的预约列表
+ * GET /api/appointments
+ */
+export const getAppointments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const appointments = getUserAppointments(req.user.userId).map((a) => ({
+      ...a,
+      doctor: getDoctorById(a.doctorId),
+    }));
+
+    res.json({
+      code: 0,
+      data: appointments,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get appointments error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取预约详情
+ * GET /api/appointments/:id
+ */
+export const getAppointmentDetail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { id } = req.params;
+    const appointment = getAppointmentById(id);
+
+    if (!appointment) {
+      throw new NotFoundError('Appointment not found');
+    }
+
+    // 权限检查
+    if (appointment.patientId !== req.user.userId) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    res.json({
+      code: 0,
+      data: {
+        ...appointment,
+        doctor: getDoctorById(appointment.doctorId),
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get appointment detail error', error);
+    throw error;
+  }
+};
+
+/**
+ * 取消预约
+ * PUT /api/appointments/:id/cancel
+ */
+export const cancelAppointmentHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { id } = req.params;
+    const appointment = cancelAppointment(id);
+
+    if (!appointment) {
+      throw new NotFoundError('Appointment not found');
+    }
+
+    // 权限检查
+    if (appointment.patientId !== req.user.userId) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    logger.info('Appointment cancelled', {
+      appointmentId: id,
+      patientId: req.user.userId,
+    });
+
+    res.json({
+      code: 0,
+      data: appointment,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Cancel appointment error', error);
+    throw error;
+  }
+};
