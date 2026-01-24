@@ -1,0 +1,376 @@
+import { Request, Response } from 'express';
+import { logger } from '../utils/logger';
+import { ValidationError, NotFoundError, UnauthorizedError } from '../utils/errorHandler';
+import { v4 as uuidv4 } from 'uuid';
+import { wsManager } from '../services/websocket/WebSocketManager';
+import { getDoctorList, getDoctorById, getDepartments, getHospitals } from '../services/doctors/doctorService';
+
+/**
+ * 问诊信息
+ */
+interface Consultation {
+  id: string;
+  patientId: string;
+  patientPhone: string; // 用于匹配连接
+  doctorId: string;
+  status: 'pending' | 'active' | 'closed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 临时存储问诊数据（MVP 阶段）
+const mockConsultations: Map<string, Consultation> = new Map();
+
+/**
+ * 获取医生列表
+ * GET /api/consultations/doctors
+ */
+export const getDoctors = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { department, hospital, available } = req.query;
+
+    const filters = {
+      department: department as string | undefined,
+      hospital: hospital as string | undefined,
+      available: available === 'true' ? true : available === 'false' ? false : undefined,
+    };
+
+    const doctors = getDoctorList(filters);
+
+    res.json({
+      code: 0,
+      data: doctors,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get doctors error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取医生详情
+ * GET /api/consultations/doctors/:id
+ */
+export const getDoctorDetail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const doctorId = typeof id === 'string' ? id : id[0];
+
+    const doctor = getDoctorById(doctorId);
+
+    if (!doctor) {
+      throw new NotFoundError('Doctor not found');
+    }
+
+    res.json({
+      code: 0,
+      data: doctor,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get doctor detail error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取科室列表
+ * GET /api/consultations/departments
+ */
+export const getDepartmentsList = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const departments = getDepartments();
+
+    res.json({
+      code: 0,
+      data: departments,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get departments error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取医院列表
+ * GET /api/consultations/hospitals
+ */
+export const getHospitalsList = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const hospitals = getHospitals();
+
+    res.json({
+      code: 0,
+      data: hospitals,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get hospitals error', error);
+    throw error;
+  }
+};
+
+/**
+ * 创建问诊
+ * POST /api/consultations
+ */
+export const createConsultation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { doctorId } = req.body;
+
+    if (!doctorId) {
+      throw new ValidationError('Doctor ID is required');
+    }
+
+    // 验证医生存在且可用
+    const doctor = getDoctorById(doctorId);
+    if (!doctor) {
+      throw new NotFoundError('Doctor not found');
+    }
+
+    if (!doctor.isAvailable) {
+      throw new ValidationError('Doctor is not available');
+    }
+
+    // 创建问诊
+    const consultationId = uuidv4();
+    const now = new Date().toISOString();
+
+    const consultation: Consultation = {
+      id: consultationId,
+      patientId: req.user.userId,
+      patientPhone: req.user.phone,
+      doctorId,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    mockConsultations.set(consultationId, consultation);
+
+    logger.info('Consultation created', {
+      consultationId,
+      patientId: req.user.userId,
+      doctorId,
+    });
+
+    res.json({
+      code: 0,
+      data: {
+        ...consultation,
+        doctor,
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Create consultation error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取问诊列表
+ * GET /api/consultations
+ */
+export const getConsultations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const consultations = Array.from(mockConsultations.values())
+      .filter((c) => c.patientId === req.user!.userId)
+      .map((c) => ({
+        ...c,
+        doctor: getDoctorById(c.doctorId),
+      }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    res.json({
+      code: 0,
+      data: consultations,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get consultations error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取问诊详情
+ * GET /api/consultations/:id
+ */
+export const getConsultationDetail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { id } = req.params;
+    const consultationId = typeof id === 'string' ? id : id[0];
+    const consultation = mockConsultations.get(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    // 权限检查
+    if (consultation.patientId !== req.user.userId) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    res.json({
+      code: 0,
+      data: {
+        ...consultation,
+        doctor: getDoctorById(consultation.doctorId),
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get consultation detail error', error);
+    throw error;
+  }
+};
+
+/**
+ * 更新问诊状态
+ * PUT /api/consultations/:id/status
+ */
+export const updateConsultationStatus = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { id } = req.params;
+    const consultationId = typeof id === 'string' ? id : id[0];
+    const { status } = req.body;
+
+    if (!['pending', 'active', 'closed', 'cancelled'].includes(status)) {
+      throw new ValidationError('Invalid status');
+    }
+
+    const consultation = mockConsultations.get(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    // 权限检查
+    if (consultation.patientId !== req.user.userId) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    // 更新状态
+    consultation.status = status;
+    consultation.updatedAt = new Date().toISOString();
+
+    logger.info('Consultation status updated', {
+      consultationId: consultationId,
+      status,
+    });
+
+    res.json({
+      code: 0,
+      data: consultation,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Update consultation status error', error);
+    throw error;
+  }
+};
+
+/**
+ * 加入问诊（WebSocket 连接后调用）
+ * POST /api/consultations/:id/join
+ */
+export const joinConsultation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { id } = req.params;
+    const consultationId = typeof id === 'string' ? id : id[0];
+    const consultation = mockConsultations.get(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    // 权限检查
+    if (consultation.patientId !== req.user.userId) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    // 更新状态为 active
+    if (consultation.status === 'pending') {
+      consultation.status = 'active';
+      consultation.updatedAt = new Date().toISOString();
+    }
+
+    // 用户加入 WebSocket 会话
+    wsManager.joinConversation(req.user.userId, consultationId);
+
+    logger.info('User joined consultation', {
+      consultationId: consultationId,
+      userId: req.user.userId,
+    });
+
+    res.json({
+      code: 0,
+      data: {
+        consultationId: consultationId,
+        status: consultation.status,
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Join consultation error', error);
+    throw error;
+  }
+};
+
+/**
+ * 离开问诊
+ * POST /api/consultations/:id/leave
+ */
+export const leaveConsultation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const { id } = req.params;
+    const consultationId = typeof id === 'string' ? id : id[0];
+
+    // 用户离开 WebSocket 会话
+    wsManager.leaveConversation(req.user.userId, consultationId);
+
+    logger.info('User left consultation', {
+      consultationId: consultationId,
+      userId: req.user.userId,
+    });
+
+    res.json({
+      code: 0,
+      data: { success: true },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Leave consultation error', error);
+    throw error;
+  }
+};

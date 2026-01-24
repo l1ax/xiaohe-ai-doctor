@@ -1,8 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { Server } from 'http';
 import aiChatRouter, { aiChatController } from './routes/aiChat';
 import authRouter from './routes/auth';
+import consultationsRouter from './routes/consultations';
+import { wsManager } from './services/websocket/WebSocketManager';
 import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
 
@@ -57,6 +60,9 @@ app.use('/api/ai-chat', aiChatRouter);
 // Auth routes
 app.use('/api/auth', authRouter);
 
+// Consultations routes
+app.use('/api/consultations', consultationsRouter);
+
 // 404 handler
 app.use((req, res) => {
   logger.warn(`Route not found: ${req.method} ${req.path}`);
@@ -72,7 +78,10 @@ app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
-});
+}) as Server;
+
+// Initialize WebSocket server
+wsManager.initialize(server);
 
 // Graceful shutdown handlers
 const gracefulShutdown = (signal: string) => {
@@ -80,6 +89,9 @@ const gracefulShutdown = (signal: string) => {
 
   server.close(() => {
     logger.info('HTTP server closed');
+
+    // Cleanup WebSocket manager
+    wsManager.shutdown();
 
     // Cleanup controller resources
     aiChatController.shutdown();
