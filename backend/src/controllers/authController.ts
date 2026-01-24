@@ -3,6 +3,9 @@ import { jwtService, TokenPayload } from '../services/auth/jwt';
 import { logger } from '../utils/logger';
 import { ValidationError, UnauthorizedError, NotFoundError } from '../utils/errorHandler';
 
+// Phone number regex constant for Chinese mobile numbers
+const PHONE_REGEX = /^1[3-9]\d{9}$/;
+
 // 临时存储用户数据（MVP 阶段）
 const mockUsers: Map<string, {
   id: string;
@@ -12,17 +15,27 @@ const mockUsers: Map<string, {
   role: 'patient' | 'doctor';
 }> = new Map();
 
+// Mock verification code for development/testing
+// WARNING: This should only be used in development mode with MOCK_MODE=true
 const MOCK_VERIFY_CODE = '123456';
 
 export const sendVerificationCode = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone } = req.body;
-    const phoneRegex = /^1[3-9]\d{9}$/;
-    if (!phone || !phoneRegex.test(phone)) {
+    if (!phone || !PHONE_REGEX.test(phone)) {
       throw new ValidationError('Invalid phone number format');
     }
+
+    // Check if mock mode is enabled
+    const mockMode = process.env.MOCK_MODE === 'true';
+    if (mockMode) {
+      logger.debug('Mock verification code sent', { phone });
+      res.json({ code: 0, data: { message: 'Verification code sent' }, message: 'success' });
+      return;
+    }
+
+    // TODO: Integrate with SMS service for production
     logger.info('Verification code requested', { phone });
-    logger.info('Mock verification code sent', { phone, code: MOCK_VERIFY_CODE });
     res.json({ code: 0, data: { message: 'Verification code sent' }, message: 'success' });
   } catch (error) {
     logger.error('Send verification code error', error);
@@ -33,11 +46,18 @@ export const sendVerificationCode = async (req: Request, res: Response): Promise
 export const loginOrRegister = async (req: Request, res: Response): Promise<void> => {
   try {
     const { phone, verifyCode } = req.body;
-    const phoneRegex = /^1[3-9]\d{9}$/;
-    if (!phone || !phoneRegex.test(phone)) {
+    if (!phone || !PHONE_REGEX.test(phone)) {
       throw new ValidationError('Invalid phone number format');
     }
-    if (!verifyCode || verifyCode !== MOCK_VERIFY_CODE) {
+
+    // In mock mode, accept the mock verification code
+    const mockMode = process.env.MOCK_MODE === 'true';
+    if (mockMode && verifyCode === MOCK_VERIFY_CODE) {
+      // Proceed with mock authentication
+    } else if (!mockMode) {
+      // TODO: Implement proper verification code validation in production
+      throw new ValidationError('Verification code validation not implemented');
+    } else {
       throw new ValidationError('Invalid verification code');
     }
     let user = mockUsers.get(phone);
