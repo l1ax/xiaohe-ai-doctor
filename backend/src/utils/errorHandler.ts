@@ -28,6 +28,27 @@ export class ValidationError extends AgentError {
   }
 }
 
+export class UnauthorizedError extends AgentError {
+  constructor(message: string = 'Unauthorized') {
+    super(message, 'UNAUTHORIZED', 401);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+export class ForbiddenError extends AgentError {
+  constructor(message: string = 'Forbidden') {
+    super(message, 'FORBIDDEN', 403);
+    this.name = 'ForbiddenError';
+  }
+}
+
+export class NotFoundError extends AgentError {
+  constructor(message: string = 'Resource not found') {
+    super(message, 'NOT_FOUND', 404);
+    this.name = 'NotFoundError';
+  }
+}
+
 /**
  * 错误处理中间件
  * @deprecated This utility is currently unused. It's kept for potential future use with async route handlers.

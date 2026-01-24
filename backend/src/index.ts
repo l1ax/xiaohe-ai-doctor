@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import aiChatRouter, { aiChatController } from './routes/aiChat';
+import authRouter from './routes/auth';
 import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
 
@@ -52,6 +53,9 @@ app.get('/health', (req, res) => {
 
 // AI Chat routes
 app.use('/api/ai-chat', aiChatRouter);
+
+// Auth routes
+app.use('/api/auth', authRouter);
 
 // 404 handler
 app.use((req, res) => {
