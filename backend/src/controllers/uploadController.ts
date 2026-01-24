@@ -56,6 +56,8 @@ export const uploadImage = async (req: Request, res: Response): Promise<void> =>
     logger.info('Image uploaded', {
       userId: req.user.userId,
       path: result.path,
+      fileSize: req.file.size,
+      contentType: req.file.mimetype,
     });
 
     res.json({

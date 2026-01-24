@@ -1,4 +1,5 @@
 import { StorageClient } from '@supabase/storage-js';
+import { basename } from 'path';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
@@ -16,7 +17,10 @@ export class StorageService {
   private client: StorageClient | null = null;
 
   constructor() {
-    if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+    // 验证环境变量
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      console.warn('WARNING: SUPABASE_URL or SUPABASE_SERVICE_KEY not configured. Storage service will not be available.');
+    } else {
       const storageUrl = `${SUPABASE_URL}/storage/v1`;
       this.client = new StorageClient(storageUrl, {
         apikey: SUPABASE_SERVICE_KEY,
@@ -38,7 +42,9 @@ export class StorageService {
       throw new Error('Storage client not initialized. Please check SUPABASE credentials.');
     }
 
-    const fullPath = path ? `${path}/${fileName}` : fileName;
+    // 使用 path.basename 防止路径遍历攻击
+    const sanitizedFileName = basename(fileName);
+    const fullPath = path ? `${path}/${sanitizedFileName}` : sanitizedFileName;
 
     try {
       const { data, error } = await this.client
