@@ -8,46 +8,61 @@
 - **预约挂号**：医院门诊预约服务
 - **文件上传**：医疗影像/报告上传分析
 
-**技术栈**：Node.js + TypeScript + Express + LangGraph.js + WebSocket + Vitest
+**技术栈**：Node.js + TypeScript + Express + LangGraph.js + WebSocket + Vitest + React (H5)
 
 ---
 
-## 强制要求：必须遵循 Superpowers 规范
+## 回答规范
+对于产出的文档，还有过程中的回答，必须返回中文。
 
-**在此项目中工作的所有 AI 助手和开发者，必须严格遵循 superpowers 工作流程。**
+---
 
-### 核心原则
+## Superpowers 规范
 
-1. **任何新功能开发前，必须使用 `superpowers:brainstorming` 技能**
-   - 即使需求看似明确，也必须先进行头脑风暴
-   - 确保完全理解用户意图和设计目标
-   - 在编写代码前完成探索和规划
+**对于复杂需求，必须遵循 superpowers 工作流程。** 简单任务可直接实施，无需遵循完整流程。
 
-2. **遇到 Bug 或测试失败时，必须使用 `superpowers:systematic-debugging` 技能**
-   - 在提出任何修复方案前进行系统性调试
-   - 找到根本原因，而非症状修复
+### 何时使用 Superpowers
 
-3. **实施任何功能前，必须使用 `superpowers:test-driven-development` 技能**
-   - 先写测试，再写实现代码
-   - 确保代码质量和可维护性
+对于**复杂需求**，必须使用相关技能：
 
-4. **有多项独立任务时，必须使用 `superpowers:dispatching-parallel-agents` 技能**
-   - 并行处理独立任务以提高效率
+| 场景 | 使用技能 |
+|------|---------|
+| 新功能开发前 | `superpowers:brainstorming` |
+| Bug 或测试失败 | `superpowers:systematic-debugging` |
+| 重要功能实施 | `superpowers:test-driven-development` |
+| 多项独立任务 | `superpowers:dispatching-parallel-agents` |
+| 开发完成前 | `superpowers:verification-before-completion` |
 
-5. **完成开发后，必须使用 `superpowers:verification-before-completion` 技能**
-   - 在声称完成前运行验证命令
-   - 用证据说话，而非凭空断言
+### 基本工作流程
+brainstorming - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
 
-### 何时使用计划模式
+using-git-worktrees - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
 
-对于以下情况，**必须**进入计划模式（使用 `superpowers:writing-plans`）：
+writing-plans - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+
+subagent-driven-development or executing-plans - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
+
+test-driven-development - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
+
+requesting-code-review - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
+
+finishing-a-development-branch - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
+
+The agent checks for relevant skills before any task. Mandatory workflows, not suggestions
+
+### 计划模式使用场景
+
+对于以下情况，必须进入计划模式（使用 `superpowers:writing-plans`）：
 
 - 需要新增完整的 API 端点
 - 涉及多个文件的修改（3个及以上）
 - 需要架构决策的技术方案
 - 不确定实现路径的复杂任务
 
-**简单任务可直接实施**：
+### 简单任务可直接实施
+
+以下任务无需使用 Superpowers 流程：
+
 - 单行或少量代码修复
 - 明确的小功能添加
 - 纯研究/探索任务
@@ -97,8 +112,8 @@ xiaohe-ai-doctor/
 ### 1. 收到任务时
 
 ```
-1. 检查是否需要调用 superpowers 技能（99% 情况需要）
-2. 使用 Skill 工具加载相应技能
+1. 评估任务复杂度
+2. 简单任务直接实施，复杂任务使用 Skill 工具加载相应技能
 3. 按照技能检查清单创建 TodoWrite 任务
 4. 执行任务
 ```

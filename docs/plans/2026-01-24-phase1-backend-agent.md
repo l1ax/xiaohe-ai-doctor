@@ -982,4 +982,4 @@ git commit -m "test: verify Agent SSE streaming works"
 
 完成后端 Agent 侧后，继续进行：
 - **Phase 2**: 后端业务侧（数据库、认证、WebSocket、业务 API）
-- **Phase 3**: 前端侧（Taro 小程序）
+- **Phase 3**: 前端侧（React H5）
