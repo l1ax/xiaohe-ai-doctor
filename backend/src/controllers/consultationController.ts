@@ -148,6 +148,8 @@ export const createConsultation = async (req: Request, res: Response): Promise<v
       status: 'pending',
       createdAt: now,
       updatedAt: now,
+      lastMessage: '等待接诊...',
+      lastMessageTime: now,
     };
 
     consultationStore.createConsultation(consultation);
