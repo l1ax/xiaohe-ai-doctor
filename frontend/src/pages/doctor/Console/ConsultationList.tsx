@@ -58,7 +58,7 @@ export const ConsultationList = observer(() => {
           待处理问诊 ({pendingConsultations.length})
         </h3>
         <button
-          onClick={fetchPendingConsultations}
+          onClick={() => doctorStore.fetchPendingConsultations()}
           className="text-primary text-sm font-medium flex items-center gap-1 hover:text-primary-dark transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
