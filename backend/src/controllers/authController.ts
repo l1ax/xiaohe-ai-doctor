@@ -89,7 +89,14 @@ export const loginOrRegister = async (req: Request, res: Response): Promise<void
       mockUsers.set(phone, user);
       logger.info('New user registered', { phone, userId: user.id, role: user.role });
     } else {
-      logger.info('User logged in', { phone, userId: user.id });
+      // 用户已存在，如果提供了 role 参数，则更新角色
+      if (role && role !== user.role) {
+        user.role = role as 'patient' | 'doctor';
+        mockUsers.set(phone, user);
+        logger.info('User role updated', { phone, userId: user.id, newRole: user.role });
+      } else {
+        logger.info('User logged in', { phone, userId: user.id, role: user.role });
+      }
     }
     const tokenPayload: TokenPayload = {
       userId: user.id,
