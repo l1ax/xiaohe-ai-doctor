@@ -1,9 +1,10 @@
 # 小禾AI医生 - 技术设计文档
 
-**项目名称**: 小禾AI医生 (Xiaohe AI Doctor)  
-**平台**: 微信小程序  
-**版本**: MVP v1.0  
+**项目名称**: 小禾AI医生 (Xiaohe AI Doctor)
+**平台**: H5（移动端 Web）
+**版本**: MVP v1.0
 **创建日期**: 2026-01-23
+**最后更新**: 2026-01-25（技术栈从 Taro 改为 React + H5）
 
 ---
 
@@ -37,8 +38,8 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│         Taro 小程序（患者端 + 医生端）      │
-│   React 18 + TypeScript + Zustand       │
+│       React H5（患者端 + 医生端）          │
+│   React 18 + TypeScript + Vite + Zustand │
 └───────────────┬─────────────────────────┘
                 │ HTTPS / WSS / SSE
 ┌───────────────▼─────────────────────────┐
@@ -69,9 +70,12 @@
 
 | 层级 | 技术选型 | 说明 |
 |------|---------|------|
-| **前端框架** | Taro 3.x + React 18 + TypeScript | 小程序开发框架 |
+| **前端框架** | React 18 + TypeScript | H5 移动端开发 |
+| **构建工具** | Vite | 快速构建工具 |
 | **UI 组件** | 自定义组件（按 Figma 设计实现） | 用户自行设计 UI |
 | **状态管理** | Zustand | 轻量级状态管理 |
+| **路由** | React Router | SPA 路由 |
+| **HTTP 客户端** | Fetch / Axios | API 请求 |
 | **后端框架** | Express/Koa + TypeScript | Node.js Web 框架 |
 | **AI Agent** | LangGraph.js | Agent 工作流编排 |
 | **知识库** | Coze Workflow API | 医学知识查询 |
@@ -489,25 +493,39 @@ PUT    /api/appointments/:id/cancel  # 取消预约
 
 ---
 
-## 7. 小程序前端设计
+## 7. H5 前端设计
 
 ### 7.1 目录结构
 
 ```
-miniprogram/
+frontend/
 ├── src/
-│   ├── app.tsx                    # 应用入口
-│   ├── app.config.ts              # 小程序配置
-│   ├── pages/                     # 页面
-│   │   ├── index/                 # 首页
-│   │   ├── ai-chat/               # AI 问诊
-│   │   ├── doctor-list/           # 医生列表
-│   │   ├── doctor-chat/           # 医生问诊
-│   │   ├── appointment/           # 预约挂号
-│   │   └── profile/               # 个人中心
+│   ├── main.tsx                   # 应用入口
+│   ├── App.tsx                    # 根组件
+│   ├── router.tsx                 # 路由配置
+│   ├── pages/                     # 页面组件
+│   │   ├── Home/                  # 首页
+│   │   │   ├── index.tsx
+│   │   │   └── index.module.css
+│   │   ├── AIChat/                # AI 问诊
+│   │   │   ├── index.tsx
+│   │   │   └── ChatWindow.tsx
+│   │   ├── DoctorList/            # 医生列表
+│   │   │   ├── index.tsx
+│   │   │   └── DoctorCard.tsx
+│   │   ├── DoctorChat/            # 医生问诊
+│   │   │   └── index.tsx
+│   │   ├── Appointment/           # 预约挂号
+│   │   │   └── index.tsx
+│   │   └── Profile/               # 个人中心
+│   │       └── index.tsx
 │   ├── components/                # 公共组件
 │   │   ├── ChatMessage/           # 消息组件
+│   │   │   ├── index.tsx
+│   │   │   └── index.module.css
 │   │   ├── DoctorCard/            # 医生卡片
+│   │   │   └── index.tsx
+│   │   ├── Header/                # 顶部导航
 │   │   └── ...
 │   ├── store/                     # 状态管理（Zustand）
 │   │   ├── userStore.ts           # 用户状态
@@ -517,7 +535,16 @@ miniprogram/
 │   │   ├── api.ts                 # API 封装
 │   │   ├── websocket.ts           # WebSocket 封装
 │   │   └── sse.ts                 # SSE 封装
-│   └── utils/                     # 工具函数
+│   ├── hooks/                     # 自定义 Hooks
+│   │   ├── useSSE.ts              # SSE 流式响应
+│   │   └── useWebSocket.ts        # WebSocket 连接
+│   ├── utils/                     # 工具函数
+│   └── styles/                    # 全局样式
+│       └── global.css
+├── index.html                     # HTML 入口
+├── vite.config.ts                 # Vite 配置
+├── tsconfig.json                  # TypeScript 配置
+└── package.json
 ```
 
 ### 7.2 核心页面
@@ -621,9 +648,9 @@ JWT_SECRET=xxx
 PORT=3000
 ```
 
-**小程序环境配置**
+**H5 环境配置**
 ```typescript
-// config.ts
+// src/config.ts
 export const API_BASE_URL = 'http://localhost:3000/api';
 export const WS_URL = 'ws://localhost:3000/doctor-chat';
 ```
@@ -637,11 +664,11 @@ export const WS_URL = 'ws://localhost:3000/doctor-chat';
    npm install
    npm run dev  # 监听 3000 端口
    ```
-3. **启动小程序**
+3. **启动 H5 前端**
    ```bash
-   cd miniprogram
+   cd frontend
    npm install
-   npm run dev:weapp  # 微信开发者工具
+   npm run dev  # Vite 开发服务器，监听 5173 端口
    ```
 
 ### 9.3 测试验证重点
@@ -671,7 +698,7 @@ export const WS_URL = 'ws://localhost:3000/doctor-chat';
 | LangGraph.js 部署复杂 | 使用 LangGraph Cloud 或本地运行 |
 | Coze API 限流 | 缓存常见问题答案，降低调用频率 |
 | WebSocket 连接不稳定 | 实现自动重连 + 消息持久化 |
-| 小程序包体积过大 | 代码分包、图片懒加载 |
+| H5 页面性能 | 代码分割、图片懒加载、优化渲染 |
 | AI 回复不准确 | 收集反馈持续优化 Prompt |
 
 ---
@@ -688,14 +715,14 @@ export const WS_URL = 'ws://localhost:3000/doctor-chat';
 - 引入 Redis 缓存
 - AI 回复质量监控
 - 性能监控和日志系统
-- 多端适配（H5、App）
+- 小程序/PC 端适配
 
 ---
 
 ## 附录：关键决策记录
 
-1. **为什么选择 Taro？**  
-   React 生态、跨端能力、技术栈统一
+1. **为什么选择 React + Vite + H5？**
+   轻量级、移动端优先、浏览器直接访问、无需微信开发者工具
 
 2. **为什么用 LangGraph.js 而不是全用 Coze？**  
    完全掌控 Agent 逻辑，灵活性更高；Coze 仅作为知识库工具
