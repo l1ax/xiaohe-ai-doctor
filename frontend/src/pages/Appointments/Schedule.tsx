@@ -8,9 +8,16 @@ const Schedule = observer(function Schedule() {
   const navigate = useNavigate();
   const [schedule, setSchedule] = useState<{ date: string; availableSlots: TimeSlot[] }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSchedule();
+    // 每分钟更新一次当前时间，确保时间段过滤准确
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
   }, []);
 
   const loadSchedule = async () => {
@@ -43,7 +50,29 @@ const Schedule = observer(function Schedule() {
 
   const getSlotsForDate = (date: string) => {
     const scheduleItem = schedule.find((s) => s.date === date);
-    return scheduleItem?.availableSlots || [];
+    const slots = scheduleItem?.availableSlots || [];
+
+    // 如果选择的是今天，过滤掉已过去的时间段
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    if (date === todayStr) {
+      const currentHours = today.getHours();
+      const currentMinutes = today.getMinutes();
+
+      return slots.map((slot) => {
+        const [hours, minutes] = slot.time.split(':').map(Number);
+        const slotTimeInMinutes = hours * 60 + minutes;
+        const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+
+        // 如果时间段已过去，标记为不可用
+        return {
+          ...slot,
+          available: slotTimeInMinutes > currentTimeInMinutes,
+        };
+      });
+    }
+
+    return slots;
   };
 
   const handleSelectDate = (date: string) => {
@@ -55,6 +84,34 @@ const Schedule = observer(function Schedule() {
   };
 
   const canProceed = appointmentStore.selectedDate && appointmentStore.selectedTimeSlot;
+
+  const isSlotPastTime = () => {
+    if (!appointmentStore.selectedDate || !appointmentStore.selectedTimeSlot) {
+      return false;
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    if (appointmentStore.selectedDate !== todayStr) {
+      return false;
+    }
+
+    const [hours, minutes] = appointmentStore.selectedTimeSlot.split(':').map(Number);
+    const slotTimeInMinutes = hours * 60 + minutes;
+    const currentTimeInMinutes = today.getHours() * 60 + today.getMinutes();
+
+    return slotTimeInMinutes <= currentTimeInMinutes;
+  };
+
+  const handleProceed = () => {
+    if (isSlotPastTime()) {
+      setError('所选时间已过期，请重新选择');
+      appointmentStore.selectTimeSlot('');
+      return;
+    }
+    setError(null);
+    navigate('/appointments/confirm');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -142,8 +199,23 @@ const Schedule = observer(function Schedule() {
 
       {/* Bottom Button */}
       <div className="p-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
+            <span className="material-symbols-outlined text-red-500 mt-0.5">error</span>
+            <div className="flex-1">
+              <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        )}
         <button
-          onClick={() => navigate('/appointments/confirm')}
+          onClick={handleProceed}
           disabled={!canProceed}
           className={`w-full py-4 rounded-xl font-semibold text-lg transition-colors ${
             canProceed
