@@ -193,4 +193,35 @@ describe('专家问诊 - 双角色完整流程', () => {
       expect((typingMsg as any).isTyping).toBe(true);
     });
   });
+
+  describe('步骤 10-11: 结束问诊并断开连接', () => {
+    it('医生应能结束问诊', async () => {
+      await apiClient.closeConsultation(doctorToken, consultationId);
+
+      // 验证状态已更新
+      const updated = await apiClient.getConsultationDetail(
+        doctorToken,
+        consultationId
+      );
+      expect(updated.status).toBe('closed');
+    });
+
+    it('患者应能看到问诊已结束', async () => {
+      const consultation = await apiClient.getConsultationDetail(
+        patientToken,
+        consultationId
+      );
+      expect(consultation.status).toBe('closed');
+    });
+
+    it('患者应能离开会话', async () => {
+      await apiClient.leaveConsultation(patientToken, consultationId);
+      // 没有抛出异常即为成功
+    });
+
+    it('医生应能离开会话', async () => {
+      await apiClient.leaveConsultation(doctorToken, consultationId);
+      // 没有抛出异常即为成功
+    });
+  });
 });
