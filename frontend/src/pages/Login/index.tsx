@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useObserver } from 'mobx-react-lighter';
+import { observer } from 'mobx-react-lite';
 import { userStore } from '../../store';
 
-export default function Login() {
+const Login = observer(function Login() {
   const [phone, setPhone] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [countdown, setCountdown] = useState(0);
@@ -46,7 +46,7 @@ export default function Login() {
     }
   };
 
-  return useObserver(() => (
+  return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background-light dark:bg-background-dark">
       <div className="w-full max-w-sm">
         {/* Logo */}
@@ -122,5 +122,7 @@ export default function Login() {
         </div>
       </div>
     </div>
-  ));
-}
+  );
+});
+
+export default Login;

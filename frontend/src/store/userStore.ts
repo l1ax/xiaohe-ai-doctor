@@ -20,7 +20,7 @@ class UserStore {
     if (tokenData && userData) {
       this.accessToken = tokenData.accessToken;
       this.refreshToken = tokenData.refreshToken;
-      this.user = userData;
+      this.user = { ...userData, role: userData.role as 'patient' | 'doctor' };
     }
   }
 
@@ -68,7 +68,7 @@ class UserStore {
     storage.clear();
   }
 
-  async refreshToken() {
+  async doRefreshToken() {
     if (!this.refreshToken) {
       throw new Error('No refresh token');
     }

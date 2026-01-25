@@ -1,4 +1,19 @@
-export const mockDepartments = [
+export interface Department {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  category: string;
+  time: string;
+  imageUrl: string;
+}
+
+export const mockDepartments: Department[] = [
   { id: '1', name: '儿科', icon: 'child_care', color: 'blue' },
   { id: '2', name: '内科', icon: 'cardiology', color: 'orange' },
   { id: '3', name: '口腔科', icon: 'dentistry', color: 'purple' },
@@ -9,7 +24,7 @@ export const mockDepartments = [
   { id: '8', name: '更多', icon: 'grid_view', color: 'slate' },
 ];
 
-export const mockNews = [
+export const mockNews: NewsItem[] = [
   {
     id: '1',
     title: '冬季如何有效增强免疫力？这里有5个妙招',
