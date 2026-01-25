@@ -53,7 +53,14 @@ export const appointmentApi = {
 
   // 获取医生排班
   getSchedule(doctorId: string, startDate: string, endDate: string) {
-    return request.get<Schedule[]>(`/appointments/schedule?doctorId=${doctorId}&startDate=${startDate}&endDate=${endDate}`);
+    return request.get<{ doctor: Doctor; schedules: { date: string; availableSlots: string[] }[] }>(
+      `/appointments/schedule?doctorId=${doctorId}&startDate=${startDate}&endDate=${endDate}`
+    ).then(res =>
+      res.schedules.map(s => ({
+        date: s.date,
+        availableSlots: s.availableSlots.map(time => ({ time, available: true }))
+      }))
+    );
   },
 
   // 创建预约

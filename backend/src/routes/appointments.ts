@@ -5,10 +5,17 @@ import {
   getAppointments,
   getAppointmentDetail,
   cancelAppointmentHandler,
+  getDoctorsForAppointment,
 } from '../controllers/appointmentController';
 import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
+
+/**
+ * 获取医生列表（用于预约）
+ * GET /api/appointments/doctors
+ */
+router.get('/doctors', authMiddleware, getDoctorsForAppointment);
 
 /**
  * 获取医生排班

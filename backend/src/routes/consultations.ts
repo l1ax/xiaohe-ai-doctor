@@ -43,6 +43,13 @@ router.get('/departments', authMiddleware, getDepartmentsList);
 router.get('/hospitals', authMiddleware, getHospitalsList);
 
 /**
+ * 获取待处理的问诊（医生端）
+ * 注意：必须放在 /:id 之前，否则会被拦截
+ * GET /api/consultations/pending
+ */
+router.get('/pending', authMiddleware, getPendingConsultations);
+
+/**
  * 创建问诊
  * POST /api/consultations
  */
@@ -77,12 +84,6 @@ router.post('/:id/join', authMiddleware, joinConsultation);
  * POST /api/consultations/:id/leave
  */
 router.post('/:id/leave', authMiddleware, leaveConsultation);
-
-/**
- * 获取待处理的问诊（医生端）
- * GET /api/consultations/pending
- */
-router.get('/pending', authMiddleware, getPendingConsultations);
 
 /**
  * 医生接诊

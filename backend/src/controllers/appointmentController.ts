@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../utils/errorHandler';
-import { getDoctorById } from '../services/doctors/doctorService';
+import { getDoctorById, getDoctorList } from '../services/doctors/doctorService';
 import {
   getDoctorSchedule,
   createAppointment,
@@ -20,6 +20,44 @@ function getRouteParam(param: string | string[] | undefined): string {
   }
   return param || '';
 }
+
+/**
+ * 获取医生列表（用于预约）
+ * GET /api/appointments/doctors
+ */
+export const getDoctorsForAppointment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { department, hospital, available } = req.query;
+
+    const filters = {
+      department: department as string | undefined,
+      hospital: hospital as string | undefined,
+      available: available === 'true' ? true : available === 'false' ? false : undefined,
+    };
+
+    const doctors = getDoctorList(filters);
+
+    // 转换字段名以匹配前端接口 (isAvailable -> available)
+    const formattedDoctors = doctors.map((doctor) => ({
+      id: doctor.id,
+      name: doctor.name,
+      title: doctor.title,
+      hospital: doctor.hospital,
+      department: doctor.department,
+      rating: doctor.rating,
+      available: doctor.isAvailable,
+    }));
+
+    res.json({
+      code: 0,
+      data: formattedDoctors,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get doctors for appointment error', error);
+    throw error;
+  }
+};
 
 /**
  * 获取医生排班

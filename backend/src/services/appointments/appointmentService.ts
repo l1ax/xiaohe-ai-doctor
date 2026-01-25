@@ -67,12 +67,15 @@ export function isValidDateFormat(dateString: string): boolean {
 }
 
 /**
- * Checks if a date is in the past
+ * Checks if a date is in the past (before today)
  */
 export function isPastDate(dateString: string): boolean {
   const appointmentDate = new Date(dateString);
-  const now = new Date();
-  return appointmentDate < now;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const appointmentDay = new Date(appointmentDate);
+  appointmentDay.setHours(0, 0, 0, 0);
+  return appointmentDay < today;
 }
 
 // Mock 医生排班数据（未来7天）
@@ -183,7 +186,10 @@ export function createAppointment(
   // Check if the time slot is available and not already booked
   const appointmentDate = new Date(appointmentTime);
   const dateStr = appointmentDate.toISOString().split('T')[0];
-  const timeStr = appointmentDate.toTimeString().substring(0, 5); // HH:MM format
+  // Extract time in UTC to match the stored format
+  const hours = String(appointmentDate.getUTCHours()).padStart(2, '0');
+  const minutes = String(appointmentDate.getUTCMinutes()).padStart(2, '0');
+  const timeStr = `${hours}:${minutes}`; // HH:MM format
 
   const scheduleKey = `${doctorId}_${dateStr}`;
   const availableSlots = mockSchedules.get(scheduleKey) || [];

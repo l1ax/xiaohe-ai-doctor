@@ -47,5 +47,5 @@ export const router = createBrowserRouter([
   { path: '/chat', element: <Chat /> },
   { path: '/doctor-list', element: withLayout(<DoctorList />) },
   { path: '/doctor-chat/:id', element: <DoctorChat /> },
-  { path: '/doctor/tasks', element: <DoctorTasks /> },
+  { path: '/doctor-tasks', element: <DoctorTasks /> },
 ]);

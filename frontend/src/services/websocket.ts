@@ -32,28 +32,35 @@ export class WebSocketService {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const wsUrl = `${this.url}?token=${this.token}`;
-      this.ws = new WebSocket(wsUrl);
+      try {
+        const wsUrl = `${this.url}?token=${this.token}`;
+        console.log('Connecting to WebSocket:', wsUrl);
+        this.ws = new WebSocket(wsUrl);
 
-      this.ws.onopen = () => {
-        this.reconnectAttempts = 0;
-        console.log('WebSocket connected');
-        resolve();
-      };
+        this.ws.onopen = () => {
+          this.reconnectAttempts = 0;
+          console.log('WebSocket connected successfully');
+          resolve();
+        };
 
-      this.ws.onmessage = (event) => {
-        this.handleMessage(JSON.parse(event.data));
-      };
+        this.ws.onmessage = (event) => {
+          this.handleMessage(JSON.parse(event.data));
+        };
 
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        this.ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          console.error('Failed to connect to:', wsUrl);
+          reject(new Error(`WebSocket connection failed: ${wsUrl}`));
+        };
+
+        this.ws.onclose = (event) => {
+          console.log('WebSocket disconnected', { code: event.code, reason: event.reason });
+          this.handleDisconnect();
+        };
+      } catch (error) {
+        console.error('Failed to create WebSocket:', error);
         reject(error);
-      };
-
-      this.ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        this.handleDisconnect();
-      };
+      }
     });
   }
 

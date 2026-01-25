@@ -17,22 +17,7 @@ function getRouteParam(param: string | string[] | undefined): string {
   return param || '';
 }
 
-/**
- * 问诊信息
- */
-interface Consultation {
-  id: string;
-  patientId: string;
-  patientPhone: string; // 用于匹配连接
-  doctorId: string;
-  status: 'pending' | 'active' | 'closed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-}
-
-// WARNING: In-memory storage only - data will be lost on server restart
-// TODO: Implement persistent storage for production use (e.g., database)
-const mockConsultations: Map<string, Consultation> = new Map();
+// 移除重复的接口定义和本地存储，统一使用 consultationStore
 
 /**
  * 获取医生列表
@@ -164,7 +149,7 @@ export const createConsultation = async (req: Request, res: Response): Promise<v
       updatedAt: now,
     };
 
-    mockConsultations.set(consultationId, consultation);
+    consultationStore.createConsultation(consultation);
 
     logger.info('Consultation created', {
       consultationId,
@@ -196,13 +181,12 @@ export const getConsultations = async (req: Request, res: Response): Promise<voi
       throw new UnauthorizedError('Authentication required');
     }
 
-    const consultations = Array.from(mockConsultations.values())
-      .filter((c) => c.patientId === req.user!.userId)
+    const consultations = consultationStore
+      .getByPatientId(req.user.userId)
       .map((c) => ({
         ...c,
         doctor: getDoctorById(c.doctorId),
-      }))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      }));
 
     res.json({
       code: 0,
@@ -226,7 +210,7 @@ export const getConsultationDetail = async (req: Request, res: Response): Promis
     }
 
     const consultationId = getRouteParam(req.params.id);
-    const consultation = mockConsultations.get(consultationId);
+    const consultation = consultationStore.getById(consultationId);
 
     if (!consultation) {
       throw new NotFoundError('Consultation not found');
@@ -271,7 +255,7 @@ export const updateConsultationStatus = async (
       throw new ValidationError('Invalid status');
     }
 
-    const consultation = mockConsultations.get(consultationId);
+    const consultation = consultationStore.getById(consultationId);
 
     if (!consultation) {
       throw new NotFoundError('Consultation not found');
@@ -283,8 +267,7 @@ export const updateConsultationStatus = async (
     }
 
     // 更新状态
-    consultation.status = status;
-    consultation.updatedAt = new Date().toISOString();
+    const updatedConsultation = consultationStore.updateStatus(consultationId, status);
 
     logger.info('Consultation status updated', {
       consultationId: consultationId,
@@ -293,7 +276,7 @@ export const updateConsultationStatus = async (
 
     res.json({
       code: 0,
-      data: consultation,
+      data: updatedConsultation,
       message: 'success',
     });
   } catch (error) {
@@ -313,7 +296,7 @@ export const joinConsultation = async (req: Request, res: Response): Promise<voi
     }
 
     const consultationId = getRouteParam(req.params.id);
-    const consultation = mockConsultations.get(consultationId);
+    const consultation = consultationStore.getById(consultationId);
 
     if (!consultation) {
       throw new NotFoundError('Consultation not found');
@@ -326,8 +309,7 @@ export const joinConsultation = async (req: Request, res: Response): Promise<voi
 
     // 更新状态为 active
     if (consultation.status === 'pending') {
-      consultation.status = 'active';
-      consultation.updatedAt = new Date().toISOString();
+      consultationStore.updateStatus(consultationId, 'active');
     }
 
     // 用户加入 WebSocket 会话

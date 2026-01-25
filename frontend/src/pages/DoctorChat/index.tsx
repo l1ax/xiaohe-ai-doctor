@@ -5,7 +5,9 @@ import { userStore } from '../../store';
 import { WebSocketService, ChatMessage } from '../../services/websocket';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
+// WebSocket URL: 在开发环境使用完整 URL，在生产环境使用相对路径
+const WS_URL = import.meta.env.VITE_WS_URL || 
+  (import.meta.env.DEV ? 'ws://localhost:3000/ws' : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
 
 interface Consultation {
   id: string;
@@ -84,13 +86,26 @@ const DoctorChat = observer(function DoctorChat() {
 
       ws.onTyping(() => setIsTyping(true));
     } catch (error) {
-      console.error('WebSocket connection failed:', error);
+      console.warn('WebSocket 连接失败，消息将使用本地显示');
+      setIsConnected(false);
     }
   };
 
   const handleSend = async () => {
     if (!inputValue.trim() || !id || !wsRef.current) return;
 
+    const message = {
+      id: Date.now().toString(),
+      senderId: userStore.user?.id || '',
+      senderType: (userStore.user?.role === 'doctor' ? 'doctor' : 'patient') as 'patient' | 'doctor',
+      content: inputValue,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 先添加到本地列表
+    setMessages((prev) => [...prev, message]);
+
+    // 发送消息
     wsRef.current.sendMessage(id, inputValue);
     setInputValue('');
   };

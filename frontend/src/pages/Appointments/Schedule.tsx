@@ -6,7 +6,7 @@ import { appointmentApi, TimeSlot } from '../../services/appointment';
 
 const Schedule = observer(function Schedule() {
   const navigate = useNavigate();
-  const [schedule, setSchedule] = useState<{ date: string; slots: TimeSlot[] }[]>([]);
+  const [schedule, setSchedule] = useState<{ date: string; availableSlots: TimeSlot[] }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const Schedule = observer(function Schedule() {
 
   const getSlotsForDate = (date: string) => {
     const scheduleItem = schedule.find((s) => s.date === date);
-    return scheduleItem?.slots || [];
+    return scheduleItem?.availableSlots || [];
   };
 
   const handleSelectDate = (date: string) => {

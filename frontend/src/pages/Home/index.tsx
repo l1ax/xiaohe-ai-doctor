@@ -32,7 +32,7 @@ export default function Home() {
               subtitle="三甲名医在线"
               icon="medical_services"
               color="teal"
-              to="/consultation"
+              to="/consultations"
               className="flex-1"
             />
             {/* 预约挂号卡片 */}
@@ -41,7 +41,7 @@ export default function Home() {
               subtitle="省时免排队"
               icon="calendar_month"
               color="indigo"
-              to="/appointment"
+              to="/appointments"
               className="flex-1"
             />
           </div>
