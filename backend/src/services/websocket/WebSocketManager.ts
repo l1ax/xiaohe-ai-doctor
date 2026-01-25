@@ -295,6 +295,9 @@ export class WebSocketManager {
     // 更新会话的最后消息
     consultationStore.updateLastMessage(clientMessage.conversationId, content);
 
+    // 广播问诊更新
+    this.broadcastConsultationUpdate(clientMessage.conversationId);
+
     logger.info('[💾 MESSAGE] 消息已存储', {
       messageId,
       consultationId: clientMessage.conversationId,
