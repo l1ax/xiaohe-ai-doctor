@@ -302,4 +302,30 @@ describe('Consultation Integration Tests', () => {
       }
     });
   });
+
+  describe('PUT /api/consultations/:id/close - patient permission', () => {
+    it('should allow patient to close consultation', async () => {
+      const patientLoginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800139000', verifyCode: '123456', role: 'patient' });
+
+      const patientToken = patientLoginRes.body.data.accessToken;
+
+      // 创建问诊
+      const createRes = await request(app)
+        .post('/api/consultations')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({ doctorId: 'doctor_001' });
+
+      const consultationId = createRes.body.data.id;
+
+      // 患者关闭问诊
+      const res = await request(app)
+        .put(`/api/consultations/${consultationId}/close`)
+        .set('Authorization', `Bearer ${patientToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('closed');
+    });
+  });
 });

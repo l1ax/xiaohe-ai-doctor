@@ -484,8 +484,8 @@ export const acceptConsultation = async (req: Request, res: Response): Promise<v
  */
 export const closeConsultation = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (!req.user || req.user.role !== 'doctor') {
-      throw new UnauthorizedError('Doctor access required');
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     const consultationId = getRouteParam(req.params.id);
@@ -495,13 +495,20 @@ export const closeConsultation = async (req: Request, res: Response): Promise<vo
       throw new NotFoundError('Consultation not found');
     }
 
-    if (consultation.doctorId !== req.user.userId) {
-      throw new UnauthorizedError('Not your consultation');
+    // 患者和医生都可以结束问诊
+    if (
+      consultation.patientId !== req.user.userId &&
+      consultation.doctorId !== req.user.userId
+    ) {
+      throw new UnauthorizedError('Access denied');
     }
 
     consultationStore.updateStatus(consultationId, 'closed');
 
-    logger.info('Consultation closed', { consultationId, doctorId: req.user.userId });
+    logger.info('Consultation closed', {
+      consultationId,
+      closedBy: req.user.userId,
+    });
 
     res.json({
       code: 0,
