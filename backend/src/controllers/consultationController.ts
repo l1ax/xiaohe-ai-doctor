@@ -397,7 +397,8 @@ export const getPendingConsultations = async (req: Request, res: Response): Prom
 };
 
 /**
- * 获取医生的问诊列表（所有未关闭）
+ * 获取医生的问诊列表（所有未关闭的问诊）
+ * 支持按状态筛选: ?status=pending 或 ?status=active
  * GET /api/consultations/doctor
  */
 export const getDoctorConsultations = async (req: Request, res: Response): Promise<void> => {
@@ -414,7 +415,11 @@ export const getDoctorConsultations = async (req: Request, res: Response): Promi
     consultations = consultations.filter((c) => c.status !== 'closed' && c.status !== 'cancelled');
 
     // 按 status 筛选
-    if (status && ['pending', 'active'].includes(status as string)) {
+    if (status) {
+      const validStatuses = ['pending', 'active'];
+      if (!validStatuses.includes(status as string)) {
+        throw new ValidationError(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+      }
       consultations = consultations.filter((c) => c.status === status);
     }
 

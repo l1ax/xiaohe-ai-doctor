@@ -250,5 +250,56 @@ describe('Consultation Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.every((c: any) => c.status === 'pending')).toBe(true);
     });
+
+    it('should reject invalid status parameter', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800138000', verifyCode: '123456', role: 'doctor' });
+
+      const token = loginRes.body.data.accessToken;
+
+      const res = await request(app)
+        .get('/api/consultations/doctor?status=invalid')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBeDefined();
+      expect(res.body.message).toContain('Invalid status');
+    });
+
+    it('should reject access from non-doctor users', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800139000', verifyCode: '123456', role: 'patient' });
+
+      const token = loginRes.body.data.accessToken;
+
+      const res = await request(app)
+        .get('/api/consultations/doctor')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(401);
+      expect(res.body.code).toBeDefined();
+    });
+
+    it('should mask patient phone numbers', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800138000', verifyCode: '123456', role: 'doctor' });
+
+      const token = loginRes.body.data.accessToken;
+
+      const res = await request(app)
+        .get('/api/consultations/doctor')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+
+      if (res.body.data && res.body.data.length > 0) {
+        res.body.data.forEach((c: any) => {
+          expect(c.patientPhone).toMatch(/^\d{3}\*\*\*\*\d{4}$/);
+        });
+      }
+    });
   });
 });
