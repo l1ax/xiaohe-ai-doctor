@@ -4,6 +4,7 @@ import { ValidationError, NotFoundError, UnauthorizedError } from '../utils/erro
 import { v4 as uuidv4 } from 'uuid';
 import { wsManager } from '../services/websocket/WebSocketManager';
 import { getDoctorList, getDoctorById, getDepartments, getHospitals } from '../services/doctors/doctorService';
+import { consultationStore, Consultation } from '../services/storage/consultationStore';
 
 /**
  * Utility function to safely extract route parameter
@@ -381,3 +382,110 @@ export const leaveConsultation = async (req: Request, res: Response): Promise<vo
     throw error;
   }
 };
+
+/**
+ * 获取待处理的问诊（医生端）
+ * GET /api/consultations/pending
+ */
+export const getPendingConsultations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Doctor access required');
+    }
+
+    const consultations = consultationStore.getPendingByDoctorId(req.user.userId);
+
+    res.json({
+      code: 0,
+      data: consultations.map((c) => ({
+        ...c,
+        patientPhone: maskPhone(c.patientPhone),
+        doctor: getDoctorById(c.doctorId),
+      })),
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get pending consultations error', error);
+    throw error;
+  }
+};
+
+/**
+ * 医生接诊
+ * PUT /api/consultations/:id/accept
+ */
+export const acceptConsultation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Doctor access required');
+    }
+
+    const consultationId = getRouteParam(req.params.id);
+    const consultation = consultationStore.getById(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    if (consultation.doctorId !== req.user.userId) {
+      throw new UnauthorizedError('Not your consultation');
+    }
+
+    if (consultation.status !== 'pending') {
+      throw new ValidationError('Consultation is not pending');
+    }
+
+    consultationStore.updateStatus(consultationId, 'active');
+
+    logger.info('Consultation accepted', { consultationId, doctorId: req.user.userId });
+
+    res.json({
+      code: 0,
+      data: { ...consultation, status: 'active' },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Accept consultation error', error);
+    throw error;
+  }
+};
+
+/**
+ * 结束问诊
+ * PUT /api/consultations/:id/close
+ */
+export const closeConsultation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Doctor access required');
+    }
+
+    const consultationId = getRouteParam(req.params.id);
+    const consultation = consultationStore.getById(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    if (consultation.doctorId !== req.user.userId) {
+      throw new UnauthorizedError('Not your consultation');
+    }
+
+    consultationStore.updateStatus(consultationId, 'closed');
+
+    logger.info('Consultation closed', { consultationId, doctorId: req.user.userId });
+
+    res.json({
+      code: 0,
+      data: { ...consultation, status: 'closed' },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Close consultation error', error);
+    throw error;
+  }
+};
+
+function maskPhone(phone: string): string {
+  return phone.slice(0, 3) + '****' + phone.slice(-4);
+}

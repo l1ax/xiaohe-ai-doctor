@@ -10,6 +10,9 @@ import {
   updateConsultationStatus,
   joinConsultation,
   leaveConsultation,
+  getPendingConsultations,
+  acceptConsultation,
+  closeConsultation,
 } from '../controllers/consultationController';
 import { authMiddleware } from '../middleware/auth';
 
@@ -74,5 +77,23 @@ router.post('/:id/join', authMiddleware, joinConsultation);
  * POST /api/consultations/:id/leave
  */
 router.post('/:id/leave', authMiddleware, leaveConsultation);
+
+/**
+ * 获取待处理的问诊（医生端）
+ * GET /api/consultations/pending
+ */
+router.get('/pending', authMiddleware, getPendingConsultations);
+
+/**
+ * 医生接诊
+ * PUT /api/consultations/:id/accept
+ */
+router.put('/:id/accept', authMiddleware, acceptConsultation);
+
+/**
+ * 结束问诊
+ * PUT /api/consultations/:id/close
+ */
+router.put('/:id/close', authMiddleware, closeConsultation);
 
 export default router;
