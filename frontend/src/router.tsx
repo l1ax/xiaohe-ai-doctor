@@ -4,8 +4,6 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Appointments from './pages/Appointments';
-import AppointmentDetail from './pages/Appointments/AppointmentDetail';
-import Doctors from './pages/Appointments/Doctors';
 import Consultations from './pages/Consultations';
 import Prescriptions from './pages/Prescriptions';
 import HealthRecords from './pages/HealthRecords';
@@ -16,6 +14,12 @@ import VIP from './pages/VIP';
 import Chat from './pages/Chat';
 import Layout from './components/Layout';
 
+// 预约模块页面
+import Doctors from './pages/Appointments/Doctors';
+import Schedule from './pages/Appointments/Schedule';
+import Confirm from './pages/Appointments/Confirm';
+import AppointmentDetail from './pages/Appointments/AppointmentDetail';
+
 // 需要底部导航的页面包裹
 const withLayout = (element: React.ReactNode) => <Layout>{element}</Layout>;
 
@@ -25,8 +29,10 @@ export const router = createBrowserRouter([
   { path: '/profile', element: withLayout(<Profile />) },
   { path: '/settings', element: <Settings /> },
   { path: '/appointments', element: withLayout(<Appointments />) },
-  { path: '/appointments/doctors', element: <Doctors /> },
-  { path: '/appointments/:id', element: <AppointmentDetail /> },
+  { path: '/appointments/doctors', element: withLayout(<Doctors />) },
+  { path: '/appointments/schedule', element: withLayout(<Schedule />) },
+  { path: '/appointments/confirm', element: withLayout(<Confirm />) },
+  { path: '/appointments/:id', element: withLayout(<AppointmentDetail />) },
   { path: '/consultations', element: withLayout(<Consultations />) },
   { path: '/prescriptions', element: withLayout(<Prescriptions />) },
   { path: '/health-records', element: withLayout(<HealthRecords />) },
