@@ -6,10 +6,11 @@ import { WebSocket } from 'ws';
 export enum WSMessageType {
   MESSAGE = 'message',
   TYPING = 'typing',
-  // READ type is kept for future read receipt functionality
   READ = 'read',
   HEARTBEAT = 'heartbeat',
   SYSTEM = 'system',
+  JOIN = 'join',
+  LEAVE = 'leave',
 }
 
 /**
