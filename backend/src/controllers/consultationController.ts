@@ -216,8 +216,11 @@ export const getConsultationDetail = async (req: Request, res: Response): Promis
       throw new NotFoundError('Consultation not found');
     }
 
-    // 权限检查
-    if (consultation.patientId !== req.user.userId) {
+    // 权限检查：患者和医生都可以查看问诊详情
+    if (
+      consultation.patientId !== req.user.userId &&
+      consultation.doctorId !== req.user.userId
+    ) {
       throw new UnauthorizedError('Access denied');
     }
 
