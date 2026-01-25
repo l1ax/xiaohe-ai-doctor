@@ -278,7 +278,7 @@ export const chatMachine = setup({
         },
         MESSAGE_CONTENT: {
           target: 'streaming',
-          actions: ['addAssistantMessage', 'setTyping'],
+          actions: ['addAssistantMessage', 'updateMessageContent', 'setTyping'],
         },
         CONVERSATION_STATUS: {
           actions: ['updateConversationStatus'],
@@ -354,7 +354,10 @@ export const chatMachine = setup({
 // ============ 事件解析器 ============
 
 export function parseServerEvent(event: ChatEvent): ChatEventType | null {
+  // 支持下划线格式（新）和冒号格式（旧）的事件类型
   switch (event.type) {
+    // 新格式（下划线）- 主要使用
+    case 'conversation_status':
     case 'conversation:status':
       return {
         type: 'CONVERSATION_STATUS',
@@ -362,6 +365,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         message: event.data.message,
       };
 
+    case 'message_status':
     case 'message:status':
       return {
         type: 'MESSAGE_STATUS',
@@ -370,6 +374,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         role: event.data.role || 'assistant',
       };
 
+    case 'message_content':
     case 'message:content':
       if (!event.data.delta) return null;
       return {
@@ -381,6 +386,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         isLast: event.data.isLast || false,
       };
 
+    case 'message_metadata':
     case 'message:metadata':
       return {
         type: 'MESSAGE_METADATA',
@@ -389,6 +395,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         medicalAdvice: event.data.medicalAdvice,
       };
 
+    case 'tool_call':
     case 'tool:call':
       return {
         type: 'TOOL_CALL',
@@ -400,6 +407,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         duration: event.data.duration,
       };
 
+    case 'conversation_end':
     case 'conversation:end':
       return { type: 'DONE' };
 
@@ -412,6 +420,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
 
     // 旧事件类型兼容
     case 'agent:content':
+    case 'content':
       if (!event.data.delta) return null;
       return {
         type: 'MESSAGE_CONTENT',
@@ -433,6 +442,7 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
       };
 
     case 'agent:done':
+    case 'done':
       return { type: 'DONE' };
 
     case 'agent:error':
@@ -442,11 +452,14 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         message: (event.data as any).error || 'Unknown error',
       };
 
-    // agent:intent 前端不需要显示，静默忽略
+    // agent:intent 和 intent 前端不需要显示，静默忽略
     case 'agent:intent':
+    case 'intent':
+    case 'thinking':
       return null;
 
     default:
+      console.log('[ChatMachine] Unknown event type:', event.type);
       return null;
   }
 }

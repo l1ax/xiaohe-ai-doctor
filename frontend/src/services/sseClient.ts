@@ -1,3 +1,4 @@
+import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { ChatEvent, parseServerEvent, ChatEventType } from '../machines/chatMachine';
 
 export type SSEEventHandler = (event: ChatEventType) => void;
@@ -7,209 +8,169 @@ export interface SSEConfig {
   conversationId: string;
   message?: string;
   onEvent?: SSEEventHandler;
-  onError?: (error: Event) => void;
-  onClose?: (event: CloseEvent) => void;
+  onError?: (error: Error) => void;
+  onClose?: () => void;
   onOpen?: () => void;
-  retryInterval?: number;
-  maxRetries?: number;
 }
 
-interface RetryConfig {
-  maxRetries: number;
-  currentRetries: number;
-  interval: number;
-}
-
+/**
+ * SSE Client using fetch + eventsource-parser
+ * This replaces the native EventSource to avoid automatic reconnection issues
+ */
 export class SSEClient {
-  private eventSource: EventSource | null = null;
   private config: SSEConfig;
-  private retryConfig: RetryConfig;
+  private abortController: AbortController | null = null;
   private isConnected: boolean = false;
   private isManualClose: boolean = false;
-  private handlers: Map<string, Set<SSEEventHandler>> = new Map();
 
   constructor(config: SSEConfig) {
-    this.config = {
-      retryInterval: 3000,
-      maxRetries: 5,
-      ...config,
-    };
-    this.retryConfig = {
-      maxRetries: this.config.maxRetries || 5,
-      currentRetries: 0,
-      interval: this.config.retryInterval || 3000,
-    };
+    this.config = config;
   }
 
-  connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const url = new URL(this.config.url);
-      if (this.config.conversationId) {
-        url.searchParams.set('conversationId', this.config.conversationId);
+  async connect(): Promise<void> {
+    if (this.isConnected) {
+      console.warn('[SSE] Already connected');
+      return;
+    }
+
+    const url = new URL(this.config.url);
+    if (this.config.conversationId) {
+      url.searchParams.set('conversationId', this.config.conversationId);
+    }
+    if (this.config.message) {
+      url.searchParams.set('message', this.config.message);
+    }
+
+    this.abortController = new AbortController();
+    this.isManualClose = false;
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
+        signal: this.abortController.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      if (this.config.message) {
-        url.searchParams.set('message', this.config.message);
+
+      if (!response.body) {
+        throw new Error('Response body is null');
       }
+
+      this.isConnected = true;
+      console.log('[SSE] Connection established');
+      this.config.onOpen?.();
+
+      // Parse the SSE stream
+      const eventStream = response.body
+        .pipeThrough(new TextDecoderStream())
+        .pipeThrough(new EventSourceParserStream());
+
+      const reader = eventStream.getReader();
 
       try {
-        this.eventSource = new EventSource(url.toString());
-        this.isManualClose = false;
-
-        this.eventSource.onopen = () => {
-          console.log('[SSE] Connection established');
-          this.isConnected = true;
-          this.retryConfig.currentRetries = 0;
-          this.config.onOpen?.();
-          resolve();
-        };
-
-        this.eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            const chatEvent: ChatEvent = {
-              type: data.type || event.type,
-              data: data,
-            };
-            const parsedEvent = parseServerEvent(chatEvent);
-            if (parsedEvent) {
-              this.handleEvent(parsedEvent);
-              this.config.onEvent?.(parsedEvent);
-            }
-          } catch (error) {
-            console.error('[SSE] Failed to parse event:', error);
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            console.log('[SSE] Stream ended');
+            break;
           }
-        };
 
-        // 处理新事件类型
-        this.eventSource.addEventListener('conversation_status', (event: MessageEvent) => {
-          this.handleCustomEvent('conversation_status', event);
-        });
-
-        this.eventSource.addEventListener('message_status', (event: MessageEvent) => {
-          this.handleCustomEvent('message_status', event);
-        });
-
-        this.eventSource.addEventListener('message_content', (event: MessageEvent) => {
-          this.handleCustomEvent('message_content', event);
-        });
-
-        this.eventSource.addEventListener('message_metadata', (event: MessageEvent) => {
-          this.handleCustomEvent('message_metadata', event);
-        });
-
-        this.eventSource.addEventListener('tool_call', (event: MessageEvent) => {
-          this.handleCustomEvent('tool_call', event);
-        });
-
-        this.eventSource.addEventListener('conversation_end', (event: MessageEvent) => {
-          this.handleCustomEvent('conversation_end', event);
-        });
-
-        this.eventSource.addEventListener('heartbeat', () => {
-          console.log('[SSE] Heartbeat received');
-        });
-
-        this.eventSource.addEventListener('connected', (event: MessageEvent) => {
-          const data = JSON.parse(event.data);
-          console.log('[SSE] Connected:', data);
-        });
-
-        this.eventSource.onerror = (error) => {
-          console.error('[SSE] Connection error:', error);
-          this.config.onError?.(error);
-          this.handleError();
-        };
-
+          if (value) {
+            this.handleParsedEvent(value);
+          }
+        }
       } catch (error) {
-        reject(error);
+        if (this.isManualClose) {
+          console.log('[SSE] Connection closed by user');
+        } else {
+          throw error;
+        }
+      } finally {
+        reader.releaseLock();
       }
-    });
+
+    } catch (error) {
+      if (this.isManualClose) {
+        console.log('[SSE] Connection closed manually');
+        return;
+      }
+
+      // Check if it's an abort error
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('[SSE] Request aborted');
+        return;
+      }
+
+      console.error('[SSE] Connection error:', error);
+      this.config.onError?.(error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      this.isConnected = false;
+      if (!this.isManualClose) {
+        this.config.onClose?.();
+      }
+    }
   }
 
-  private handleCustomEvent(eventType: string, event: MessageEvent): void {
+  private handleParsedEvent(parsedEvent: { event?: string; data?: string; id?: string }): void {
+    const { event: eventType, data: eventData } = parsedEvent;
+
+    // Skip empty data or heartbeat without meaningful content
+    if (!eventData) {
+      if (eventType === 'heartbeat') {
+        console.log('[SSE] Heartbeat received');
+      }
+      return;
+    }
+
     try {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(eventData);
+      
+      // Handle connected event
+      if (eventType === 'connected') {
+        console.log('[SSE] Connected:', data);
+        return;
+      }
+
+      // Handle heartbeat
+      if (eventType === 'heartbeat') {
+        console.log('[SSE] Heartbeat received');
+        return;
+      }
+
+      // Create ChatEvent and parse it
       const chatEvent: ChatEvent = {
-        type: eventType,
+        type: eventType || 'message',
         data: data,
       };
-      const parsedEvent = parseServerEvent(chatEvent);
-      if (parsedEvent) {
-        this.handleEvent(parsedEvent);
-        this.config.onEvent?.(parsedEvent);
+
+      const parsedChatEvent = parseServerEvent(chatEvent);
+      if (parsedChatEvent) {
+        this.config.onEvent?.(parsedChatEvent);
       }
     } catch (error) {
-      console.error(`[SSE] Failed to parse ${eventType} event:`, error);
+      console.error('[SSE] Failed to parse event:', error, { eventType, eventData });
     }
   }
 
-  private handleEvent(event: ChatEventType): void {
-    // 广播到所有注册的处理器
-    this.handlers.forEach((handlerSet) => {
-      handlerSet.forEach((handler) => {
-        try {
-          handler(event);
-        } catch (error) {
-          console.error('[SSE] Handler error:', error);
-        }
-      });
-    });
-  }
-
-  private handleError(): void {
-    if (this.isManualClose) return;
-
-    if (this.retryConfig.currentRetries < this.retryConfig.maxRetries) {
-      this.retryConfig.currentRetries++;
-      console.log(`[SSE] Retrying connection (${this.retryConfig.currentRetries}/${this.retryConfig.maxRetries})...`);
-      setTimeout(() => {
-        this.connect().catch(console.error);
-      }, this.retryConfig.interval);
-    } else {
-      console.error('[SSE] Max retries reached, giving up');
-    }
-  }
-
-  // 注册事件处理器
-  on(eventType: string, handler: SSEEventHandler): () => void {
-    if (!this.handlers.has(eventType)) {
-      this.handlers.set(eventType, new Set());
-    }
-    this.handlers.get(eventType)!.add(handler);
-
-    // 返回取消注册函数
-    return () => {
-      this.handlers.get(eventType)?.delete(handler);
-    };
-  }
-
-  // 发送消息到服务器
-  send(_data: any): void {
-    // SSE 是单向的，无法发送数据
-    // 如果需要发送数据，请使用 POST API
-    console.warn('[SSE] Cannot send data through SSE connection');
-  }
-
-  // 手动关闭连接
   close(): void {
     this.isManualClose = true;
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-      this.isConnected = false;
-      console.log('[SSE] Connection closed manually');
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
     }
+    this.isConnected = false;
+    console.log('[SSE] Connection closed manually');
   }
 
-  // 获取连接状态
   getConnected(): boolean {
     return this.isConnected;
-  }
-
-  // 获取连接 ID
-  getConnectionId(): string | null {
-    // 可以从 connected 事件中获取
-    return null;
   }
 }
 

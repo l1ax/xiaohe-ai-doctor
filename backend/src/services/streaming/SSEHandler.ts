@@ -99,15 +99,15 @@ export class SSEHandler {
   }
 
   private sendAgentEvent(agentEvent: any): void {
-    // 事件类型映射 - 后端发送的事件类型需要与前端parseServerEvent匹配
-    // 前端期望的事件类型格式: 'conversation:status', 'message:status', 'message:content' 等
+    // 事件类型映射 - 后端发送的事件类型需要与前端 parseServerEvent 匹配
+    // 前端 EventSource 监听使用下划线格式的事件类型
     const eventTypeMap: Record<string, string> = {
-      'conversation:status': 'conversation:status',
-      'message:status': 'message:status',
-      'message:content': 'message:content',
-      'message:metadata': 'message:metadata',
-      'tool:call': 'tool:call',
-      'conversation:end': 'conversation:end',
+      'conversation:status': 'conversation_status',
+      'message:status': 'message_status',
+      'message:content': 'message_content',
+      'message:metadata': 'message_metadata',
+      'tool:call': 'tool_call',
+      'conversation:end': 'conversation_end',
       'error': 'error',
       // 旧事件类型向后兼容
       'agent:thinking': 'thinking',
@@ -123,7 +123,7 @@ export class SSEHandler {
     if (!sseType) return;
 
     const eventData: SSEEventData = {
-      type: sseType,
+      type: sseType as SSEEventData['type'],
       data: agentEvent.data,
     };
 

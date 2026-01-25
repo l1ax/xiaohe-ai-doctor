@@ -49,7 +49,7 @@ describe('AI Chat SSE Integration Tests', () => {
     ];
 
     for (const eventType of eventTypesToListen) {
-      emitter.on(eventType, (event) => {
+      emitter.on(eventType as any, (event) => {
         events.push(event);
         eventTypes.push(event.type);
       });

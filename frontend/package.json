@@ -12,6 +12,8 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@xstate/react": "^6.0.0",
+    "eventsource-parser": "^3.0.6",
     "lucide-react": "^0.563.0",
     "mobx": "^6.10.0",
     "mobx-react-lite": "^4.0.5",
@@ -19,8 +21,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.0",
     "react-router-dom": "^6.20.0",
-    "xstate": "^5.18.0",
-    "@xstate/react": "^6.0.0"
+    "xstate": "^5.18.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
