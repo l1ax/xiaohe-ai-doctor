@@ -6,11 +6,13 @@ export default {
     extend: {
       colors: {
         primary: '#13a4ec',
-        'primary-dark': '#0e8bc7',
+        'primary-dark': '#0f8cc9',
         'background-light': '#f6f7f8',
         'background-dark': '#101c22',
         'surface-light': '#ffffff',
         'surface-dark': '#1c2a33',
+        'bubble-ai': '#ffffff',
+        'bubble-user': '#13a4ec',
         'text-main-light': '#0d171b',
         'text-main-dark': '#e0e6e9',
         'text-sec-light': '#4c809a',

@@ -7,19 +7,25 @@ import { Message } from '../../machines/chatMachine';
 
 const messageStyles = {
   user: {
-    container: 'flex justify-end',
-    bubble: 'bg-blue-500 text-white rounded-2xl rounded-tr-sm max-w-[80%] px-4 py-3',
-    avatar: 'ml-2 bg-blue-200',
+    container: 'flex justify-end items-start gap-3',
+    wrapper: 'flex flex-col gap-1 items-end max-w-[85%]',
+    bubble: 'bg-primary text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-sm text-[16px] leading-relaxed',
+    avatarContainer: 'w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center border-2 border-white shadow-sm mt-1',
+    name: 'hidden',
   },
   assistant: {
-    container: 'flex justify-start',
-    bubble: 'bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm max-w-[80%] px-4 py-3',
-    avatar: 'mr-2 bg-green-100',
+    container: 'flex justify-start items-start gap-3',
+    wrapper: 'flex flex-col gap-1 items-start max-w-[85%]',
+    bubble: 'bg-white dark:bg-[#1e2e36] text-slate-800 dark:text-slate-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 text-[16px] leading-relaxed',
+    avatarContainer: 'w-10 h-10 shrink-0 rounded-full bg-white flex items-center justify-center border-2 border-white dark:border-slate-700 shadow-sm mt-1 overflow-hidden',
+    name: 'text-slate-500 dark:text-slate-400 text-xs font-medium ml-1',
   },
   system: {
-    container: 'flex justify-center',
-    bubble: 'bg-yellow-50 text-yellow-800 text-sm px-4 py-2 rounded-lg',
-    avatar: '',
+    container: 'flex justify-center my-4',
+    wrapper: '',
+    bubble: 'bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-500 dark:text-slate-400 text-xs font-medium px-4 py-1.5 rounded-full text-center',
+    avatarContainer: 'hidden',
+    name: 'hidden',
   },
 };
 
@@ -45,48 +51,66 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
   const styles = messageStyles[role];
 
   return (
-    <div className={`${styles.container} mb-4`}>
+    <div className={`${styles.container} mb-6`}>
+      {/* Assistant Avatar */}
       {role === 'assistant' && (
-        <div className={`${styles.avatar} w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0`}>
-          <Bot className="w-5 h-5 text-green-600" />
+        <div className={styles.avatarContainer}>
+          {/* Use an image if available, otherwise Bot icon */}
+           <img 
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-" 
+            alt="AI Doctor"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement?.classList.add('bg-primary/10');
+            }}
+           />
+           <Bot className="w-6 h-6 text-primary absolute opacity-0" style={{ opacity: 0 }} /> {/* Fallback handled by onError logic physically or just use Bot icon if img fails logic which is complex here. Let's keep it simple: Image first. */}
         </div>
       )}
 
-      <div className={styles.bubble}>
-        {role === 'user' ? (
-          <p className="whitespace-pre-wrap">{content}</p>
-        ) : (
-          <div className="prose prose-sm max-w-none">
-            <ReactMarkdown
-              components={{
-              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-              ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
-              ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
-              li: ({ children }) => <li className="mb-1">{children}</li>,
-              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-              em: ({ children }) => <em>{children}</em>,
-              a: ({ href, children }) => (
-                <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
-                  {children}
-                </a>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">{children}</blockquote>
-              ),
-            }}
-            >
-              {content}
-            </ReactMarkdown>
-          </div>
+      <div className={styles.wrapper}>
+        {role === 'assistant' && (
+          <span className={styles.name}>小禾AI医生</span>
         )}
-        {isStreaming && (
-          <span className="inline-block w-2 h-4 bg-gray-400 ml-1 animate-pulse" />
-        )}
+        
+        <div className={styles.bubble}>
+          {role === 'user' ? (
+            <p className="whitespace-pre-wrap">{content}</p>
+          ) : (
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
+                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                  em: ({ children }) => <em>{children}</em>,
+                  a: ({ href, children }) => (
+                    <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">{children}</blockquote>
+                  ),
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
+          )}
+          {isStreaming && (
+            <span className="inline-block w-2 h-4 bg-primary/50 ml-1 animate-pulse" />
+          )}
+        </div>
       </div>
 
+      {/* User Avatar */}
       {role === 'user' && (
-        <div className={`${styles.avatar} w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0`}>
-          <User className="w-5 h-5 text-blue-600" />
+        <div className={styles.avatarContainer}>
+          <User className="w-6 h-6 text-primary" />
         </div>
       )}
     </div>
@@ -106,28 +130,33 @@ export const ImageMessage: React.FC<ImageMessageProps> = ({ src, alt, caption, r
   const styles = messageStyles[role];
 
   return (
-    <div className={`${styles.container} mb-4`}>
+    <div className={`${styles.container} mb-6`}>
       {role === 'assistant' && (
-        <div className={`${styles.avatar} w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0`}>
-          <Bot className="w-5 h-5 text-green-600" />
+        <div className={styles.avatarContainer}>
+          <Bot className="w-6 h-6 text-primary" />
         </div>
       )}
 
-      <div className={`${styles.bubble} p-2`}>
-        <img
-          src={src}
-          alt={alt || 'Image'}
-          className="max-w-full h-auto rounded-lg"
-          loading="lazy"
-        />
-        {caption && (
-          <p className="text-sm mt-2 opacity-75">{caption}</p>
+      <div className={styles.wrapper}>
+        {role === 'assistant' && (
+            <span className={styles.name}>小禾AI医生</span>
         )}
+        <div className={`${styles.bubble} p-2`}>
+          <img
+            src={src}
+            alt={alt || 'Image'}
+            className="max-w-full h-auto rounded-lg"
+            loading="lazy"
+          />
+          {caption && (
+            <p className="text-sm mt-2 opacity-75">{caption}</p>
+          )}
+        </div>
       </div>
 
       {role === 'user' && (
-        <div className={`${styles.avatar} w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0`}>
-          <User className="w-5 h-5 text-blue-600" />
+        <div className={styles.avatarContainer}>
+           <User className="w-6 h-6 text-primary" />
         </div>
       )}
     </div>
@@ -142,25 +171,13 @@ interface SystemMessageProps {
 }
 
 export const SystemMessage: React.FC<SystemMessageProps> = ({ content, type = 'info' }) => {
-  const typeStyles = {
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
-    warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-    error: 'bg-red-50 text-red-800 border-red-200',
-    success: 'bg-green-50 text-green-800 border-green-200',
-  };
-
-  const iconMap = {
-    info: <Stethoscope className="w-4 h-4" />,
-    warning: <AlertCircle className="w-4 h-4" />,
-    error: <AlertCircle className="w-4 h-4" />,
-    success: <Bot className="w-4 h-4" />,
-  };
-
+  // Use the new simplified style for system messages
   return (
-    <div className="flex justify-center mb-4">
-      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${typeStyles[type]}`}>
-        {iconMap[type]}
-        <span className="text-sm">{content}</span>
+    <div className="flex justify-center w-full mt-2 mb-4">
+      <div className="bg-slate-200/50 dark:bg-slate-800/50 px-4 py-1.5 rounded-full backdrop-blur-sm">
+        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium text-center">
+          {content}
+        </p>
       </div>
     </div>
   );
@@ -270,7 +287,7 @@ interface MessagesListProps {
 
 export const MessagesList: React.FC<MessagesListProps> = ({ messages }) => {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col pb-4">
       {messages.map((message) => (
         <MessageRenderer key={message.id} message={message} />
       ))}
