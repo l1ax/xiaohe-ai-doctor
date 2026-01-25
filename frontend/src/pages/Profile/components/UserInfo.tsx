@@ -1,5 +1,5 @@
 import { observer } from 'mobx-react-lite';
-import { userStore } from '../../store';
+import { userStore } from '@/store';
 import { useNavigate } from 'react-router-dom';
 
 const UserInfo = observer(function UserInfo() {
