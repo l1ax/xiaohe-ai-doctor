@@ -4,7 +4,7 @@ import express from 'express';
 import consultationsRouter from '../../../routes/consultations';
 import authRouter from '../../../routes/auth';
 import { errorHandler } from '../../../utils/errorHandler';
-import { TestApiClient, TEST_USERS } from '../helpers';
+import { TestApiClient, TestWebSocketClient, TEST_USERS } from '../helpers';
 import { logger } from '../../../utils/logger';
 
 // 创建测试应用
@@ -116,6 +116,81 @@ describe('专家问诊 - 双角色完整流程', () => {
         consultationId
       );
       expect(consultation.status).toBe('active');
+    });
+  });
+
+  describe('步骤 7-9: WebSocket 实时通信', () => {
+    let patientWs: TestWebSocketClient;
+    let doctorWs: TestWebSocketClient;
+
+    afterAll(() => {
+      // 确保连接被清理
+      if (patientWs) {
+        patientWs.disconnect();
+      }
+      if (doctorWs) {
+        doctorWs.disconnect();
+      }
+    });
+
+    it('患者应能连接 WebSocket 并加入会话', async () => {
+      patientWs = new TestWebSocketClient();
+
+      await patientWs.connect(patientToken);
+      expect(patientWs.isConnected()).toBe(true);
+
+      patientWs.joinConversation(consultationId);
+
+      // 等待加入确认（系统消息）
+      const sysMsg = await patientWs.waitForMessageOfType('joined', 5000);
+      expect(sysMsg).toBeDefined();
+    });
+
+    it('医生应能连接 WebSocket 并加入会话', async () => {
+      doctorWs = new TestWebSocketClient();
+
+      await doctorWs.connect(doctorToken);
+      expect(doctorWs.isConnected()).toBe(true);
+
+      doctorWs.joinConversation(consultationId);
+
+      // 等待加入确认
+      const sysMsg = await doctorWs.waitForMessageOfType('joined', 5000);
+      expect(sysMsg).toBeDefined();
+    });
+
+    it('患者发送消息，医生应能收到', async () => {
+      const testMessage = '医生您好，我最近头痛';
+      patientWs.sendMessage(consultationId, testMessage);
+
+      // 医生应该收到消息
+      const received = await doctorWs.waitForMessage(5000);
+      expect(received).toBeDefined();
+      expect((received as any).type).toBe('message');
+      expect((received as any).message.content).toBe(testMessage);
+      expect((received as any).message.senderType).toBe('patient');
+    });
+
+    it('医生发送消息，患者应能收到', async () => {
+      const testMessage = '请问持续多久了？';
+      doctorWs.sendMessage(consultationId, testMessage);
+
+      // 患者应该收到消息
+      const received = await patientWs.waitForMessage(5000);
+      expect(received).toBeDefined();
+      expect((received as any).type).toBe('message');
+      expect((received as any).message.content).toBe(testMessage);
+      expect((received as any).message.senderType).toBe('doctor');
+    });
+
+    it('应能正确显示正在输入状态', async () => {
+      patientWs.sendTyping(consultationId, true);
+
+      // 医生应该收到正在输入通知
+      const typingMsg = await doctorWs.waitForMessage(5000);
+      expect(typingMsg).toBeDefined();
+      expect((typingMsg as any).type).toBe('typing');
+      expect((typingMsg as any).isTyping).toBe(true);
     });
   });
 });
