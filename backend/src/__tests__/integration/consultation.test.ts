@@ -180,4 +180,42 @@ describe('Consultation Integration Tests', () => {
       expect(response.body.message).toBeDefined();
     });
   });
+
+  describe('GET /api/consultations/:id/messages', () => {
+    it('should return messages for a consultation', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800000001', verifyCode: '123456' });
+
+      const token = loginRes.body.data.accessToken;
+
+      // 创建问诊
+      const createRes = await request(app)
+        .post('/api/consultations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ doctorId: 'doctor_001' });
+
+      const consultationId = createRes.body.data.id;
+
+      // 添加测试消息 - 需要导入 messageStore
+      const { messageStore } = await import('../../services/storage/messageStore');
+      messageStore.addMessage({
+        id: 'msg1',
+        consultationId,
+        senderId: 'patient1',
+        senderType: 'patient',
+        content: 'Hello doctor',
+        createdAt: '2026-01-25T10:00:00Z',
+      });
+
+      const res = await request(app)
+        .get(`/api/consultations/${consultationId}/messages`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.code).toBe(0);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].content).toBe('Hello doctor');
+    });
+  });
 });

@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { wsManager } from '../services/websocket/WebSocketManager';
 import { getDoctorList, getDoctorById, getDepartments, getHospitals } from '../services/doctors/doctorService';
 import { consultationStore, Consultation } from '../services/storage/consultationStore';
+import { messageStore } from '../services/storage/messageStore';
 
 /**
  * Utility function to safely extract route parameter
@@ -474,3 +475,41 @@ export const closeConsultation = async (req: Request, res: Response): Promise<vo
 function maskPhone(phone: string): string {
   return phone.slice(0, 3) + '****' + phone.slice(-4);
 }
+
+/**
+ * 获取问诊消息历史
+ * GET /api/consultations/:id/messages
+ */
+export const getConsultationMessages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const consultationId = getRouteParam(req.params.id);
+    const consultation = consultationStore.getById(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    // 权限检查：患者和医生都可以查看消息
+    if (
+      consultation.patientId !== req.user.userId &&
+      consultation.doctorId !== req.user.userId
+    ) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    const messages = messageStore.getByConsultationId(consultationId);
+
+    res.json({
+      code: 0,
+      data: messages,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get consultation messages error', error);
+    throw error;
+  }
+};

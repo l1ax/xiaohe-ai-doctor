@@ -7,6 +7,7 @@ import {
   createConsultation,
   getConsultations,
   getConsultationDetail,
+  getConsultationMessages,
   updateConsultationStatus,
   joinConsultation,
   leaveConsultation,
@@ -66,6 +67,12 @@ router.get('/', authMiddleware, getConsultations);
  * GET /api/consultations/:id
  */
 router.get('/:id', authMiddleware, getConsultationDetail);
+
+/**
+ * 获取问诊消息历史
+ * GET /api/consultations/:id/messages
+ */
+router.get('/:id/messages', authMiddleware, getConsultationMessages);
 
 /**
  * 更新问诊状态
