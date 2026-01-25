@@ -205,8 +205,8 @@ describe('专家问诊 - 双角色完整流程', () => {
       const testMessage = '医生您好，我最近头痛';
       patientWs.sendMessage(consultationId, testMessage);
 
-      // 医生应该收到消息
-      const received = await doctorWs.waitForChatMessage(5000);
+      // 医生应该收到消息（过滤掉医生自己的消息）
+      const received = await doctorWs.waitForChatMessage(5000, { senderType: 'patient' });
       expect(received).toBeDefined();
       expect(received.type).toBe('message');
       expect(received.message?.content).toBe(testMessage);
@@ -217,8 +217,8 @@ describe('专家问诊 - 双角色完整流程', () => {
       const testMessage = '请问持续多久了？';
       doctorWs.sendMessage(consultationId, testMessage);
 
-      // 患者应该收到消息
-      const received = await patientWs.waitForChatMessage(5000);
+      // 患者应该收到消息（过滤掉患者自己的消息）
+      const received = await patientWs.waitForChatMessage(5000, { senderType: 'doctor' });
       expect(received).toBeDefined();
       expect(received.type).toBe('message');
       expect(received.message?.content).toBe(testMessage);

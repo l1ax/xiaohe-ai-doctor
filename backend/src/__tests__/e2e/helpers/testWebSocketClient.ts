@@ -163,12 +163,36 @@ export class TestWebSocketClient {
 
   /**
    * 等待聊天消息
+   * @param timeout 超时时间（毫秒）
+   * @param options 可选过滤条件
+   * @param options.senderType 只等待特定发送者类型的消息
+   * @param options.excludeSenderId 排除特定发送者ID的消息
    */
-  async waitForChatMessage(timeout = 5000): Promise<ServerMessage> {
+  async waitForChatMessage(
+    timeout = 5000,
+    options?: { senderType?: 'patient' | 'doctor'; excludeSenderId?: string }
+  ): Promise<ServerMessage> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-      const index = this.messageQueue.findIndex((m) => m.type === 'message' && m.message);
+      const index = this.messageQueue.findIndex((m) => {
+        // 基本过滤：必须是聊天消息
+        if (m.type !== 'message' || !m.message) {
+          return false;
+        }
+
+        // 可选：过滤发送者类型
+        if (options?.senderType && m.message.senderType !== options.senderType) {
+          return false;
+        }
+
+        // 可选：排除特定发送者（如排除自己）
+        if (options?.excludeSenderId && m.message.senderId === options.excludeSenderId) {
+          return false;
+        }
+
+        return true;
+      });
 
       if (index !== -1) {
         return this.messageQueue.splice(index, 1)[0];
