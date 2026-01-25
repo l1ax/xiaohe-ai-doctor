@@ -1,30 +1,64 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import { Server } from 'http';
 import consultationsRouter from '../../../routes/consultations';
 import authRouter from '../../../routes/auth';
 import { errorHandler } from '../../../utils/errorHandler';
-import { TestApiClient, TestWebSocketClient, TEST_USERS } from '../helpers';
+import { wsManager } from '../../../services/websocket/WebSocketManager';
+import { TestApiClient, TestWebSocketClient, TEST_USERS, TEST_CONFIG } from '../helpers';
 import { logger } from '../../../utils/logger';
-
-// 创建测试应用
-const app = express();
-app.use(express.json());
-app.use('/api/auth', authRouter);
-app.use('/api/consultations', consultationsRouter);
-app.use(errorHandler);
 
 // 禁用测试期间的日志输出
 logger.silent = true;
 
 describe('专家问诊 - 双角色完整流程', () => {
+  let app: express.Express;
+  let server: Server;
   let apiClient: TestApiClient;
   let patientToken: string;
   let doctorToken: string;
   let consultationId: string;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    // 创建测试应用
+    app = express();
+    app.use(express.json());
+    app.use('/api/auth', authRouter);
+    app.use('/api/consultations', consultationsRouter);
+    app.use(errorHandler);
+
+    // 启动 HTTP 服务器（使用随机可用端口）
+    await new Promise<void>((resolve) => {
+      server = app.listen(0, () => {
+        const address = server.address();
+        if (typeof address === 'object' && address) {
+          const port = address.port;
+          // 更新 TEST_CONFIG 中的端口为实际分配的端口
+          (TEST_CONFIG as any).WS_URL = `ws://localhost:${port}/ws`;
+          (TEST_CONFIG as any).API_URL = `http://localhost:${port}`;
+        }
+        resolve();
+      });
+    });
+
+    // 初始化 WebSocket 服务器
+    wsManager.initialize(server);
+
+    // 创建 API 客户端
     apiClient = new TestApiClient(app);
+  });
+
+  afterAll(async () => {
+    // 清理 WebSocket 连接
+    wsManager.shutdown();
+
+    // 关闭 HTTP 服务器
+    if (server) {
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      });
+    }
   });
 
   describe('步骤 1-2: 双方登录', () => {
@@ -139,10 +173,14 @@ describe('专家问诊 - 双角色完整流程', () => {
       await patientWs.connect(patientToken);
       expect(patientWs.isConnected()).toBe(true);
 
+      // 先等待连接成功消息
+      const connMsg = await patientWs.waitForSystemMessage('Connected', 5000);
+      expect(connMsg).toBeDefined();
+
       patientWs.joinConversation(consultationId);
 
       // 等待加入确认（系统消息）
-      const sysMsg = await patientWs.waitForMessageOfType('joined', 5000);
+      const sysMsg = await patientWs.waitForSystemMessage('Joined conversation', 5000);
       expect(sysMsg).toBeDefined();
     });
 
@@ -152,10 +190,14 @@ describe('专家问诊 - 双角色完整流程', () => {
       await doctorWs.connect(doctorToken);
       expect(doctorWs.isConnected()).toBe(true);
 
+      // 先等待连接成功消息
+      const connMsg = await doctorWs.waitForSystemMessage('Connected', 5000);
+      expect(connMsg).toBeDefined();
+
       doctorWs.joinConversation(consultationId);
 
       // 等待加入确认
-      const sysMsg = await doctorWs.waitForMessageOfType('joined', 5000);
+      const sysMsg = await doctorWs.waitForSystemMessage('Joined conversation', 5000);
       expect(sysMsg).toBeDefined();
     });
 
@@ -164,11 +206,11 @@ describe('专家问诊 - 双角色完整流程', () => {
       patientWs.sendMessage(consultationId, testMessage);
 
       // 医生应该收到消息
-      const received = await doctorWs.waitForMessage(5000);
+      const received = await doctorWs.waitForChatMessage(5000);
       expect(received).toBeDefined();
-      expect((received as any).type).toBe('message');
-      expect((received as any).message.content).toBe(testMessage);
-      expect((received as any).message.senderType).toBe('patient');
+      expect(received.type).toBe('message');
+      expect(received.message?.content).toBe(testMessage);
+      expect(received.message?.senderType).toBe('patient');
     });
 
     it('医生发送消息，患者应能收到', async () => {
@@ -176,21 +218,21 @@ describe('专家问诊 - 双角色完整流程', () => {
       doctorWs.sendMessage(consultationId, testMessage);
 
       // 患者应该收到消息
-      const received = await patientWs.waitForMessage(5000);
+      const received = await patientWs.waitForChatMessage(5000);
       expect(received).toBeDefined();
-      expect((received as any).type).toBe('message');
-      expect((received as any).message.content).toBe(testMessage);
-      expect((received as any).message.senderType).toBe('doctor');
+      expect(received.type).toBe('message');
+      expect(received.message?.content).toBe(testMessage);
+      expect(received.message?.senderType).toBe('doctor');
     });
 
     it('应能正确显示正在输入状态', async () => {
       patientWs.sendTyping(consultationId, true);
 
       // 医生应该收到正在输入通知
-      const typingMsg = await doctorWs.waitForMessage(5000);
+      const typingMsg = await doctorWs.waitForTypingMessage(5000);
       expect(typingMsg).toBeDefined();
-      expect((typingMsg as any).type).toBe('typing');
-      expect((typingMsg as any).isTyping).toBe(true);
+      expect(typingMsg.type).toBe('typing');
+      expect(typingMsg.data?.senderId).toBeDefined();
     });
   });
 

@@ -1,11 +1,26 @@
 import WebSocket, { WebSocket as WebSocketType } from 'ws';
+import { TEST_CONFIG } from './testSetup';
 
-export type ServerMessage =
-  | { type: 'message'; conversationId: string; message: any }
-  | { type: 'typing'; conversationId: string; senderId: string; isTyping: boolean }
-  | { type: 'system'; conversationId: string; text: string }
-  | { type: 'joined'; conversationId: string }
-  | { type: 'left'; conversationId: string };
+// 实际服务器返回的消息格式
+type ServerMessageBase = {
+  type: 'message' | 'typing' | 'system';
+  conversationId: string;
+  data?: {
+    text?: string;
+    senderId?: string;
+  };
+  message?: {
+    id: string;
+    senderId: string;
+    senderType: 'patient' | 'doctor';
+    contentType: 'text' | 'image';
+    content: string;
+    createdAt: string;
+    metadata?: Record<string, unknown>;
+  };
+};
+
+export type ServerMessage = ServerMessageBase;
 
 export class TestWebSocketClient {
   private ws: WebSocketType | null = null;
@@ -13,8 +28,9 @@ export class TestWebSocketClient {
   private url: string;
   private connected: boolean = false;
 
-  constructor(wsUrl: string = 'ws://localhost:3000/ws') {
-    this.url = wsUrl;
+  constructor(wsUrl?: string) {
+    // 默认使用 TEST_CONFIG 中的 WS_URL（支持动态端口）
+    this.url = wsUrl || TEST_CONFIG.WS_URL;
   }
 
   /**
@@ -76,7 +92,9 @@ export class TestWebSocketClient {
     this.send({
       type: 'message',
       conversationId,
-      content,
+      data: {
+        content,
+      },
     });
   }
 
@@ -87,7 +105,6 @@ export class TestWebSocketClient {
     this.send({
       type: 'typing',
       conversationId,
-      isTyping,
     });
   }
 
@@ -132,7 +149,7 @@ export class TestWebSocketClient {
 
     while (Date.now() - startTime < timeout) {
       const index = this.messageQueue.findIndex(
-        (m) => m.type === 'system' && (m as any).text === expectedText
+        (m) => m.type === 'system' && m.data?.text === expectedText
       );
 
       if (index !== -1) {
@@ -142,6 +159,42 @@ export class TestWebSocketClient {
     }
 
     throw new Error(`Timeout waiting for system message: "${expectedText}"`);
+  }
+
+  /**
+   * 等待聊天消息
+   */
+  async waitForChatMessage(timeout = 5000): Promise<ServerMessage> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      const index = this.messageQueue.findIndex((m) => m.type === 'message' && m.message);
+
+      if (index !== -1) {
+        return this.messageQueue.splice(index, 1)[0];
+      }
+      await this.sleep(50);
+    }
+
+    throw new Error(`Timeout waiting for chat message`);
+  }
+
+  /**
+   * 等待正在输入消息
+   */
+  async waitForTypingMessage(timeout = 5000): Promise<ServerMessage> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      const index = this.messageQueue.findIndex((m) => m.type === 'typing' && m.data?.senderId);
+
+      if (index !== -1) {
+        return this.messageQueue.splice(index, 1)[0];
+      }
+      await this.sleep(50);
+    }
+
+    throw new Error(`Timeout waiting for typing message`);
   }
 
   /**
