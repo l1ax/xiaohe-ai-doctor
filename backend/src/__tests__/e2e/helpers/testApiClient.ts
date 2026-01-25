@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { Response } from 'supertest';
+import type { Express } from 'express';
 
 interface AuthResponse {
   code: number;
@@ -7,8 +8,11 @@ interface AuthResponse {
     accessToken: string;
     refreshToken: string;
     user: {
-      userId: string;
+      id: string;
       phone: string;
+      nickname?: string;
+      avatarUrl?: string;
+      role?: string;
     };
   };
 }
