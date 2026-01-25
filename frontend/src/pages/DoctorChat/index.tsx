@@ -66,15 +66,32 @@ const DoctorChat = observer(function DoctorChat() {
   const connectWebSocket = async () => {
     if (!id || !userStore.accessToken) return;
 
+    console.log('[DoctorChat] 🔵 开始连接 WebSocket', {
+      conversationId: id,
+      userId: userStore.user?.id,
+      userRole: userStore.user?.role,
+      wsUrl: WS_URL,
+    });
+
     const ws = new WebSocketService(WS_URL, userStore.accessToken);
     wsRef.current = ws;
 
     try {
       await ws.connect();
       setIsConnected(true);
+      console.log('[DoctorChat] ✅ WebSocket 连接成功');
+      
       ws.join(id);
+      console.log('[DoctorChat] 📥 已发送 join 请求', { conversationId: id });
 
       ws.onMessage((message: ChatMessage) => {
+        console.log('[DoctorChat] 📨 收到消息', {
+          messageId: message.id,
+          senderId: message.senderId,
+          senderType: message.senderType,
+          content: message.content,
+          currentUserId: userStore.user?.id,
+        });
         setMessages((prev) => [...prev, {
           id: message.id,
           senderId: message.senderId,
@@ -86,7 +103,7 @@ const DoctorChat = observer(function DoctorChat() {
 
       ws.onTyping(() => setIsTyping(true));
     } catch (error) {
-      console.warn('WebSocket 连接失败，消息将使用本地显示');
+      console.warn('[DoctorChat] ❌ WebSocket 连接失败', error);
       setIsConnected(false);
     }
   };
@@ -101,6 +118,14 @@ const DoctorChat = observer(function DoctorChat() {
       content: inputValue,
       createdAt: new Date().toISOString(),
     };
+
+    console.log('[DoctorChat] 📤 发送消息', {
+      localMessageId: message.id,
+      senderId: message.senderId,
+      senderType: message.senderType,
+      content: inputValue,
+      conversationId: id,
+    });
 
     // 先添加到本地列表
     setMessages((prev) => [...prev, message]);

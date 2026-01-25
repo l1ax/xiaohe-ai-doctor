@@ -65,6 +65,7 @@ export class WebSocketService {
   }
 
   join(conversationId: string): void {
+    console.log('[WebSocketService] 📥 发送 join', { conversationId });
     this.send({ type: 'join', conversationId });
   }
 
@@ -73,11 +74,13 @@ export class WebSocketService {
   }
 
   sendMessage(conversationId: string, content: string): void {
-    this.send({
+    const payload = {
       type: 'message',
       conversationId,
       data: { content, contentType: 'text' },
-    });
+    };
+    console.log('[WebSocketService] 📤 发送消息', payload);
+    this.send(payload);
   }
 
   sendTyping(conversationId: string, isTyping: boolean): void {
@@ -108,21 +111,37 @@ export class WebSocketService {
 
   private send(data: Record<string, unknown>): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
+      const payload = JSON.stringify(data);
+      console.log('[WebSocketService] 🔌 实际发送', { data, payload });
+      this.ws.send(payload);
+    } else {
+      console.warn('[WebSocketService] ⚠️ WebSocket 未连接', {
+        readyState: this.ws?.readyState,
+      });
     }
   }
 
   private handleMessage(data: Record<string, unknown>): void {
+    console.log('[WebSocketService] 📨 收到原始消息', data);
+    
     switch (data.type) {
       case 'message':
+        console.log('[WebSocketService] 📨 处理消息类型', {
+          message: data.message,
+          handlersCount: this.messageHandlers.size,
+        });
         this.messageHandlers.forEach((h) => h(data.message as ChatMessage));
         break;
       case 'system':
+        console.log('[WebSocketService] 📨 处理系统消息', data.data);
         this.systemHandlers.forEach((h) => h((data.data as { text?: string })?.text || ''));
         break;
       case 'typing':
+        console.log('[WebSocketService] 📨 处理输入状态', data.data);
         this.typingHandlers.forEach((h) => h((data.data as { senderId?: string })?.senderId || ''));
         break;
+      default:
+        console.warn('[WebSocketService] ⚠️ 未知消息类型', data);
     }
   }
 

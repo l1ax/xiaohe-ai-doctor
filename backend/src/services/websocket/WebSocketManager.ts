@@ -237,14 +237,26 @@ export class WebSocketManager {
    */
   private handleChatMessage(userId: string, clientMessage: ClientMessage): void {
     const connection = this.connections.get(userId);
-    if (!connection) return;
+    if (!connection) {
+      logger.warn('[❌ MESSAGE] 连接不存在', { userId });
+      return;
+    }
+
+    logger.info('[📥 MESSAGE] 收到聊天消息', {
+      userId,
+      userRole: connection.userRole,
+      conversationId: clientMessage.conversationId,
+      content: clientMessage.data?.content,
+    });
 
     // Validate user is in the conversation
     const conversationUsers = this.conversations.get(clientMessage.conversationId);
     if (!conversationUsers || !conversationUsers.has(userId)) {
-      logger.warn('User not in conversation', {
+      logger.warn('[❌ MESSAGE] 用户不在会话中', {
         userId,
         conversationId: clientMessage.conversationId,
+        conversationExists: !!conversationUsers,
+        userInConversation: conversationUsers?.has(userId),
       });
       this.sendToUser(userId, {
         type: WSMessageType.SYSTEM,
@@ -253,6 +265,12 @@ export class WebSocketManager {
       });
       return;
     }
+
+    logger.info('[✅ MESSAGE] 用户在会话中，会话用户列表', {
+      conversationId: clientMessage.conversationId,
+      allUsers: Array.from(conversationUsers),
+      senderId: userId,
+    });
 
     // 构建服务端消息
     const serverMessage: ServerMessage = {
@@ -269,11 +287,18 @@ export class WebSocketManager {
       },
     };
 
+    logger.info('[📤 MESSAGE] 准备广播消息', {
+      messageId: serverMessage.message?.id,
+      conversationId: clientMessage.conversationId,
+      senderId: userId,
+      excludeSender: true,
+    });
+
     // 广播到会话中的所有用户
     this.broadcastToConversation(clientMessage.conversationId, serverMessage, userId);
 
     // TODO: 存储到数据库
-    logger.info('Chat message sent', {
+    logger.info('[✅ MESSAGE] 消息处理完成', {
       messageId: serverMessage.message?.id,
       conversationId: clientMessage.conversationId,
       senderId: userId,
@@ -310,7 +335,17 @@ export class WebSocketManager {
       return;
     }
 
+    logger.info('[🔵 JOIN] 用户请求加入会话', { userId, conversationId });
+
     this.joinConversation(userId, conversationId);
+
+    // 记录当前会话中的所有用户
+    const currentUsers = this.getConversationUsers(conversationId);
+    logger.info('[📋 JOIN] 会话当前用户列表', {
+      conversationId,
+      users: currentUsers,
+      totalUsers: currentUsers.length,
+    });
 
     // 通知会话中的其他用户
     this.broadcastToConversation(
@@ -362,13 +397,35 @@ export class WebSocketManager {
   ): void {
     const userIds = this.conversations.get(conversationId);
     if (!userIds) {
-      logger.warn('Conversation not found', { conversationId });
+      logger.warn('[❌ BROADCAST] 会话不存在', { conversationId });
       return;
     }
 
+    const allUsers = Array.from(userIds);
+    const targetUsers = allUsers.filter((id) => id !== excludeUserId);
+
+    logger.info('[📡 BROADCAST] 广播消息', {
+      conversationId,
+      messageType: message.type,
+      allUsers,
+      excludeUserId,
+      targetUsers,
+      willSendTo: targetUsers.length,
+    });
+
     for (const userId of userIds) {
       if (userId !== excludeUserId) {
-        this.sendToUser(userId, message);
+        const sent = this.sendToUser(userId, message);
+        logger.info('[📤 BROADCAST] 发送结果', {
+          userId,
+          sent,
+          messageType: message.type,
+        });
+      } else {
+        logger.info('[⏭️ BROADCAST] 跳过发送者', {
+          userId,
+          reason: 'excludeUserId',
+        });
       }
     }
   }
@@ -379,14 +436,26 @@ export class WebSocketManager {
   sendToUser(userId: string, message: ServerMessage): boolean {
     const connection = this.connections.get(userId);
     if (!connection || connection.ws.readyState !== WebSocket.OPEN || connection.isClosing) {
+      logger.warn('[❌ SEND] 无法发送，连接不可用', {
+        userId,
+        hasConnection: !!connection,
+        readyState: connection?.ws.readyState,
+        isClosing: connection?.isClosing,
+      });
       return false;
     }
 
     try {
-      connection.ws.send(JSON.stringify(message));
+      const payload = JSON.stringify(message);
+      connection.ws.send(payload);
+      logger.info('[✅ SEND] 消息已发送', {
+        userId,
+        messageType: message.type,
+        conversationId: message.conversationId,
+      });
       return true;
     } catch (error) {
-      logger.error('Send message error', { userId, error });
+      logger.error('[❌ SEND] 发送失败', { userId, error });
       return false;
     }
   }
