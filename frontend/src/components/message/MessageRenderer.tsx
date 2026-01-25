@@ -166,6 +166,79 @@ export const SystemMessage: React.FC<SystemMessageProps> = ({ content, type = 'i
   );
 };
 
+// ============ MedicalAdviceCard 组件 ============
+
+interface MedicalAdviceCardProps {
+  advice: {
+    symptoms: string[];
+    possibleConditions: string[];
+    suggestions: string[];
+    urgencyLevel: 'low' | 'medium' | 'high';
+  };
+}
+
+export const MedicalAdviceCard: React.FC<MedicalAdviceCardProps> = ({ advice }) => {
+  const urgencyColors = {
+    low: 'bg-green-50 border-green-200 text-green-800',
+    medium: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    high: 'bg-red-50 border-red-200 text-red-800',
+  };
+
+  const urgencyLabels = {
+    low: '建议关注',
+    medium: '建议就医',
+    high: '尽快就医',
+  };
+
+  return (
+    <div className={`rounded-lg border p-4 mt-3 ${urgencyColors[advice.urgencyLevel]}`}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-medium">健康建议</span>
+        <span className="text-xs px-2 py-1 rounded bg-white/50">
+          {urgencyLabels[advice.urgencyLevel]}
+        </span>
+      </div>
+
+      {advice.symptoms.length > 0 && (
+        <div className="mb-2">
+          <p className="text-xs opacity-75 mb-1">可能症状</p>
+          <div className="flex flex-wrap gap-1">
+            {advice.symptoms.map((s, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 rounded bg-white/50">
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {advice.possibleConditions.length > 0 && (
+        <div className="mb-2">
+          <p className="text-xs opacity-75 mb-1">可能情况</p>
+          <div className="flex flex-wrap gap-1">
+            {advice.possibleConditions.map((c, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 rounded bg-white/50">
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {advice.suggestions.length > 0 && (
+        <div>
+          <p className="text-xs opacity-75 mb-1">建议</p>
+          <ul className="text-xs list-disc list-inside">
+            {advice.suggestions.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ============ MessageRenderer 主组件 ============
 
 interface MessageRendererProps {
@@ -176,11 +249,16 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => 
   const isStreaming = message.status === 'streaming';
 
   return (
-    <TextMessage
-      content={message.content}
-      role={message.role}
-      isStreaming={isStreaming}
-    />
+    <div>
+      <TextMessage
+        content={message.content}
+        role={message.role}
+        isStreaming={isStreaming}
+      />
+      {message.medicalAdvice && (
+        <MedicalAdviceCard advice={message.medicalAdvice} />
+      )}
+    </div>
   );
 };
 

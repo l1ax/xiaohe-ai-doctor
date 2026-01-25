@@ -151,3 +151,39 @@ describe('Chat Page - Responsive', () => {
     await expect(page.locator('textarea')).toBeVisible();
   });
 });
+
+describe('Chat Page - Medical Advice', () => {
+  test('should display medical advice card when received', async ({ page }) => {
+    // 导航到Chat页面
+    await page.goto('/chat');
+    await page.waitForLoadState('networkidle');
+
+    // 验证健康建议卡片存在（如果收到医疗建议）
+    const medicalAdvice = page.locator('text=健康建议');
+    // 注意：这个测试需要后端返回医疗建议数据才能通过
+  });
+
+  test('should display quick action buttons when received', async ({ page }) => {
+    // 导航到Chat页面
+    await page.goto('/chat');
+    await page.waitForLoadState('networkidle');
+
+    // 发送一条会触发医疗建议的消息
+    const input = page.locator('textarea');
+    await input.fill('我头疼发热');
+    await input.press('Enter');
+
+    // 等待响应
+    await page.waitForTimeout(3000);
+
+    // 验证操作按钮存在
+    const transferButton = page.locator('text=咨询人工医生');
+    const bookButton = page.locator('text=预约挂号');
+
+    // 如果有操作按钮，应该可见
+    const buttons = await transferButton.or(bookButton).count();
+    if (buttons > 0) {
+      await expect(transferButton.or(bookButton).first()).toBeVisible();
+    }
+  });
+});

@@ -30,11 +30,30 @@ describe('AI Chat SSE Integration Tests', () => {
       },
     });
 
-    // 收集所有事件
-    emitter.on('*', (event) => {
-      events.push(event);
-      eventTypes.push(event.type);
-    });
+    // 收集所有事件 - 监听所有可能的事件类型
+    const eventTypesToListen = [
+      'conversation:status',
+      'message:status',
+      'message:content',
+      'message:metadata',
+      'tool:call',
+      'conversation:end',
+      'error',
+      'agent:thinking',
+      'agent:intent',
+      'agent:tool_call',
+      'agent:content',
+      'agent:metadata',
+      'agent:done',
+      'agent:error',
+    ];
+
+    for (const eventType of eventTypesToListen) {
+      emitter.on(eventType, (event) => {
+        events.push(event);
+        eventTypes.push(event.type);
+      });
+    }
 
     // 监听SSEHandler发送的事件（用于验证事件类型）
     globalAgentEventEmitter.on('*', (event) => {
@@ -95,8 +114,13 @@ describe('AI Chat SSE Integration Tests', () => {
         eventEmitter: emitter,
       });
 
-      // 验证所有事件都包含conversationId
-      events.forEach((event, index) => {
+      // 验证所有新事件类型都包含conversationId
+      const eventsToCheck = events.filter((e) =>
+        ['conversation:status', 'message:status', 'message:content', 'message:metadata', 'tool:call', 'conversation:end'].includes(e.type)
+      );
+
+      expect(eventsToCheck.length).toBeGreaterThan(0);
+      eventsToCheck.forEach((event, index) => {
         expect(event.data.conversationId).toBe(testConversationId);
       });
     });

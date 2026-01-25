@@ -28,10 +28,29 @@ describe('AI Chat End-to-End Flow', () => {
       },
     });
 
-    // 收集所有事件
-    emitter.on('*', (event) => {
-      events.push(event);
-    });
+    // 收集所有事件 - 监听所有可能的事件类型
+    const eventTypesToListen = [
+      'conversation:status',
+      'message:status',
+      'message:content',
+      'message:metadata',
+      'tool:call',
+      'conversation:end',
+      'error',
+      'agent:thinking',
+      'agent:intent',
+      'agent:tool_call',
+      'agent:content',
+      'agent:metadata',
+      'agent:done',
+      'agent:error',
+    ];
+
+    for (const eventType of eventTypesToListen) {
+      emitter.on(eventType, (event) => {
+        events.push(event);
+      });
+    }
 
     sseHandler.startEventListener();
   });
@@ -59,28 +78,32 @@ describe('AI Chat End-to-End Flow', () => {
       // 验证事件序列
       const eventTypes = events.map((e) => e.type);
 
-      // 应该包含这些事件类型
-      expect(eventTypes).toContain('agent:thinking');
+      // 应该包含这些新事件类型
+      expect(eventTypes).toContain('conversation:status');
+      expect(eventTypes).toContain('message:status');
+      expect(eventTypes).toContain('tool:call');
+      expect(eventTypes).toContain('message:content');
+      expect(eventTypes).toContain('message:metadata');
+      expect(eventTypes).toContain('conversation:end');
+
+      // 兼容旧事件类型也检查
       expect(eventTypes).toContain('agent:intent');
-      expect(eventTypes).toContain('agent:tool_call');
-      expect(eventTypes).toContain('agent:content');
-      expect(eventTypes).toContain('agent:metadata');
-      expect(eventTypes).toContain('agent:done');
 
       // 验证意图识别
       const intentEvent = events.find((e) => e.type === 'agent:intent');
+      expect(intentEvent).toBeDefined();
       expect(intentEvent.data.intent).toBe('symptom_consult');
 
       // 验证工具调用
-      const toolCallEvents = events.filter((e) => e.type === 'agent:tool_call');
+      const toolCallEvents = events.filter((e) => e.type === 'tool:call');
       expect(toolCallEvents.length).toBeGreaterThanOrEqual(2); // 至少 running 和 completed
 
       // 验证内容流
-      const contentEvents = events.filter((e) => e.type === 'agent:content');
+      const contentEvents = events.filter((e) => e.type === 'message:content');
       expect(contentEvents.length).toBeGreaterThan(0);
 
       // 验证元数据包含医疗建议
-      const metadataEvent = events.find((e) => e.type === 'agent:metadata');
+      const metadataEvent = events.find((e) => e.type === 'message:metadata');
       expect(metadataEvent).toBeDefined();
       expect(metadataEvent.data.medicalAdvice).toBeDefined();
       expect(metadataEvent.data.actions).toBeDefined();
@@ -96,6 +119,7 @@ describe('AI Chat End-to-End Flow', () => {
       });
 
       const intentEvent = events.find((e) => e.type === 'agent:intent');
+      expect(intentEvent).toBeDefined();
       expect(intentEvent.data.intent).toBe('general_qa');
     });
 
@@ -109,10 +133,11 @@ describe('AI Chat End-to-End Flow', () => {
       });
 
       const intentEvent = events.find((e) => e.type === 'agent:intent');
+      expect(intentEvent).toBeDefined();
       expect(intentEvent.data.intent).toBe('hospital_recommend');
 
       // 应该有预约操作的 action
-      const metadataEvent = events.find((e) => e.type === 'agent:metadata');
+      const metadataEvent = events.find((e) => e.type === 'message:metadata');
       const bookAction = metadataEvent?.data.actions?.find((a: any) => a.type === 'book_appointment');
       expect(bookAction).toBeDefined();
     });

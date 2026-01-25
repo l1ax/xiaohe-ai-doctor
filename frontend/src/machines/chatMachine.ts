@@ -8,6 +8,7 @@ export interface Message {
   content: string;
   timestamp: string;
   status: 'pending' | 'sending' | 'streaming' | 'complete' | 'failed';
+  medicalAdvice?: MedicalAdvice;
 }
 
 export interface ConversationStatus {
@@ -440,6 +441,10 @@ export function parseServerEvent(event: ChatEvent): ChatEventType | null {
         code: event.data.code || 'AGENT_ERROR',
         message: (event.data as any).error || 'Unknown error',
       };
+
+    // agent:intent 前端不需要显示，静默忽略
+    case 'agent:intent':
+      return null;
 
     default:
       return null;

@@ -20,6 +20,15 @@ export class AgentEventEmitter extends EventEmitter {
     this.setMaxListeners(50);
   }
 
+  // Override emit to also emit to '*' wildcard listener
+  emit(event: string | symbol, ...args: any[]): boolean {
+    // Always emit to '*' for event forwarding
+    if (event !== '*') {
+      super.emit('*', args[0]);
+    }
+    return super.emit(event, ...args);
+  }
+
   emitThinking(message: string): void {
     const event: ThinkingEvent = {
       type: 'agent:thinking',
@@ -28,8 +37,8 @@ export class AgentEventEmitter extends EventEmitter {
         timestamp: new Date().toISOString(),
       },
     };
+    // The override emit() will automatically emit to '*', no need to call it explicitly
     this.emit('agent:thinking', event);
-    this.emit('*', event);
   }
 
   emitIntent(intent: UserIntent, entities: Record<string, any>): void {
@@ -42,7 +51,6 @@ export class AgentEventEmitter extends EventEmitter {
       },
     };
     this.emit('agent:intent', event);
-    this.emit('*', event);
   }
 
   emitToolCall(
@@ -62,7 +70,6 @@ export class AgentEventEmitter extends EventEmitter {
       },
     };
     this.emit('agent:tool_call', event);
-    this.emit('*', event);
   }
 
   emitContent(delta: string): void {
@@ -74,7 +81,6 @@ export class AgentEventEmitter extends EventEmitter {
       },
     };
     this.emit('agent:content', event);
-    this.emit('*', event);
   }
 
   emitMetadata(metadata: Omit<MetadataEvent['data'], 'timestamp'>): void {
@@ -86,7 +92,6 @@ export class AgentEventEmitter extends EventEmitter {
       },
     };
     this.emit('agent:metadata', event);
-    this.emit('*', event);
   }
 
   emitDone(conversationId: string, messageId?: string): void {
@@ -99,7 +104,6 @@ export class AgentEventEmitter extends EventEmitter {
       },
     };
     this.emit('agent:done', event);
-    this.emit('*', event);
   }
 
   emitError(error: string, code?: string): void {
@@ -112,7 +116,6 @@ export class AgentEventEmitter extends EventEmitter {
       },
     };
     this.emit('agent:error', event);
-    this.emit('*', event);
   }
 
   on(eventType: AgentEventType | '*', listener: AgentEventListener): this {

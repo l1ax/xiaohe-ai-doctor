@@ -39,14 +39,14 @@ export async function classifyIntent(state: typeof AgentState.State) {
   // 生成消息 ID
   const messageId = state.messageId || `msg_${Date.now()}`;
 
-  // 发送对话状态 - 处理中
+  // 发送对话状态 - 处理中 (使用工厂函数)
   emitter.emit('conversation:status', createConversationStatusEvent(
     conversationId,
     'processing',
     { previousStatus: 'sending', message: '正在分析您的问题...' }
   ));
 
-  // 发送消息状态 - 发送中
+  // 发送消息状态 - 发送中 (使用工厂函数)
   emitter.emit('message:status', createMessageStatusEvent(
     conversationId,
     messageId,
