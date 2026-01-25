@@ -327,5 +327,35 @@ describe('Consultation Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe('closed');
     });
+
+    it('should allow doctor to close consultation (regression test)', async () => {
+      const doctorLoginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800138000', verifyCode: '123456', role: 'doctor' });
+
+      const doctorToken = doctorLoginRes.body.data.accessToken;
+
+      // 创建问诊（需要患者身份）
+      const patientLoginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800139000', verifyCode: '123456', role: 'patient' });
+
+      const patientToken = patientLoginRes.body.data.accessToken;
+
+      const createRes = await request(app)
+        .post('/api/consultations')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({ doctorId: 'doctor_001' });
+
+      const consultationId = createRes.body.data.id;
+
+      // 医生关闭问诊
+      const res = await request(app)
+        .put(`/api/consultations/${consultationId}/close`)
+        .set('Authorization', `Bearer ${doctorToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.status).toBe('closed');
+    });
   });
 });

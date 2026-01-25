@@ -481,6 +481,12 @@ export const acceptConsultation = async (req: Request, res: Response): Promise<v
 /**
  * 结束问诊
  * PUT /api/consultations/:id/close
+ *
+ * 授权规则：
+ * - 患者和医生都可以结束问诊
+ * - 必须是问诊的参与者（患者或医生）才能关闭
+ *
+ * 注意：与 updateConsultationStatus 不同，closeConsultation 允许双方参与者关闭
  */
 export const closeConsultation = async (req: Request, res: Response): Promise<void> => {
   try {
