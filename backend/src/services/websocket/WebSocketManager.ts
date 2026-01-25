@@ -630,14 +630,12 @@ export class WebSocketManager {
     const updateMessage: ServerMessage = {
       type: WSMessageType.CONSULTATION_UPDATE,
       conversationId: consultationId,
-      data: {
-        consultation: {
-          id: consultation.id,
-          status: consultation.status,
-          lastMessage: consultation.lastMessage || '',
-          lastMessageTime: consultation.lastMessageTime || consultation.createdAt,
-          updatedAt: consultation.updatedAt,
-        },
+      consultation: {
+        id: consultation.id,
+        status: consultation.status,
+        lastMessage: consultation.lastMessage || '',
+        lastMessageTime: consultation.lastMessageTime || consultation.createdAt,
+        updatedAt: consultation.updatedAt,
       },
     };
 

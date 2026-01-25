@@ -406,14 +406,23 @@ describe('WebSocketManager', () => {
 
       wsManager.broadcastConsultationUpdate(consultationId);
 
-      // Verify the message includes consultation data
+      // Verify the message includes consultation data at top level
       const doctorCall = sendToUserSpy.mock.calls.find(call => call[0] === doctorId);
       expect(doctorCall).toBeDefined();
       const messageSentToDoctor = doctorCall![1];
       expect(messageSentToDoctor).toMatchObject({
         type: WSMessageType.CONSULTATION_UPDATE,
         conversationId: consultationId,
+        consultation: {
+          id: consultationId,
+          status: 'pending',
+          lastMessage: 'I need help',
+          lastMessageTime: createdAt,
+          updatedAt: createdAt,
+        },
       });
+      // Verify consultation is at top level, not nested in data
+      expect(messageSentToDoctor.data).toBeUndefined();
     });
 
     it('should handle consultation without lastMessage', () => {

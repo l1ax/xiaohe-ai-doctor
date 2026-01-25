@@ -93,6 +93,7 @@ export interface ServerMessage {
     senderId?: string;
     consultation?: ConsultationUpdateData | NewConsultationData;
   };
+  consultation?: ConsultationUpdateData | NewConsultationData;
 }
 
 /**
