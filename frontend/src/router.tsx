@@ -23,6 +23,14 @@ import Schedule from './pages/Appointments/Schedule';
 import Confirm from './pages/Appointments/Confirm';
 import AppointmentDetail from './pages/Appointments/AppointmentDetail';
 
+// 医生端页面
+import DoctorLayout from './components/doctor/DoctorLayout';
+import DoctorConsole from './pages/doctor/Console/index';
+import { DoctorChatPage } from './pages/doctor/Chat';
+import ScheduleManagement from './pages/doctor/Schedule';
+import { AppointmentManagement } from './pages/doctor/Appointments';
+import { ProtectedRoute } from './components/shared/ProtectedRoute';
+
 // 需要底部导航的页面包裹
 const withLayout = (element: React.ReactNode) => <Layout>{element}</Layout>;
 
@@ -48,4 +56,44 @@ export const router = createBrowserRouter([
   { path: '/doctor-list', element: withLayout(<DoctorList />) },
   { path: '/doctor-chat/:id', element: <DoctorChat /> },
   { path: '/doctor-tasks', element: <DoctorTasks /> },
+
+  // 医生端路由
+  {
+    path: '/doctor',
+    element: <DoctorLayout />,
+    children: [
+      {
+        path: 'console',
+        element: (
+          <ProtectedRoute allowedRole="doctor">
+            <DoctorConsole />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'chat/:id',
+        element: (
+          <ProtectedRoute allowedRole="doctor">
+            <DoctorChatPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'schedule',
+        element: (
+          <ProtectedRoute allowedRole="doctor">
+            <ScheduleManagement />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'appointments',
+        element: (
+          <ProtectedRoute allowedRole="doctor">
+            <AppointmentManagement />
+          </ProtectedRoute>
+        ),
+      },
+    ],
+  },
 ]);

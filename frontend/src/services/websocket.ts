@@ -4,10 +4,14 @@
 
 export interface ChatMessage {
   id: string;
+  consultationId?: string;
   senderId: string;
   senderType: 'patient' | 'doctor';
   content: string;
+  contentType?: 'text' | 'image' | 'audio';
+  imageUrl?: string;
   createdAt: string;
+  isRead?: boolean;
 }
 
 export type MessageHandler = (message: ChatMessage) => void;

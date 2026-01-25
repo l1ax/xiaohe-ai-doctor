@@ -405,4 +405,28 @@ export class TestApiClient {
 
     return body.data;
   }
+
+  /**
+   * 获取医生的预约列表（医生端）
+   */
+  async getDoctorAppointments(
+    token: string,
+    status?: string
+  ): Promise<any[]> {
+    const response: Response = await request(this.app)
+      .get('/api/appointments/doctor')
+      .query(status ? { status } : {})
+      .set('Authorization', `Bearer ${token}`);
+
+    if (response.status !== 200) {
+      throw new Error(`Get doctor appointments failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: any[] };
+    if (body.code !== 0) {
+      throw new Error(`Get doctor appointments response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data;
+  }
 }

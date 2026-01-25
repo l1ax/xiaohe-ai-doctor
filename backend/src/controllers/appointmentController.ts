@@ -8,6 +8,7 @@ import {
   getUserAppointments,
   getAppointmentById,
   cancelAppointment,
+  getDoctorAppointments,
 } from '../services/appointments/appointmentService';
 
 /**
@@ -252,6 +253,51 @@ export const cancelAppointmentHandler = async (req: Request, res: Response): Pro
     });
   } catch (error) {
     logger.error('Cancel appointment error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取医生的预约列表（医生端）
+ * GET /api/appointments/doctor
+ */
+export const getDoctorAppointmentsHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    // 验证用户必须是医生角色
+    if (req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Only doctors can access this endpoint');
+    }
+
+    // 从 req.user.userId 获取医生 ID
+    const doctorId = req.user.userId;
+
+    // 支持按状态筛选
+    const { status } = req.query;
+    const appointments = getDoctorAppointments(
+      doctorId,
+      status as any
+    );
+
+    logger.info('Doctor appointments retrieved', {
+      doctorId,
+      count: appointments.length,
+      status: status || 'all',
+    });
+
+    res.json({
+      code: 0,
+      data: appointments,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get doctor appointments error', error);
     throw error;
   }
 };
