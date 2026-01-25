@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { UnauthorizedError, ValidationError } from '../utils/errorHandler';
 import { consultationStore } from '../services/storage/consultationStore';
-import { getDoctorById } from '../services/doctors/doctorService';
+import { getOrCreateDoctor } from '../services/doctors/doctorService';
 
 /**
  * 更新医生在线状态
@@ -20,12 +20,8 @@ export const updateDoctorStatus = async (req: Request, res: Response): Promise<v
       throw new ValidationError('isAvailable must be a boolean');
     }
 
-    // 更新医生的可用状态
-    const doctor = getDoctorById(req.user.userId);
-    if (!doctor) {
-      throw new ValidationError('Doctor not found');
-    }
-
+    // 获取或创建医生记录（MVP 阶段支持动态创建）
+    const doctor = getOrCreateDoctor(req.user.userId);
     doctor.isAvailable = isAvailable;
 
     logger.info('Doctor status updated', {

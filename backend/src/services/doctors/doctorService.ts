@@ -102,6 +102,30 @@ export function getDoctorById(id: string): Doctor | undefined {
 }
 
 /**
+ * 获取或创建医生记录
+ * MVP 阶段：如果医生不存在，创建一个默认的医生记录
+ */
+export function getOrCreateDoctor(id: string): Doctor {
+  let doctor = mockDoctors.find((d) => d.id === id);
+  if (!doctor) {
+    // 创建新的医生记录
+    doctor = {
+      id,
+      name: '医生',
+      title: '医师',
+      department: '全科',
+      hospital: '在线医院',
+      introduction: '专业在线问诊服务',
+      consultationFee: 3000,
+      isAvailable: true,
+      rating: 4.5,
+    };
+    mockDoctors.push(doctor);
+  }
+  return doctor;
+}
+
+/**
  * 获取所有科室
  */
 export function getDepartments(): string[] {

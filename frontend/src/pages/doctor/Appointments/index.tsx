@@ -23,10 +23,10 @@ export const AppointmentManagement = () => {
       setError(null);
 
       const status = activeTab === 'all' ? undefined : activeTab;
-      const response = await getAppointments(status);
+      const appointments = await getAppointments(status);
 
       // 按预约时间倒序排列
-      const sortedAppointments = response.appointments.sort((a, b) =>
+      const sortedAppointments = appointments.sort((a, b) =>
         new Date(b.appointmentTime).getTime() - new Date(a.appointmentTime).getTime()
       );
 

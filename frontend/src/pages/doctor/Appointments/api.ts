@@ -1,12 +1,12 @@
 import { request } from '../../../utils/request';
-import type { Appointment, AppointmentStatus, AppointmentListResponse } from './types';
+import type { Appointment, AppointmentStatus } from './types';
 
 /**
  * 获取医生预约列表
  */
-export const getAppointments = async (status?: AppointmentStatus): Promise<AppointmentListResponse> => {
+export const getAppointments = async (status?: AppointmentStatus): Promise<Appointment[]> => {
   const params = status ? `?status=${status}` : '';
-  return request.get<AppointmentListResponse>(`/appointments/doctor${params}`);
+  return request.get<Appointment[]>(`/appointments/doctor${params}`);
 };
 
 /**
