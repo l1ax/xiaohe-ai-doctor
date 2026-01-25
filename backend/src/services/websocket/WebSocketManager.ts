@@ -26,6 +26,8 @@ import { messageStore, Message } from '../storage/messageStore';
 export class WebSocketManager {
   private wss: WebSocketServer | null = null;
   private connections: Map<string, WSConnection> = new Map();
+  // Track active connection IDs to prevent stale close events from cleaning up new connections
+  private activeConnectionIds: Map<string, string> = new Map(); // userId -> connectionId
   // WARNING: In-memory storage only - data will be lost on server restart
   // TODO: Implement persistent storage for production use
   private conversations: Map<string, Set<string>> = new Map(); // conversationId -> userIds
@@ -78,10 +80,15 @@ export class WebSocketManager {
           logger.info('Closing existing connection', { userId: payload.userId });
           // 先从 connections Map 中移除旧连接，这样 handleDisconnection 就不会被调用
           this.connections.delete(payload.userId);
+          // Mark as stale by clearing the active connection ID
+          this.activeConnectionIds.delete(payload.userId);
           existingConnection.isClosing = true;
           existingConnection.ws.close();
         }
       }
+
+      // 生成新连接的唯一 ID
+      const connectionId = uuidv4();
 
       // 创建新连接
       const connection: WSConnection = {
@@ -94,6 +101,8 @@ export class WebSocketManager {
       };
 
       this.connections.set(payload.userId, connection);
+      // 记录活跃连接 ID
+      this.activeConnectionIds.set(payload.userId, connectionId);
 
       logger.info('WebSocket connection established', {
         userId: payload.userId,
@@ -112,9 +121,9 @@ export class WebSocketManager {
         this.handleMessage(payload.userId, data);
       });
 
-      // 设置关闭处理器
+      // 设置关闭处理器（使用闭包捕获 connectionId）
       ws.on('close', () => {
-        this.handleDisconnection(payload.userId);
+        this.handleDisconnection(payload.userId, connectionId);
       });
 
       // 设置错误处理器
@@ -517,7 +526,18 @@ export class WebSocketManager {
   /**
    * 处理断开连接
    */
-  private handleDisconnection(userId: string): void {
+  private handleDisconnection(userId: string, connectionId: string): void {
+    // 检查是否是活跃连接（防止旧的 close 事件清理新连接）
+    const activeConnectionId = this.activeConnectionIds.get(userId);
+    if (activeConnectionId !== connectionId) {
+      logger.info('Ignoring stale close event from old connection', {
+        userId,
+        staleConnectionId: connectionId,
+        activeConnectionId,
+      });
+      return;
+    }
+
     const connection = this.connections.get(userId);
 
     // 如果连接不在 Map 中，说明是被替换的旧连接，不从会话中移除用户
@@ -527,6 +547,7 @@ export class WebSocketManager {
     }
 
     this.connections.delete(userId);
+    this.activeConnectionIds.delete(userId);
     this.rateLimitMap.delete(userId);
 
     // 从所有会话中移除用户
@@ -633,6 +654,7 @@ export class WebSocketManager {
     }
 
     this.connections.clear();
+    this.activeConnectionIds.clear();
     this.conversations.clear();
     this.rateLimitMap.clear();
 
