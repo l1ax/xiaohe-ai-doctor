@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { WebSocketManager } from '../WebSocketManager';
 import { Server } from 'http';
 import { WSMessageType, ContentType, SenderType } from '../types';
+import { consultationStore } from '../../storage/consultationStore';
 
 // Mock dependencies
 vi.mock('../../utils/logger', () => ({
@@ -326,6 +327,121 @@ describe('WebSocketManager', () => {
 
       expect(users1).toContain('user-123');
       expect(users2).toContain('user-123');
+    });
+  });
+
+  describe('broadcastConsultationUpdate', () => {
+    beforeEach(() => {
+      consultationStore.clear();
+    });
+
+    it('should send consultation update to both doctor and patient', () => {
+      const consultationId = 'consultation-001';
+      const doctorId = 'doctor-123';
+      const patientId = 'patient-456';
+      const createdAt = new Date().toISOString();
+
+      // Create consultation in store
+      consultationStore.createConsultation({
+        id: consultationId,
+        patientId,
+        patientPhone: '13800138000',
+        doctorId,
+        status: 'active',
+        createdAt,
+        updatedAt: createdAt,
+        lastMessage: 'Hello doctor',
+        lastMessageTime: createdAt,
+      });
+
+      // Spy on sendToUser method
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      // Call broadcastConsultationUpdate
+      wsManager.broadcastConsultationUpdate(consultationId);
+
+      // Verify sendToUser was called for both doctor and patient
+      expect(sendToUserSpy).toHaveBeenCalledTimes(2);
+      expect(sendToUserSpy).toHaveBeenCalledWith(doctorId, expect.objectContaining({
+        type: WSMessageType.CONSULTATION_UPDATE,
+        conversationId: consultationId,
+      }));
+      expect(sendToUserSpy).toHaveBeenCalledWith(patientId, expect.objectContaining({
+        type: WSMessageType.CONSULTATION_UPDATE,
+        conversationId: consultationId,
+      }));
+    });
+
+    it('should handle non-existent consultation gracefully', () => {
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      // Should not throw for non-existent consultation
+      expect(() => {
+        wsManager.broadcastConsultationUpdate('non-existent-consultation');
+      }).not.toThrow();
+
+      // Should not call sendToUser for non-existent consultation
+      expect(sendToUserSpy).not.toHaveBeenCalled();
+    });
+
+    it('should include consultation data in update message', () => {
+      const consultationId = 'consultation-002';
+      const doctorId = 'doctor-789';
+      const patientId = 'patient-101';
+      const createdAt = new Date().toISOString();
+
+      consultationStore.createConsultation({
+        id: consultationId,
+        patientId,
+        patientPhone: '13900139000',
+        doctorId,
+        status: 'pending',
+        createdAt,
+        updatedAt: createdAt,
+        lastMessage: 'I need help',
+        lastMessageTime: createdAt,
+      });
+
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      wsManager.broadcastConsultationUpdate(consultationId);
+
+      // Verify the message includes consultation data
+      const doctorCall = sendToUserSpy.mock.calls.find(call => call[0] === doctorId);
+      expect(doctorCall).toBeDefined();
+      const messageSentToDoctor = doctorCall![1];
+      expect(messageSentToDoctor).toMatchObject({
+        type: WSMessageType.CONSULTATION_UPDATE,
+        conversationId: consultationId,
+      });
+    });
+
+    it('should handle consultation without lastMessage', () => {
+      const consultationId = 'consultation-003';
+      const doctorId = 'doctor-999';
+      const patientId = 'patient-888';
+      const createdAt = new Date().toISOString();
+
+      consultationStore.createConsultation({
+        id: consultationId,
+        patientId,
+        patientPhone: '13700137000',
+        doctorId,
+        status: 'active',
+        createdAt,
+        updatedAt: createdAt,
+        // No lastMessage or lastMessageTime
+      });
+
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      // Should not throw
+      expect(() => {
+        wsManager.broadcastConsultationUpdate(consultationId);
+      }).not.toThrow();
+
+      // Should still send to both users
+      expect(sendToUserSpy).toHaveBeenCalledTimes(2);
     });
   });
 });
