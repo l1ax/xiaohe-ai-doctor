@@ -41,11 +41,11 @@ class UserStore {
     }
   }
 
-  async login(phone: string, verifyCode: string) {
+  async login(phone: string, verifyCode: string, role?: 'patient' | 'doctor') {
     try {
       this.loading = true;
       this.error = null;
-      const response = await authApi.login(phone, verifyCode);
+      const response = await authApi.login(phone, verifyCode, role);
       runInAction(() => {
         this.user = response.user;
         this.accessToken = response.accessToken;

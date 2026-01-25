@@ -19,8 +19,8 @@ export const authApi = {
     return request.post<{ message: string }>('/auth/send-code', { phone });
   },
 
-  login(phone: string, verifyCode: string) {
-    return request.post<LoginResponse>('/auth/login', { phone, verifyCode });
+  login(phone: string, verifyCode: string, role?: 'patient' | 'doctor') {
+    return request.post<LoginResponse>('/auth/login', { phone, verifyCode, role });
   },
 
   refreshToken(refreshToken: string) {
