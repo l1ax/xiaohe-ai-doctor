@@ -1,6 +1,12 @@
 import { AgentState } from "../state";
 import { UserIntent } from "../types";
 import { createZhipuLLM } from "../../utils/llm";
+import {
+  createConversationStatusEvent,
+  createMessageStatusEvent,
+  createMessageContentEvent,
+} from "../events/chat-event-types";
+import { v4 as uuidv4 } from 'uuid';
 
 const llm = createZhipuLLM(0);
 
@@ -26,10 +32,27 @@ const INTENT_PROMPT = `你是一个医疗健康助手的意图识别模块。分
 
 export async function classifyIntent(state: typeof AgentState.State) {
   const emitter = state.eventEmitter;
-  const lastMessage = state.messages[state.messages.length - 1];
+  const { conversationId, messages } = state;
+  const lastMessage = messages[messages.length - 1];
   const userInput = lastMessage.content;
 
-  emitter.emitThinking('正在识别您的意图...');
+  // 生成消息 ID
+  const messageId = state.messageId || `msg_${Date.now()}`;
+
+  // 发送对话状态 - 处理中
+  emitter.emit('conversation:status', createConversationStatusEvent(
+    conversationId,
+    'processing',
+    { previousStatus: 'sending', message: '正在分析您的问题...' }
+  ));
+
+  // 发送消息状态 - 发送中
+  emitter.emit('message:status', createMessageStatusEvent(
+    conversationId,
+    messageId,
+    'sending',
+    'assistant'
+  ));
 
   const prompt = INTENT_PROMPT.replace('{input}', userInput);
 
@@ -41,7 +64,6 @@ export async function classifyIntent(state: typeof AgentState.State) {
 
   try {
     const content = (response.content as string).trim();
-    // 提取JSON（可能包含```json```标记）
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       result = JSON.parse(jsonMatch[0]);
@@ -50,16 +72,28 @@ export async function classifyIntent(state: typeof AgentState.State) {
     }
   } catch (error) {
     console.error('Intent parse error:', error);
-    // 解析失败，默认为通用问答
     result = { intent: 'general_qa', entities: {} };
   }
 
   console.log('✅ Intent classified:', result.intent);
 
-  emitter.emitIntent(result.intent, result.entities);
+  // 发送意图识别事件
+  emitter.emit('agent:intent', {
+    type: 'agent:intent',
+    data: {
+      intent: result.intent,
+      entities: {
+        ...result.entities,
+        conversationId,
+        userMessage: userInput,
+      },
+      timestamp: new Date().toISOString(),
+    },
+  });
 
   return {
     userIntent: result.intent,
     extractedInfo: result.entities,
+    messageId,
   };
 }

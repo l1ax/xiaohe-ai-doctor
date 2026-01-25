@@ -11,6 +11,7 @@ import FamilyMembers from './pages/FamilyMembers';
 import Address from './pages/Address';
 import CustomerService from './pages/CustomerService';
 import VIP from './pages/VIP';
+import Chat from './pages/Chat';
 import Layout from './components/Layout';
 
 // 需要底部导航的页面包裹
@@ -30,5 +31,5 @@ export const router = createBrowserRouter([
   { path: '/customer-service', element: withLayout(<CustomerService />) },
   { path: '/vip', element: withLayout(<VIP />) },
   { path: '/booking', element: withLayout(<div>挂号页面（开发中）</div>) },
-  { path: '/chat', element: withLayout(<div>问诊页面（开发中）</div>) },
+  { path: '/chat', element: <Chat /> },
 ]);

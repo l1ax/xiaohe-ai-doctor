@@ -1,5 +1,10 @@
 import { AgentState } from "../state";
 import { createZhipuLLM } from "../../utils/llm";
+import {
+  createToolCallEvent,
+  createMessageContentEvent,
+} from "../events/chat-event-types";
+import { v4 as uuidv4 } from 'uuid';
 
 const llm = createZhipuLLM(0.7);
 
@@ -20,15 +25,23 @@ const MEDICINE_PROMPT = `你是一位药品咨询顾问。用户询问药品相�
 
 export async function medicineInfo(state: typeof AgentState.State) {
   const emitter = state.eventEmitter;
-  const lastMessage = state.messages[state.messages.length - 1];
+  const { conversationId, messages, extractedInfo } = state;
+  const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
-  const medicineName = state.extractedInfo?.medicineName || '相关药品';
+  const medicineName = extractedInfo?.medicineName || '相关药品';
 
-  emitter.emitThinking(`正在查询${medicineName}的药品信息...`);
+  const messageId = state.messageId || `msg_${Date.now()}`;
+  const toolId = `tool_${uuidv4()}`;
 
-  emitter.emitToolCall('medicine_query', 'running', {
-    input: { medicineName },
-  });
+  // 发送工具调用开始事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'medicine_info',
+    messageId,
+    'running',
+    { input: { medicineName } }
+  ));
 
   const prompt = MEDICINE_PROMPT.replace('{query}', userQuery);
 
@@ -39,16 +52,31 @@ export async function medicineInfo(state: typeof AgentState.State) {
   const info = response.content as string;
   console.log('💊 Medicine info completed');
 
-  emitter.emitToolCall('medicine_query', 'completed', {
-    output: { info },
-  });
+  // 发送工具调用完成事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'medicine_info',
+    messageId,
+    'completed',
+    { output: { info }, duration: 500 }
+  ));
 
-  // Emit content character by character
-  for (const char of info) {
-    emitter.emitContent(char);
-  }
+  // 流式发送内容
+  const words = info.split('');
+  words.forEach((char, index) => {
+    emitter.emit('message:content', createMessageContentEvent(
+      conversationId,
+      messageId,
+      char,
+      index,
+      index === 0,
+      index === words.length - 1
+    ));
+  });
 
   return {
     branchResult: info,
+    messageId,
   };
 }

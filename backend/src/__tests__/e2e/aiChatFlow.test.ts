@@ -15,12 +15,16 @@ describe('AI Chat End-to-End Flow', () => {
 
   beforeAll(() => {
     emitter = new AgentEventEmitter();
-    sseHandler = SSEHandler.getInstance(emitter);
+    sseHandler = SSEHandler.getInstance({
+      heartbeatInterval: 30000,
+      timeout: 60000,
+      retryDelay: 1000,
+    });
     messageWriter = new MessageWriter(emitter, {
       enabled: true,
       batch: {
         flushInterval: 1000,
-        maxMessages: 10,
+        maxSize: 10,
       },
     });
 
@@ -109,7 +113,7 @@ describe('AI Chat End-to-End Flow', () => {
 
       // 应该有预约操作的 action
       const metadataEvent = events.find((e) => e.type === 'agent:metadata');
-      const bookAction = metadataEvent.data.actions?.find((a) => a.type === 'book_appointment');
+      const bookAction = metadataEvent?.data.actions?.find((a: any) => a.type === 'book_appointment');
       expect(bookAction).toBeDefined();
     });
   });

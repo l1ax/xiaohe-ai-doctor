@@ -34,6 +34,8 @@ describe('Agent Event Flow Integration Tests', () => {
         extractedInfo: {},
         branchResult: null,
         conversationId: 'test-conv-1',
+        messageId: 'msg_123',
+        startTime: Date.now(),
         eventEmitter: emitter,
       };
 

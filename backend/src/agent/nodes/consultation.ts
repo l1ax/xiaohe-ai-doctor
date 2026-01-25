@@ -1,5 +1,10 @@
 import { AgentState } from "../state";
 import { createZhipuLLM } from "../../utils/llm";
+import {
+  createToolCallEvent,
+  createMessageContentEvent,
+} from "../events/chat-event-types";
+import { v4 as uuidv4 } from 'uuid';
 
 const llm = createZhipuLLM(0.7);
 
@@ -15,10 +20,22 @@ const CONSULTATION_PROMPT = `你是一位专业的医疗健康顾问助手。请
 
 export async function consultation(state: typeof AgentState.State) {
   const emitter = state.eventEmitter;
-  const lastMessage = state.messages[state.messages.length - 1];
+  const { conversationId, messages } = state;
+  const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
 
-  emitter.emitThinking('正在为您查找相关资料...');
+  const messageId = state.messageId || `msg_${Date.now()}`;
+  const toolId = `tool_${uuidv4()}`;
+
+  // 发送工具调用开始事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'consultation',
+    messageId,
+    'running',
+    { input: { query: userQuery } }
+  ));
 
   const prompt = CONSULTATION_PROMPT.replace('{query}', userQuery);
 
@@ -29,12 +46,31 @@ export async function consultation(state: typeof AgentState.State) {
   const answer = response.content as string;
   console.log('💬 Consultation completed');
 
-  // Emit content character by character
-  for (const char of answer) {
-    emitter.emitContent(char);
-  }
+  // 发送工具调用完成事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'consultation',
+    messageId,
+    'completed',
+    { output: { answer }, duration: 500 }
+  ));
+
+  // 流式发送内容
+  const words = answer.split('');
+  words.forEach((char, index) => {
+    emitter.emit('message:content', createMessageContentEvent(
+      conversationId,
+      messageId,
+      char,
+      index,
+      index === 0,
+      index === words.length - 1
+    ));
+  });
 
   return {
     branchResult: answer,
+    messageId,
   };
 }
