@@ -63,11 +63,26 @@ const DoctorChat = observer(function DoctorChat() {
     }
   };
 
+  const loadMessageHistory = async (consultationId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/consultations/${consultationId}/messages`, {
+        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        console.log('[DoctorChat] 📜 已加载历史消息', { count: data.data.length });
+        setMessages(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load message history:', error);
+    }
+  };
+
   const connectWebSocket = async () => {
     if (!id || !userStore.accessToken) return;
 
     console.log('[DoctorChat] 🔵 开始连接 WebSocket', {
-      conversationId: id,
+      consultationId: id,
       userId: userStore.user?.id,
       userRole: userStore.user?.role,
       wsUrl: WS_URL,
@@ -80,9 +95,12 @@ const DoctorChat = observer(function DoctorChat() {
       await ws.connect();
       setIsConnected(true);
       console.log('[DoctorChat] ✅ WebSocket 连接成功');
-      
+
       ws.join(id);
-      console.log('[DoctorChat] 📥 已发送 join 请求', { conversationId: id });
+      console.log('[DoctorChat] 📥 已发送 join 请求', { consultationId: id });
+
+      // 加载历史消息
+      await loadMessageHistory(id);
 
       ws.onMessage((message: ChatMessage) => {
         console.log('[DoctorChat] 📨 收到消息', {
