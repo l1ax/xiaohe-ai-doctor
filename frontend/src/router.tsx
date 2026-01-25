@@ -12,6 +12,9 @@ import Address from './pages/Address';
 import CustomerService from './pages/CustomerService';
 import VIP from './pages/VIP';
 import Chat from './pages/Chat';
+import DoctorList from './pages/DoctorList';
+import DoctorChat from './pages/DoctorChat';
+import DoctorTasks from './pages/DoctorTasks';
 import Layout from './components/Layout';
 
 // 需要底部导航的页面包裹
@@ -32,4 +35,7 @@ export const router = createBrowserRouter([
   { path: '/vip', element: withLayout(<VIP />) },
   { path: '/booking', element: withLayout(<div>挂号页面（开发中）</div>) },
   { path: '/chat', element: <Chat /> },
+  { path: '/doctor-list', element: withLayout(<DoctorList />) },
+  { path: '/doctor-chat/:id', element: <DoctorChat /> },
+  { path: '/doctor/tasks', element: <DoctorTasks /> },
 ]);
