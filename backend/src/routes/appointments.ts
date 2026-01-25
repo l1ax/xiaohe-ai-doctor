@@ -6,6 +6,7 @@ import {
   getAppointmentDetail,
   cancelAppointmentHandler,
   getDoctorsForAppointment,
+  getDoctorAppointmentsHandler,
 } from '../controllers/appointmentController';
 import { authMiddleware } from '../middleware/auth';
 
@@ -34,6 +35,13 @@ router.post('/', authMiddleware, createAppointmentHandler);
  * GET /api/appointments
  */
 router.get('/', authMiddleware, getAppointments);
+
+/**
+ * 获取医生的预约列表（医生端）
+ * GET /api/appointments/doctor
+ * 注意：此路由必须在 /:id 之前，否则会被拦截
+ */
+router.get('/doctor', authMiddleware, getDoctorAppointmentsHandler);
 
 /**
  * 获取预约详情

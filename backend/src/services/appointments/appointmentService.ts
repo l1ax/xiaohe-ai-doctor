@@ -274,3 +274,25 @@ export function cancelAppointment(id: string): Appointment | undefined {
 
   return appointment;
 }
+
+/**
+ * 获取医生的预约列表
+ */
+export function getDoctorAppointments(
+  doctorId: string,
+  status?: AppointmentStatus
+): Appointment[] {
+  let appointments = Array.from(mockAppointments.values()).filter(
+    (a) => a.doctorId === doctorId
+  );
+
+  // 按状态筛选
+  if (status) {
+    appointments = appointments.filter((a) => a.status === status);
+  }
+
+  // 按预约时间倒序排序
+  return appointments.sort((a, b) =>
+    b.appointmentTime.localeCompare(a.appointmentTime)
+  );
+}

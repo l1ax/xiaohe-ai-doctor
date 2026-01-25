@@ -383,8 +383,15 @@ export const getPendingConsultations = async (req: Request, res: Response): Prom
     res.json({
       code: 0,
       data: consultations.map((c) => ({
-        ...c,
+        id: c.id,
+        patientId: c.patientId,
+        patientName: maskPhone(c.patientPhone), // 使用脱敏手机号作为患者名
         patientPhone: maskPhone(c.patientPhone),
+        symptoms: '患者咨询健康问题', // MVP 阶段使用固定描述，实际应从消息历史中获取
+        status: c.status,
+        urgency: 'medium', // MVP 阶段使用固定紧急程度
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
         doctor: getDoctorById(c.doctorId),
       })),
       message: 'success',
