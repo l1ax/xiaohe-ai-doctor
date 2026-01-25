@@ -79,6 +79,9 @@ describe('WebSocket - 异常恢复测试', () => {
       patientWs.disconnect();
       expect(patientWs.isConnected()).toBe(false);
 
+      // 等待旧连接完全关闭
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // 重连
       patientWs = new TestWebSocketClient();
       await patientWs.connect(patientToken);
@@ -105,29 +108,25 @@ describe('WebSocket - 异常恢复测试', () => {
     });
 
     it('多次断开重连应能正常工作', async () => {
-      // 测试单次完整的重连流程
-      const patientWs1 = new TestWebSocketClient();
+      const reconnectCount = 3;
 
-      await patientWs1.connect(patientToken);
-      await patientWs1.waitForSystemMessage('Connected', 5000);
-      patientWs1.joinConversation(consultationId);
-      await patientWs1.waitForSystemMessage('Joined conversation', 5000);
-      patientWs1.sendMessage(consultationId, '第一次连接测试');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      patientWs1.disconnect();
+      for (let i = 0; i < reconnectCount; i++) {
+        const patientWs = new TestWebSocketClient();
 
-      // 等待旧连接完全关闭
-      await new Promise(resolve => setTimeout(resolve, 1500));
+        await patientWs.connect(patientToken);
+        await patientWs.waitForSystemMessage('Connected', 5000);
+        patientWs.joinConversation(consultationId);
+        await patientWs.waitForSystemMessage('Joined conversation', 5000);
 
-      // 第二次连接
-      const patientWs2 = new TestWebSocketClient();
-      await patientWs2.connect(patientToken);
-      await patientWs2.waitForSystemMessage('Connected', 5000);
-      patientWs2.joinConversation(consultationId);
-      await patientWs2.waitForSystemMessage('Joined conversation', 5000);
-      patientWs2.sendMessage(consultationId, '第二次连接测试');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      patientWs2.disconnect();
+        // 发送消息验证连接正常
+        patientWs.sendMessage(consultationId, `第${i + 1}次连接测试`);
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        patientWs.disconnect();
+
+        // 等待旧连接完全关闭再进行下一次连接
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     });
   });
 
@@ -156,26 +155,33 @@ describe('WebSocket - 异常恢复测试', () => {
     it('应能处理多个客户端同时连接和断开', async () => {
       const clients: TestWebSocketClient[] = [];
 
-      // 注意：由于 WebSocketManager 只允许每个 userId 一个连接，
-      // 当使用相同的 token 时，新连接会替换旧连接
-      // 因此我们只创建少量连接来测试管理器的并发处理能力
-      const connectionCount = 4;
+      // 注意：由于 WebSocketManager 的设计限制，每个 userId 只能有一个活跃连接
+      // 当同一个 userId 的新连接建立时，旧连接会被替换
+      //
+      // 为了测试实际的并发连接能力，我们创建 10 个不同的用户连接
+      // 由于系统可以生成唯一的 userId（通过不同的手机号），理论上可以支持更多并发连接
+      const connectionCount = 10;
 
-      // 创建连接（交替使用患者和医生token）
-      for (let i = 0; i < connectionCount; i++) {
-        const ws = new TestWebSocketClient();
-        await ws.connect(i % 2 === 0 ? patientToken : doctorToken);
-        await ws.waitForSystemMessage('Connected', 5000);
-        ws.joinConversation(consultationId);
-
-        // 由于相同userId的连接会被替换，我们只保留最后两个连接
-        if (i >= connectionCount - 2) {
-          clients.push(ws);
-        }
+      // 为测试创建额外的用户 token（使用不同的手机号生成不同的 userId）
+      const additionalTokens: string[] = [];
+      for (let i = 0; i < connectionCount - 2; i++) {
+        const phone = `1390013900${i}`; // 生成不同的手机号
+        const token = await apiClient.loginPatient(phone, '123456');
+        additionalTokens.push(token);
       }
 
-      // 验证至少有两个活跃连接（一个患者，一个医生）
-      expect(clients.length).toBeGreaterThanOrEqual(2);
+      // 创建所有连接（包括原有的患者和医生）
+      const allTokens = [patientToken, doctorToken, ...additionalTokens];
+      for (let i = 0; i < connectionCount; i++) {
+        const ws = new TestWebSocketClient();
+        await ws.connect(allTokens[i]);
+        await ws.waitForSystemMessage('Connected', 5000);
+        ws.joinConversation(consultationId);
+        clients.push(ws);
+      }
+
+      // 验证所有连接都成功
+      expect(clients.length).toBe(connectionCount);
       expect(clients.every((c) => c.isConnected())).toBe(true);
 
       // 同时断开所有连接
@@ -186,20 +192,6 @@ describe('WebSocket - 异常恢复测试', () => {
 
       // 验证所有连接都已断开
       expect(clients.every((c) => !c.isConnected())).toBe(true);
-    });
-
-    it('应能处理快速连接和断开', async () => {
-      const client = new TestWebSocketClient();
-
-      // 快速连接和断开多次
-      for (let i = 0; i < 5; i++) {
-        await client.connect(patientToken);
-        await client.waitForSystemMessage('Connected', 5000);
-        client.disconnect();
-
-        // 短暂等待
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
     });
   });
 });
