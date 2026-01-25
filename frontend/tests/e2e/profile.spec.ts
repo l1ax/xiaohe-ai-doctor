@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Profile 页面', () => {
-  test.beforeEach(async ({ page, context }) => {
+  test.beforeEach(async ({ page }) => {
     // 先登录
     await page.goto('/login');
     await page.locator('input[type="tel"]').fill('13800138000');
