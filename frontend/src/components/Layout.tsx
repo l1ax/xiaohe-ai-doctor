@@ -1,42 +1,52 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
 
-export default function Layout() {
+const Layout = observer(function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/', icon: 'home', label: '首页', filled: location.pathname === '/' },
-    { path: '/chat', icon: 'chat_bubble_outline', label: '问诊', hasBadge: true },
-    { path: '/appointment', icon: 'calendar_month', label: '挂号' },
-    { path: '/profile', icon: 'person', label: '我的' },
+    { path: '/', icon: 'home', label: '首页', activeIcon: 'home' },
+    { path: '/chat', icon: 'medical_services', label: '问诊', hasBadge: true },
+    { path: '/booking', icon: 'edit_calendar', label: '挂号' },
+    { path: '/profile', icon: 'person', label: '我的', activeIcon: 'person' },
   ];
 
+  const isActive = (path: string) => location.pathname === path;
+
+  // 登录页不显示底部导航
+  if (location.pathname === '/login') {
+    return <Outlet />;
+  }
+
   return (
-    <div className="min-h-screen max-w-md mx-auto bg-background-light dark:bg-background-dark">
-      <Outlet />
-      <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 h-20 pb-4 px-6 z-40 max-w-md mx-auto">
-        <div className="flex justify-between items-center h-14">
-          {navItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center gap-1 w-14 ${
-                item.filled ? 'text-primary' : 'text-text-sec-light dark:text-text-sec-dark'
-              }`}
-            >
-              <div className="relative">
-                <span className="material-symbols-outlined text-[26px]">
-                  {item.filled && item.icon === 'home' ? 'home' : item.icon}
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 pb-24">
+        <Outlet />
+      </main>
+      <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-6 pt-2 px-6 z-50 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-between items-center h-14 max-w-lg mx-auto">
+          {navItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex flex-col items-center gap-1.5 w-16 transition-colors ${
+                  active ? 'text-primary' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[26px] ${active ? 'fill-1 drop-shadow-sm' : ''}`}>
+                  {active && item.activeIcon ? item.activeIcon : item.icon}
                 </span>
-                {item.hasBadge && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
-                )}
-              </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </button>
-          ))}
+                <span className={`text-[10px] font-medium ${active ? 'font-bold' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
     </div>
   );
-}
+});
+
+export default Layout;
