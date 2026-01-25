@@ -270,13 +270,15 @@ export class TestApiClient {
    * 获取医生排班
    */
   async getDoctorSchedule(
+    token: string,
     doctorId: string,
     startDate: string,
     endDate: string
   ): Promise<any[]> {
     const response: Response = await request(this.app)
       .get('/api/appointments/schedule')
-      .query({ doctorId, startDate, endDate });
+      .query({ doctorId, startDate, endDate })
+      .set('Authorization', `Bearer ${token}`);
 
     if (response.status !== 200) {
       throw new Error(`Get doctor schedule failed: ${JSON.stringify(response.body)}`);
