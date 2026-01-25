@@ -111,10 +111,10 @@ export class WebSocketService {
         this.messageHandlers.forEach((h) => h(data.message as ChatMessage));
         break;
       case 'system':
-        this.systemHandlers.forEach((h) => h(data.data?.text || ''));
+        this.systemHandlers.forEach((h) => h((data.data as { text?: string })?.text || ''));
         break;
       case 'typing':
-        this.typingHandlers.forEach((h) => h(data.data?.senderId || ''));
+        this.typingHandlers.forEach((h) => h((data.data as { senderId?: string })?.senderId || ''));
         break;
     }
   }
