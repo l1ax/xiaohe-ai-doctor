@@ -218,11 +218,29 @@ describe('专家问诊 - 双角色完整流程', () => {
       doctorWs.sendMessage(consultationId, testMessage);
 
       // 患者应该收到消息
-      const received = await patientWs.waitForChatMessage(5000);
-      expect(received).toBeDefined();
-      expect(received.type).toBe('message');
-      expect(received.message?.content).toBe(testMessage);
-      expect(received.message?.senderType).toBe('doctor');
+      // 注意：患者可能会收到自己消息的回声，所以我们需要找到医生的消息
+      let receivedDoctorMessage = false;
+      const timeout = 5000;
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < timeout && !receivedDoctorMessage) {
+        try {
+          const msg = await patientWs.waitForChatMessage(1000);
+          if (msg.message?.content === testMessage && msg.message?.senderType === 'doctor') {
+            expect(msg).toBeDefined();
+            expect(msg.type).toBe('message');
+            expect(msg.message?.content).toBe(testMessage);
+            expect(msg.message?.senderType).toBe('doctor');
+            receivedDoctorMessage = true;
+            break;
+          }
+        } catch (e) {
+          // 超时或没有更多消息
+          break;
+        }
+      }
+
+      expect(receivedDoctorMessage).toBe(true);
     });
 
     it('应能正确显示正在输入状态', async () => {
