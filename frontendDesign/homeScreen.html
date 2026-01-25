@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>小禾AI医生</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "primary-dark": "#0e8bc7",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2a33",
+                        "text-main-light": "#0d171b",
+                        "text-main-dark": "#e0e6e9",
+                        "text-sec-light": "#4c809a",
+                        "text-sec-dark": "#8daab9",
+                    },
+                    fontFamily: {
+                        "display": ["Noto Sans SC", "Manrope", "PingFang SC", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "md": "0.375rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }.no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }.no-scrollbar {
+          -ms-overflow-style: none;scrollbar-width: none;}
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main-light dark:text-text-main-dark antialiased transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-xl">
+<div class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 pb-2">
+<div class="flex items-center justify-between p-4 pb-2">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-surface-dark shadow-sm border border-gray-100 dark:border-gray-700 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-primary text-[20px] filled">location_on</span>
+<span class="text-sm font-bold text-text-main-light dark:text-text-main-dark">北京</span>
+<span class="material-symbols-outlined text-text-sec-light dark:text-text-sec-dark text-[18px]">expand_more</span>
+</button>
+<button class="relative flex items-center justify-center p-2 rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
+<span class="material-symbols-outlined text-text-main-light dark:text-text-main-dark text-[24px]">notifications</span>
+<span class="absolute top-2 right-2.5 h-2 w-2 rounded-full bg-red-500 border-2 border-background-light dark:border-background-dark"></span>
+</button>
+</div>
+<div class="px-4 pb-2">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<span class="material-symbols-outlined text-text-sec-light dark:text-text-sec-dark text-[22px]">search</span>
+</div>
+<input class="block w-full p-3 pl-10 text-sm text-text-main-light dark:text-text-main-dark bg-white dark:bg-surface-dark border-none rounded-full shadow-sm ring-1 ring-gray-200 dark:ring-gray-700 focus:ring-2 focus:ring-primary focus:outline-none placeholder:text-text-sec-light/70 dark:placeholder:text-text-sec-dark/70 transition-all" placeholder="搜索症状、医生或医院" type="text"/>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto pb-24">
+<div class="p-4 grid grid-cols-2 gap-3 h-64">
+<div class="col-span-1 h-full relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20 group cursor-pointer active:scale-[0.98] transition-all">
+<div class="absolute top-0 right-0 p-8 bg-white/10 rounded-full blur-2xl -mr-6 -mt-6"></div>
+<div class="absolute bottom-0 left-0 p-10 bg-black/5 rounded-full blur-xl -ml-4 -mb-4"></div>
+<div class="relative z-10 h-full flex flex-col justify-between p-4">
+<div>
+<div class="bg-white/20 w-10 h-10 rounded-full flex items-center justify-center mb-3 backdrop-blur-sm">
+<span class="material-symbols-outlined text-white text-[24px] filled">smart_toy</span>
+</div>
+<h3 class="text-white text-lg font-bold leading-tight">AI 智能问诊</h3>
+<p class="text-blue-50 text-xs mt-1 font-medium opacity-90">全天候极速响应</p>
+</div>
+<div class="flex justify-end">
+<span class="material-symbols-outlined text-white/40 text-[64px] group-hover:scale-110 transition-transform duration-500">medical_mask</span>
+</div>
+</div>
+</div>
+<div class="col-span-1 flex flex-col gap-3 h-full">
+<div class="flex-1 relative overflow-hidden rounded-2xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.98] transition-all group">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-text-main-light dark:text-text-main-dark text-base font-bold">专家问诊</h3>
+<p class="text-text-sec-light dark:text-text-sec-dark text-xs mt-1">三甲名医在线</p>
+</div>
+<div class="bg-teal-50 dark:bg-teal-900/30 w-8 h-8 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-teal-600 dark:text-teal-400 text-[20px]">medical_services</span>
+</div>
+</div>
+<div class="absolute -bottom-2 -right-2 opacity-5 dark:opacity-10">
+<span class="material-symbols-outlined text-teal-900 text-[60px]">stethoscope</span>
+</div>
+</div>
+<div class="flex-1 relative overflow-hidden rounded-2xl bg-white dark:bg-surface-dark p-4 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.98] transition-all group">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-text-main-light dark:text-text-main-dark text-base font-bold">预约挂号</h3>
+<p class="text-text-sec-light dark:text-text-sec-dark text-xs mt-1">省时免排队</p>
+</div>
+<div class="bg-indigo-50 dark:bg-indigo-900/30 w-8 h-8 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-indigo-600 dark:text-indigo-400 text-[20px]">calendar_month</span>
+</div>
+</div>
+<div class="absolute -bottom-2 -right-2 opacity-5 dark:opacity-10">
+<span class="material-symbols-outlined text-indigo-900 text-[60px]">event_available</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-2">
+<div class="flex items-center justify-between px-4 py-2">
+<h3 class="text-text-main-light dark:text-text-main-dark text-lg font-bold">热门科室</h3>
+<button class="text-primary text-sm font-semibold flex items-center">
+                        全部 <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-4 gap-y-4 px-4 py-2">
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-primary text-[24px]">child_care</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">儿科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-orange-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-orange-100 dark:group-hover:bg-orange-900/20 transition-colors">
+<span class="material-symbols-outlined text-orange-500 text-[24px]">cardiology</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">内科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-purple-100 dark:group-hover:bg-purple-900/20 transition-colors">
+<span class="material-symbols-outlined text-purple-500 text-[24px]">dentistry</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">口腔科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-rose-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-rose-100 dark:group-hover:bg-rose-900/20 transition-colors">
+<span class="material-symbols-outlined text-rose-500 text-[24px]">face</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">皮肤科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/20 transition-colors">
+<span class="material-symbols-outlined text-emerald-500 text-[24px]">spa</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">中医科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-cyan-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-cyan-100 dark:group-hover:bg-cyan-900/20 transition-colors">
+<span class="material-symbols-outlined text-cyan-500 text-[24px]">orthopedics</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">外科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-pink-50 dark:bg-surface-dark flex items-center justify-center group-hover:bg-pink-100 dark:group-hover:bg-pink-900/20 transition-colors">
+<span class="material-symbols-outlined text-pink-500 text-[24px]">pregnant_woman</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">妇产科</span>
+</div>
+<div class="flex flex-col items-center gap-2 cursor-pointer group">
+<div class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-surface-dark flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-slate-500 text-[24px]">grid_view</span>
+</div>
+<span class="text-xs font-medium text-text-main-light dark:text-text-sec-dark">更多</span>
+</div>
+</div>
+</div>
+<div class="mt-4 px-4">
+<h3 class="text-text-main-light dark:text-text-main-dark text-lg font-bold mb-3">健康资讯</h3>
+<div class="flex flex-col gap-3">
+<div class="flex bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:shadow-md transition-shadow">
+<div class="flex-1 pr-3 flex flex-col justify-between">
+<h4 class="text-sm font-bold text-text-main-light dark:text-text-main-dark line-clamp-2 leading-snug">冬季如何有效增强免疫力？这里有5个妙招</h4>
+<div class="flex items-center gap-2 mt-2">
+<span class="bg-blue-50 dark:bg-blue-900/30 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded">健康预防</span>
+<span class="text-[10px] text-text-sec-light dark:text-text-sec-dark">2小时前</span>
+</div>
+</div>
+<div class="w-24 h-24 shrink-0 rounded-lg bg-gray-200 overflow-hidden relative">
+<div class="w-full h-full bg-center bg-cover" data-alt="Fresh fruits and vegetables representing healthy diet" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBUIW8xxtiEjlKEuevFL4OKgXCBan_wD21tPP1wcQEq-LowmP6uE4y8FAwFRokOvXPsqGjWawSBry14pIeGSDamiM1n3uiB2_wppMiIdMNTxme2FnIzPKtDMWiuuArL78f7XddfakJWF0AS0rocxpIMQch9iyfFXvPwlZc8hI3LkZaXFomU3ANFAfwIgtWC3oSYCB2iOteZ6cHPEQOeGWMMMxEdHRW6pRjnGDGbVjnNlEzDYWMMkkcCSvKLOzZJU5EgNNmVelJdhk5E');"></div>
+</div>
+</div>
+<div class="flex bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:shadow-md transition-shadow">
+<div class="flex-1 pr-3 flex flex-col justify-between">
+<h4 class="text-sm font-bold text-text-main-light dark:text-text-main-dark line-clamp-2 leading-snug">65岁以上老年人年度体检发布新指南</h4>
+<div class="flex items-center gap-2 mt-2">
+<span class="bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-bold px-1.5 py-0.5 rounded">政策解读</span>
+<span class="text-[10px] text-text-sec-light dark:text-text-sec-dark">5小时前</span>
+</div>
+</div>
+<div class="w-24 h-24 shrink-0 rounded-lg bg-gray-200 overflow-hidden relative">
+<div class="w-full h-full bg-center bg-cover" data-alt="Doctor reviewing medical documents with a patient" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCK74cU8JwLNMwiwnYFVxhk3yjjsd35sZ958ukT8g6txu9mbdAntelwWL1Pqy4xH1_EOr4hjAb-OD3Waj4fHc_LYn2gIEkfLrYpC7JaDaKYfNz62cvmqK-vmKIms6h7FRc13zPOEZ1xVQ3Snc68VNCjXHloazEMJhZQaeb77T8OQYQDaXzD4PjmVQZcUcfau-Cjq1r8UZ15SUbeUmJIzho8BHhcifTTe6W7agC4lFPvS2Ib3-qhGcUgIs19RdE4PxSHOzabpOkY-1Ch');"></div>
+</div>
+</div>
+<div class="flex bg-white dark:bg-surface-dark rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:shadow-md transition-shadow">
+<div class="flex-1 pr-3 flex flex-col justify-between">
+<h4 class="text-sm font-bold text-text-main-light dark:text-text-main-dark line-clamp-2 leading-snug">定期洗牙为何对心脏健康至关重要？</h4>
+<div class="flex items-center gap-2 mt-2">
+<span class="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-bold px-1.5 py-0.5 rounded">口腔护理</span>
+<span class="text-[10px] text-text-sec-light dark:text-text-sec-dark">1天前</span>
+</div>
+</div>
+<div class="w-24 h-24 shrink-0 rounded-lg bg-gray-200 overflow-hidden relative">
+<div class="w-full h-full bg-center bg-cover" data-alt="Close up of dental tools and model teeth" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD2ZFtJ2IMiiz8FtcnCIcpfqh3f01xwovCjAMTS684JHDDdm2_XqvJSxUFWxQY1wleGpemPEb6XqgqAzGsfH3TWjqMcLBzp-8dN-kn7UekC-gQqA-ZxakOWjJIe7UHKYUuTZxrtU3T4S5S1zd6FkFX9K0oylWek3JR3VehlgZQzAk14mwSR36_zywptK83QbLUzQbUp_pK8HbDcuPZZDsmeJ47BuKPFhhqB9wCMd-TI_ZspCrrb0llQoo5W56984DcHvg7p3pqQv2ic');"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="h-6"></div>
+</div>
+<div class="absolute bottom-0 w-full bg-white dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 h-20 pb-4 px-6 flex items-center justify-between z-40">
+<button class="flex flex-col items-center justify-center gap-1 text-primary w-14">
+<span class="material-symbols-outlined text-[26px] filled">home</span>
+<span class="text-[10px] font-bold">首页</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-text-sec-light dark:text-text-sec-dark hover:text-primary dark:hover:text-primary transition-colors w-14">
+<div class="relative">
+<span class="material-symbols-outlined text-[26px]">chat_bubble_outline</span>
+<span class="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"></span>
+</div>
+<span class="text-[10px] font-medium">问诊</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-text-sec-light dark:text-text-sec-dark hover:text-primary dark:hover:text-primary transition-colors w-14">
+<span class="material-symbols-outlined text-[26px]">calendar_month</span>
+<span class="text-[10px] font-medium">挂号</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-text-sec-light dark:text-text-sec-dark hover:text-primary dark:hover:text-primary transition-colors w-14">
+<span class="material-symbols-outlined text-[26px]">person</span>
+<span class="text-[10px] font-medium">我的</span>
+</button>
+</div>
+</div>
+
+</body></html>

@@ -12,6 +12,11 @@
 
 ---
 
+## 回答规范
+对于产出的文档，还有过程中的回答，必须返回中文。
+
+---
+
 ## Superpowers 规范
 
 **对于复杂需求，必须遵循 superpowers 工作流程。** 简单任务可直接实施，无需遵循完整流程。
@@ -27,6 +32,23 @@
 | 重要功能实施 | `superpowers:test-driven-development` |
 | 多项独立任务 | `superpowers:dispatching-parallel-agents` |
 | 开发完成前 | `superpowers:verification-before-completion` |
+
+### 基本工作流程
+brainstorming - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
+
+using-git-worktrees - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
+
+writing-plans - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+
+subagent-driven-development or executing-plans - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
+
+test-driven-development - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
+
+requesting-code-review - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
+
+finishing-a-development-branch - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
+
+The agent checks for relevant skills before any task. Mandatory workflows, not suggestions
 
 ### 计划模式使用场景
 

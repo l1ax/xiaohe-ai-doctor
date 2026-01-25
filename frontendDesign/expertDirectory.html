@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>小禾AI医生 - 专家问诊</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "text-main": "#0d171b",
+                        "text-secondary": "#4c809a",
+                        "text-muted": "#8faebf",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "Noto Sans SC", "sans-serif"],
+                        "sans": ["Manrope", "Noto Sans SC", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                    boxShadow: {
+                        "card": "0 2px 8px rgba(19, 164, 236, 0.08)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>.scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main antialiased selection:bg-primary/20">
+<div class="relative mx-auto flex h-screen w-full max-w-md flex-col overflow-hidden bg-white dark:bg-background-dark shadow-2xl">
+<header class="sticky top-0 z-50 flex items-center justify-between bg-white dark:bg-background-dark px-4 py-3 shadow-sm dark:shadow-slate-800/50">
+<div class="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-text-main dark:text-white" style="font-size: 24px;">arrow_back_ios_new</span>
+</div>
+<h1 class="flex-1 text-center text-lg font-bold text-text-main dark:text-white">专家问诊</h1>
+<div class="flex size-10 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-text-main dark:text-white" style="font-size: 24px;">search</span>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto scrollbar-hide bg-background-light dark:bg-[#101c22]">
+<div class="sticky top-0 z-40 bg-white dark:bg-background-dark px-2 pt-2 shadow-sm">
+<div class="flex border-b border-slate-100 dark:border-slate-800">
+<button class="group flex flex-1 flex-col items-center justify-center pb-3 pt-2 relative">
+<span class="text-base font-bold text-primary dark:text-primary mb-1">推荐</span>
+<div class="absolute bottom-0 h-[3px] w-6 rounded-full bg-primary"></div>
+</button>
+<button class="group flex flex-1 flex-col items-center justify-center pb-3 pt-2 relative">
+<span class="text-sm font-medium text-text-secondary dark:text-slate-400 group-hover:text-primary transition-colors">科室</span>
+<div class="absolute bottom-0 h-[3px] w-6 rounded-full bg-transparent group-hover:bg-primary/50 transition-colors"></div>
+</button>
+<button class="group flex flex-1 flex-col items-center justify-center pb-3 pt-2 relative">
+<span class="text-sm font-medium text-text-secondary dark:text-slate-400 group-hover:text-primary transition-colors">附近</span>
+<div class="absolute bottom-0 h-[3px] w-6 rounded-full bg-transparent group-hover:bg-primary/50 transition-colors"></div>
+</button>
+</div>
+<div class="flex gap-3 overflow-x-auto py-3 px-2 scrollbar-hide">
+<button class="flex h-8 shrink-0 items-center gap-1 rounded-full bg-primary/10 px-3 transition-colors active:scale-95">
+<span class="text-xs font-semibold text-primary">综合排序</span>
+<span class="material-symbols-outlined text-primary" style="font-size: 16px;">keyboard_arrow_down</span>
+</button>
+<button class="flex h-8 shrink-0 items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 transition-colors active:scale-95">
+<span class="text-xs font-medium text-text-main dark:text-slate-300">价格最低</span>
+</button>
+<button class="flex h-8 shrink-0 items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 transition-colors active:scale-95">
+<span class="text-xs font-medium text-text-main dark:text-slate-300">今日可约</span>
+</button>
+<button class="flex h-8 shrink-0 items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 transition-colors active:scale-95">
+<span class="text-xs font-medium text-text-main dark:text-slate-300">三甲医院</span>
+</button>
+<button class="flex h-8 shrink-0 items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 transition-colors active:scale-95">
+<span class="text-xs font-medium text-text-main dark:text-slate-300">筛选</span>
+<span class="material-symbols-outlined text-text-main dark:text-slate-300" style="font-size: 14px;">filter_list</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-3 p-4 pb-24">
+<div class="group relative flex flex-col gap-3 rounded-xl bg-white dark:bg-[#1a2c35] p-4 shadow-card transition-all active:scale-[0.99]">
+<div class="flex gap-3">
+<div class="relative shrink-0">
+<div class="h-16 w-16 overflow-hidden rounded-full border border-slate-100 dark:border-slate-700 bg-center bg-cover" data-alt="Professional headshot of a male doctor in white coat" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB_x2-qS9Dvw6qb7c5wy9ehMXjiuGTCYvzsbDp28wh4MIKnDhXUdAr_iYwAbok8xrqd6b4qy1jNqpWmUmyuEhJJHb80htRUn_RBdnpK9CSyVRe6fWlY75of3vXT297gOh31eqOFBHNOSEVU2bq0MsvvarcFxI_6cdnZ6TkdwukAIVH3jZ4buc0hUKGNyfJdGEqtwcvGWeiJS6NzCq_IbaqrJS2XOI4U4VzscYkUeDynIjUN54Wsu3Ftio_Ezs-OLK61uiDDHY3QbZLZ");'></div>
+<div class="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-green-500 border-2 border-white dark:border-[#1a2c35] p-[2px]">
+<span class="block h-2 w-2 rounded-full bg-white"></span>
+</div>
+</div>
+<div class="flex flex-1 flex-col">
+<div class="flex items-baseline justify-between">
+<div class="flex items-baseline gap-2">
+<h3 class="text-lg font-bold text-text-main dark:text-white">王医生</h3>
+<span class="text-xs font-medium text-text-secondary dark:text-slate-400">主任医师</span>
+</div>
+<div class="flex items-center gap-1 rounded-md bg-yellow-50 dark:bg-yellow-900/20 px-1.5 py-0.5">
+<span class="material-symbols-outlined text-yellow-500" style="font-size: 14px;">star</span>
+<span class="text-xs font-bold text-yellow-700 dark:text-yellow-500">4.9分</span>
+</div>
+</div>
+<p class="text-xs text-text-secondary dark:text-slate-400 mt-1">北京协和医院 | 呼吸内科</p>
+<div class="mt-2 flex flex-wrap gap-1.5">
+<span class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">从业30年</span>
+<span class="rounded bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary dark:text-slate-300">协和名医</span>
+<span class="rounded bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary dark:text-slate-300">耐心细致</span>
+</div>
+</div>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-slate-700"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[10px] text-text-muted dark:text-slate-500">图文问诊</p>
+<div class="flex items-baseline gap-1">
+<span class="text-sm font-bold text-primary">¥50</span>
+<span class="text-[10px] text-text-secondary dark:text-slate-400">/ 次</span>
+</div>
+</div>
+<button class="flex h-8 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-md shadow-primary/20 transition-transform active:scale-95">
+                            去问诊
+                        </button>
+</div>
+</div>
+<div class="group relative flex flex-col gap-3 rounded-xl bg-white dark:bg-[#1a2c35] p-4 shadow-card transition-all active:scale-[0.99]">
+<div class="flex gap-3">
+<div class="relative shrink-0">
+<div class="h-16 w-16 overflow-hidden rounded-full border border-slate-100 dark:border-slate-700 bg-center bg-cover" data-alt="Professional headshot of a female doctor in white coat smiling" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBbueMct7U7L8Q0kV9iqDulIVlIGQHJmv2JFW7By0kP8bMyxA1RIMCTwXwdP6NotRDAHg-8_RkIx1ZEDKp9te-eIToClcx4PgJT2DukDDNvWZEJecuvhdsLWqw7iLZH7W_jGC9xQ16IbL1k1a-eZAJHzUNzzoCPBOe8WNgqMpAm65SgMv2sz2EKgq_AolqucfLaQDZvlMcPkbjgXLY1D5nVrJro0FOKZrDj91mMNj8D0nWPvDBzsc1HCqn8weugwCdCE9o0bj0scT--");'></div>
+</div>
+<div class="flex flex-1 flex-col">
+<div class="flex items-baseline justify-between">
+<div class="flex items-baseline gap-2">
+<h3 class="text-lg font-bold text-text-main dark:text-white">李素华</h3>
+<span class="text-xs font-medium text-text-secondary dark:text-slate-400">副主任医师</span>
+</div>
+<div class="flex items-center gap-1 rounded-md bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5">
+<span class="material-symbols-outlined text-yellow-500" style="font-size: 14px;">star</span>
+<span class="text-xs font-bold text-text-main dark:text-slate-300">4.8分</span>
+</div>
+</div>
+<p class="text-xs text-text-secondary dark:text-slate-400 mt-1">中日友好医院 | 皮肤科</p>
+<div class="mt-2 flex flex-wrap gap-1.5">
+<span class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">皮肤美容</span>
+<span class="rounded bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary dark:text-slate-300">回复快</span>
+</div>
+</div>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-slate-700"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[10px] text-text-muted dark:text-slate-500">图文问诊</p>
+<div class="flex items-baseline gap-1">
+<span class="text-sm font-bold text-primary">¥35</span>
+<span class="text-[10px] text-text-secondary dark:text-slate-400">/ 次</span>
+</div>
+</div>
+<button class="flex h-8 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-md shadow-primary/20 transition-transform active:scale-95">
+                            去问诊
+                        </button>
+</div>
+</div>
+<div class="group relative flex flex-col gap-3 rounded-xl bg-white dark:bg-[#1a2c35] p-4 shadow-card transition-all active:scale-[0.99]">
+<div class="flex gap-3">
+<div class="relative shrink-0">
+<div class="h-16 w-16 overflow-hidden rounded-full border border-slate-100 dark:border-slate-700 bg-center bg-cover" data-alt="Professional headshot of a senior male doctor with glasses" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB0894bHnRn1bXdPYKKw5By3PwrxzK0I62xLYgQfJEx7da7hHT9yIXGHBaYOGO9HJutScq3mhPbGgvCqDgYc5lEzCh6rm7XRJgVGxiZG5hWoessvNFQlCWhySlJp8IaXC_41KNJMRwlJFuBNR_-ZHRUYjFwqby0cgbTN0fXNy3fZRa6izeKEMO5mUkrTZ_jsg2YrbNXi0RfeiQvi2faAl98s9ojK0harAdfrQPOvPfhpCpfj4x95Pbia249gKJqIzwTQy_jArtwYWOz");'></div>
+<div class="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-green-500 border-2 border-white dark:border-[#1a2c35] p-[2px]">
+<span class="block h-2 w-2 rounded-full bg-white"></span>
+</div>
+</div>
+<div class="flex flex-1 flex-col">
+<div class="flex items-baseline justify-between">
+<div class="flex items-baseline gap-2">
+<h3 class="text-lg font-bold text-text-main dark:text-white">张伟</h3>
+<span class="text-xs font-medium text-text-secondary dark:text-slate-400">主任医师</span>
+</div>
+<div class="flex items-center gap-1 rounded-md bg-yellow-50 dark:bg-yellow-900/20 px-1.5 py-0.5">
+<span class="material-symbols-outlined text-yellow-500" style="font-size: 14px;">star</span>
+<span class="text-xs font-bold text-yellow-700 dark:text-yellow-500">5.0分</span>
+</div>
+</div>
+<p class="text-xs text-text-secondary dark:text-slate-400 mt-1">北京大学第一医院 | 儿科</p>
+<div class="mt-2 flex flex-wrap gap-1.5">
+<span class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">小儿感冒</span>
+<span class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">生长发育</span>
+<span class="rounded bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary dark:text-slate-300">接诊量 5k+</span>
+</div>
+</div>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-slate-700"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[10px] text-text-muted dark:text-slate-500">图文问诊</p>
+<div class="flex items-baseline gap-1">
+<span class="text-sm font-bold text-primary">¥60</span>
+<span class="text-[10px] text-text-secondary dark:text-slate-400">/ 次</span>
+</div>
+</div>
+<button class="flex h-8 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-md shadow-primary/20 transition-transform active:scale-95">
+                            去问诊
+                        </button>
+</div>
+</div>
+<div class="group relative flex flex-col gap-3 rounded-xl bg-white dark:bg-[#1a2c35] p-4 shadow-card transition-all active:scale-[0.99]">
+<div class="flex gap-3">
+<div class="relative shrink-0">
+<div class="h-16 w-16 overflow-hidden rounded-full border border-slate-100 dark:border-slate-700 bg-center bg-cover" data-alt="Professional headshot of a young female doctor" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCiG6uhftnKjhdLr4TOWUiK8Iu3Tu6i6LQahRjxJACVefN8hkPv4ZxCPaU70IAJy5EY2ixTcxiI2CJKfVfjXTnLyEliaq_f8K-KXjOF8GQXK2lJEfvNT_UuFPZfbBDo5BUom8L3bY_u05HjaAmnHfoSQCniGdYnQGzTNSMWzF5iTvZ0VlfiKqME9cM2XDR_n7DxmhLBH627avzT_ovVV4HpFITRuG_PrujiG4XJdIeHpzWQLrnm6eN0lzaSAxl1-Uib8tHDioAAgT4l");'></div>
+</div>
+<div class="flex flex-1 flex-col">
+<div class="flex items-baseline justify-between">
+<div class="flex items-baseline gap-2">
+<h3 class="text-lg font-bold text-text-main dark:text-white">陈晓云</h3>
+<span class="text-xs font-medium text-text-secondary dark:text-slate-400">主治医师</span>
+</div>
+<div class="flex items-center gap-1 rounded-md bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5">
+<span class="material-symbols-outlined text-yellow-500" style="font-size: 14px;">star</span>
+<span class="text-xs font-bold text-text-main dark:text-slate-300">4.7分</span>
+</div>
+</div>
+<p class="text-xs text-text-secondary dark:text-slate-400 mt-1">宣武医院 | 神经内科</p>
+<div class="mt-2 flex flex-wrap gap-1.5">
+<span class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">头痛眩晕</span>
+<span class="rounded bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary dark:text-slate-300">失眠焦虑</span>
+</div>
+</div>
+</div>
+<div class="h-px w-full bg-slate-100 dark:bg-slate-700"></div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<p class="text-[10px] text-text-muted dark:text-slate-500">图文问诊</p>
+<div class="flex items-baseline gap-1">
+<span class="text-sm font-bold text-primary">¥40</span>
+<span class="text-[10px] text-text-secondary dark:text-slate-400">/ 次</span>
+</div>
+</div>
+<button class="flex h-8 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-md shadow-primary/20 transition-transform active:scale-95">
+                            去问诊
+                        </button>
+</div>
+</div>
+</div>
+</main>
+<nav class="sticky bottom-0 z-50 flex h-20 w-full items-start justify-around border-t border-slate-100 bg-white/95 dark:bg-[#101c22]/95 backdrop-blur-sm dark:border-slate-800 px-2 pt-2 pb-6">
+<div class="flex flex-col items-center justify-center gap-1 w-16 group cursor-pointer">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary dark:text-slate-500 transition-colors">home</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary dark:text-slate-500 transition-colors">首页</span>
+</div>
+<div class="flex flex-col items-center justify-center gap-1 w-16 group cursor-pointer">
+<span class="material-symbols-outlined text-primary dark:text-primary transition-colors fill-current">medical_services</span>
+<span class="text-[10px] font-bold text-primary dark:text-primary transition-colors">问诊</span>
+</div>
+<div class="flex flex-col items-center justify-center gap-1 w-16 group cursor-pointer">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary dark:text-slate-500 transition-colors">calendar_month</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary dark:text-slate-500 transition-colors">挂号</span>
+</div>
+<div class="flex flex-col items-center justify-center gap-1 w-16 group cursor-pointer">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary dark:text-slate-500 transition-colors">person</span>
+<span class="text-[10px] font-medium text-slate-400 group-hover:text-primary dark:text-slate-500 transition-colors">我的</span>
+</div>
+</nav>
+</div>
+
+</body></html>

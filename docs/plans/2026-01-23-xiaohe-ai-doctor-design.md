@@ -39,7 +39,7 @@
 ```
 ┌─────────────────────────────────────────┐
 │       React H5（患者端 + 医生端）          │
-│   React 18 + TypeScript + Vite + Zustand │
+│   React 18 + TypeScript + Vite + MobX │
 └───────────────┬─────────────────────────┘
                 │ HTTPS / WSS / SSE
 ┌───────────────▼─────────────────────────┐
@@ -73,7 +73,7 @@
 | **前端框架** | React 18 + TypeScript | H5 移动端开发 |
 | **构建工具** | Vite | 快速构建工具 |
 | **UI 组件** | 自定义组件（按 Figma 设计实现） | 用户自行设计 UI |
-| **状态管理** | Zustand | 轻量级状态管理 |
+| **状态管理** | MobX | 轻量级状态管理 |
 | **路由** | React Router | SPA 路由 |
 | **HTTP 客户端** | Fetch / Axios | API 请求 |
 | **后端框架** | Express/Koa + TypeScript | Node.js Web 框架 |
@@ -527,7 +527,7 @@ frontend/
 │   │   │   └── index.tsx
 │   │   ├── Header/                # 顶部导航
 │   │   └── ...
-│   ├── store/                     # 状态管理（Zustand）
+│   ├── store/                     # 状态管理（MobX）
 │   │   ├── userStore.ts           # 用户状态
 │   │   ├── chatStore.ts           # 聊天状态
 │   │   └── ...
@@ -576,7 +576,7 @@ frontend/
 - 实时聊天界面
 - 接诊/结束问诊操作
 
-### 7.3 状态管理（Zustand）
+### 7.3 状态管理（MobX）
 
 ```typescript
 // userStore.ts

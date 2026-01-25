@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>接诊对话界面</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "primary-dark": "#0e8bc7",
+                        "danger": "#ef4444",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111c22",
+                        "surface-dark": "#1a262d",
+                        "surface-light": "#1f2e36", // Slightly lighter for cards
+                        "text-secondary": "#92b7c9",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "PingFang SC", "Noto Sans SC", "sans-serif"],
+                        "body": ["Manrope", "PingFang SC", "Noto Sans SC", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for chat area */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-white font-body overflow-hidden h-screen flex flex-col">
+<!-- 1. Top Navigation Bar -->
+<div class="shrink-0 z-20 bg-background-dark border-b border-[#23333d]">
+<div class="flex items-center p-4 pb-3 justify-between">
+<button class="text-white flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<div class="flex flex-col items-center flex-1">
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">接诊中</h2>
+<span class="text-[10px] text-primary flex items-center gap-1">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+                    患者在线
+                </span>
+</div>
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-white/5 transition-colors text-white">
+<span class="material-symbols-outlined text-2xl">more_vert</span>
+</button>
+</div>
+<!-- 2. Patient Info Banner (Compact ProfileStats) -->
+<div class="flex px-4 pb-3 gap-3 justify-center bg-background-dark/95 backdrop-blur-sm">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1c2a33] border border-[#2a3f4d]">
+<span class="material-symbols-outlined text-text-secondary text-lg">person</span>
+<span class="text-white font-bold text-sm">张伟</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1c2a33] border border-[#2a3f4d]">
+<span class="material-symbols-outlined text-text-secondary text-lg">male</span>
+<span class="text-white font-bold text-sm">男</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1c2a33] border border-[#2a3f4d]">
+<span class="material-symbols-outlined text-text-secondary text-lg">calendar_today</span>
+<span class="text-white font-bold text-sm">32岁</span>
+</div>
+</div>
+</div>
+<!-- 3. Chat Timeline (Scrollable Area) -->
+<div class="flex-1 overflow-y-auto p-4 space-y-6 bg-background-dark scrollbar-hide relative" id="chat-container">
+<!-- Time Stamp -->
+<div class="flex justify-center">
+<span class="text-xs font-medium text-[#5a7686] bg-[#1c2a33]/50 px-2 py-1 rounded">今天 10:28</span>
+</div>
+<!-- AI Report Card (Modified Card Component) -->
+<div class="relative group/card">
+<div class="bg-surface-dark rounded-xl border border-[#2a3f4d] overflow-hidden shadow-lg">
+<!-- Header with AI gradient -->
+<div class="bg-gradient-to-r from-[#13a4ec]/20 to-transparent p-3 border-b border-[#2a3f4d] flex items-center gap-2">
+<div class="p-1 bg-primary/20 rounded-md">
+<span class="material-symbols-outlined text-primary text-xl icon-filled">smart_toy</span>
+</div>
+<span class="text-primary font-bold text-sm tracking-wide uppercase">AI 初步问诊报告</span>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-start gap-3">
+<div class="flex-1">
+<h4 class="text-text-secondary text-xs mb-1">主诉症状</h4>
+<p class="text-white text-sm font-medium leading-relaxed">头痛发热两天，伴有咽喉肿痛。自测体温最高38.5℃。</p>
+</div>
+</div>
+<div class="h-px w-full bg-[#2a3f4d]"></div>
+<div class="flex gap-4">
+<div class="flex-1">
+<h4 class="text-text-secondary text-xs mb-1">既往史</h4>
+<p class="text-white text-sm">无药物过敏史</p>
+</div>
+<div class="flex-1">
+<h4 class="text-text-secondary text-xs mb-1">初步判断</h4>
+<p class="text-white text-sm">疑似上呼吸道感染</p>
+</div>
+</div>
+</div>
+<!-- Action Footer for Card -->
+<div class="bg-[#192329] p-2 flex justify-end">
+<button class="text-xs text-primary flex items-center gap-1 font-medium hover:text-white transition-colors">
+                        查看完整报告 <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SingleMessage (Patient) -->
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0 border border-[#2a3f4d]" data-alt="Avatar of male patient" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDq3ZKRCfIRbmk9HufkfVGGylIY46K3OhIGBt-DSne4Ryw_O-UtFPeDdlbUVsZK5YY3BDf3dyn2TYrgwyfy54H8-wCOp74CNcfMgaEAIUdOppgsg1MEoON95IuIObzL8Ds2LsqOQa6f6uJzItY1_tVXt_4A8gZDIZ69iLrc_NmcnAo270CYWZYFWxXihMQWnTj73rigpjmagOJybbPLXr6uHo2zFMk_3Jkbn6JWrWI8n9slNgrZ59pQ-LaF6bQNnMWO2s89gM_QB5GF");'></div>
+<div class="flex flex-col items-start gap-1 max-w-[80%]">
+<div class="flex items-baseline gap-2 ml-1">
+<span class="text-xs text-text-secondary">张伟</span>
+<span class="text-[10px] text-[#5a7686]">10:30</span>
+</div>
+<div class="bg-[#1f2e36] text-white text-base font-normal leading-normal px-4 py-2.5 rounded-2xl rounded-tl-none border border-[#2a3f4d]">
+                    医生你好，我昨天晚上烧到了38.5度，吃了布洛芬早上退下去了，但是现在感觉又有点烧起来了。
+                </div>
+</div>
+</div>
+<!-- SingleMessage (Doctor - User) -->
+<div class="flex gap-3 flex-row-reverse">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0 border border-[#2a3f4d]" data-alt="Avatar of doctor" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBjqQBgih1VhJd9XqyWZcaoRuP_DtQM3w7i8GW6g1QEBe7u8fSlp-1nKYI9-Enoo_dYissj_UFwIZyRdFSBk7GrfxHkJag339yRuQ5nARUH4jP0XYqUQmP6hTt6SGqEQtqDO2HgoyDQxK_C9I89r-Dc0XoMTw--63SmjaZU-cWdli26XVKYhQubZuTriG9ZRIzNkiMalVD9D-i5yYIncnsWiF0z5UhzYO2hZhpSsG6IIr5nFVXFFCRt01Mg1m_4bRWlorxo7fMav444");'></div>
+<div class="flex flex-col items-end gap-1 max-w-[80%]">
+<div class="flex items-baseline gap-2 mr-1">
+<span class="text-[10px] text-[#5a7686]">已读</span>
+<span class="text-xs text-text-secondary">李医生</span>
+</div>
+<div class="bg-primary text-white text-base font-normal leading-normal px-4 py-2.5 rounded-2xl rounded-tr-none shadow-md">
+                    你好，除了发热还有其他症状吗？比如咳嗽、流鼻涕或者肌肉酸痛？
+                </div>
+</div>
+</div>
+<!-- SingleMessage (Patient - Image) -->
+<div class="flex gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 shrink-0 border border-[#2a3f4d]" data-alt="Avatar of male patient" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBnc_Dg-I3AB56XYh521T-TMkrE02aVub5qvXsoYZ5j0fIyH9pndK6uaUYks5N5CrnvL_-304GZoWM6IFt7wiaDqE7ueMAemLdFDAfU0_GzF2QSA-sROVFmhTY6goS3aYIARiJihNYW9QKgJLgx2TaU1APqb4fOQMJH0msR2SjwV0YC7mhlLernkydYFihDZWYQlXoWYAjyBS45Moyrki3xPmCBh1veHgPhhyGeGl-Svw7JUbuU2UfDafPS15GKj9fGdgc1uBf8K263");'></div>
+<div class="flex flex-col items-start gap-1 max-w-[80%]">
+<div class="flex items-baseline gap-2 ml-1">
+<span class="text-xs text-text-secondary">张伟</span>
+<span class="text-[10px] text-[#5a7686]">10:32</span>
+</div>
+<div class="bg-[#1f2e36] p-1 rounded-xl rounded-tl-none border border-[#2a3f4d] overflow-hidden">
+<div class="relative w-48 h-32 bg-cover bg-center rounded-lg" data-alt="Photo of thermometer showing temperature" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAD4P9_kM43PFGeIMuu10LxM4OwYp47LybJIDAZ7mmut61rZBuOYdr1OvjpVSzatteqyaeU8Q1Per2QMc6FhvCNBM8lOgg6R_R88vlPW8A1utIQlXQvthXiRAhzxv6qxHMG2CPwK8ZZxoEPoT1Rk1fqeq8Va8qzNMmOrNnQ5HafVgAuHhaCKsFbC5kQZFi6xWeFcK8CoWjgWjRrJDdRoKJ0t3z0_S-tXCqR9MPk48Ygv5KVPRG-6V7sKNLb_xlBTTBj8feyMok3tI3h");'>
+<div class="absolute inset-0 bg-black/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-white/80 text-3xl">image</span>
+</div>
+</div>
+</div>
+<p class="text-xs text-[#5a7686] ml-1">喉咙有点红肿，这是我刚才测的体温。</p>
+</div>
+</div>
+<!-- Invisible spacer for scroll -->
+<div class="h-2"></div>
+</div>
+<!-- 4. Bottom Action Area -->
+<div class="shrink-0 bg-surface-dark border-t border-[#23333d] pb-6 pt-2">
+<!-- Action Toolbar -->
+<div class="flex gap-3 px-4 py-2 overflow-x-auto scrollbar-hide mb-1">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1f2e36] border border-[#2a3f4d] hover:bg-[#2a3f4d] active:scale-95 transition-all group shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">description</span>
+<span class="text-xs font-bold text-white">查看病历</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 active:scale-95 transition-all group shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">prescriptions</span>
+<span class="text-xs font-bold text-primary group-hover:text-primary-light">开具处方</span>
+</button>
+<div class="flex-1"></div> <!-- Spacer -->
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-danger/10 border border-danger/30 hover:bg-danger/20 active:scale-95 transition-all group shrink-0">
+<span class="material-symbols-outlined text-danger text-[18px]">block</span>
+<span class="text-xs font-bold text-danger">结束问诊</span>
+</button>
+</div>
+<!-- Input Area -->
+<div class="px-4 py-2 flex items-end gap-3">
+<button class="text-[#92b7c9] hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 shrink-0">
+<span class="material-symbols-outlined text-2xl">mic</span>
+</button>
+<div class="flex-1 bg-[#111c22] border border-[#2a3f4d] rounded-[20px] flex items-center min-h-[44px] px-4 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+<input class="bg-transparent border-none text-white text-base placeholder-[#5a7686] w-full focus:ring-0 p-0" placeholder="输入回复内容..." type="text"/>
+</div>
+<button class="text-[#92b7c9] hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 shrink-0">
+<span class="material-symbols-outlined text-2xl">add_circle</span>
+</button>
+<button class="bg-primary hover:bg-primary-dark active:scale-95 text-white flex items-center justify-center rounded-full size-11 shadow-lg shadow-primary/20 transition-all shrink-0">
+<span class="material-symbols-outlined text-xl icon-filled -ml-0.5">send</span>
+</button>
+</div>
+</div>
+</body></html>
