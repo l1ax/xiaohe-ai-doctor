@@ -69,14 +69,15 @@ export function isValidDateFormat(dateString: string): boolean {
 
 /**
  * Checks if a date is in the past (before today)
+ * Uses UTC to avoid timezone issues
  */
 export function isPastDate(dateString: string): boolean {
   const appointmentDate = new Date(dateString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const appointmentDay = new Date(appointmentDate);
-  appointmentDay.setHours(0, 0, 0, 0);
-  return appointmentDay < today;
+  const now = new Date();
+  // Use UTC methods to avoid timezone issues
+  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const appointmentUtc = appointmentDate.getTime();
+  return appointmentUtc < todayUtc;
 }
 
 // Mock 医生排班数据（未来7天）
