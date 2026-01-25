@@ -29,6 +29,7 @@ import DoctorConsole from './pages/doctor/Console/index';
 import { DoctorChatPage } from './pages/doctor/Chat';
 import ScheduleManagement from './pages/doctor/Schedule';
 import { AppointmentManagement } from './pages/doctor/Appointments';
+import DoctorProfile from './pages/doctor/Profile';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 
 // 需要底部导航的页面包裹
@@ -91,6 +92,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRole="doctor">
             <AppointmentManagement />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'profile',
+        element: (
+          <ProtectedRoute allowedRole="doctor">
+            <DoctorProfile />
           </ProtectedRoute>
         ),
       },

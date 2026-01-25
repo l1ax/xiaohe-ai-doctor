@@ -12,9 +12,11 @@ const Login = observer(function Login() {
 
   useEffect(() => {
     if (userStore.isLoggedIn) {
-      navigate('/', { replace: true });
+      // 根据用户角色跳转到不同页面
+      const redirectPath = userStore.user?.role === 'doctor' ? '/doctor/console' : '/';
+      navigate(redirectPath, { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, userStore.isLoggedIn, userStore.user?.role]);
 
   const handleSendCode = async () => {
     if (!/^1[3-9]\d{9}$/.test(phone)) {
@@ -41,7 +43,9 @@ const Login = observer(function Login() {
     }
     try {
       await userStore.login(phone, verifyCode, selectedRole);
-      navigate('/', { replace: true });
+      // 根据用户角色跳转到不同页面
+      const redirectPath = selectedRole === 'doctor' ? '/doctor/console' : '/';
+      navigate(redirectPath, { replace: true });
     } catch (e: any) {
       alert(e.message || '登录失败');
     }

@@ -4,22 +4,22 @@ import { doctorStore } from '../../../store/doctorStore';
 import { ConsultationCard } from '../../../components/doctor/ConsultationCard';
 
 export const ConsultationList = observer(() => {
-  const { pendingConsultations, isLoading, fetchPendingConsultations, acceptConsultation } = doctorStore;
+  const { pendingConsultations, isLoading } = doctorStore;
 
   useEffect(() => {
     // 初始加载
-    fetchPendingConsultations();
+    doctorStore.fetchPendingConsultations();
 
     // 每30秒自动刷新
     const interval = setInterval(() => {
-      fetchPendingConsultations();
+      doctorStore.fetchPendingConsultations();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchPendingConsultations]);
+  }, []);
 
   const handleAccept = async (id: string) => {
-    return await acceptConsultation(id);
+    return await doctorStore.acceptConsultation(id);
   };
 
   if (isLoading) {

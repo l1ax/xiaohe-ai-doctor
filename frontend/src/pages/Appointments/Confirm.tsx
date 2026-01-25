@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { appointmentStore } from '../../store';
@@ -15,8 +16,14 @@ const Confirm = observer(function Confirm() {
     }
   };
 
+  // 导航逻辑移到 useEffect 副作用中，避免在渲染期间更新状态
+  useEffect(() => {
+    if (!appointmentStore.selectedDoctor) {
+      navigate('/appointments/doctors');
+    }
+  }, [appointmentStore.selectedDoctor, navigate]);
+
   if (!appointmentStore.selectedDoctor) {
-    navigate('/appointments/doctors');
     return null;
   }
 
