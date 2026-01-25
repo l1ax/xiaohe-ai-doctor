@@ -18,6 +18,17 @@ export type MessageHandler = (message: ChatMessage) => void;
 export type SystemHandler = (text: string) => void;
 export type TypingHandler = (senderId: string) => void;
 
+export interface ConsultationUpdate {
+  id: string;
+  userId: string;
+  chiefComplaint?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ConsultationUpdateHandler = (consultation: ConsultationUpdate) => void;
+
 export class WebSocketService {
   private ws: WebSocket | null = null;
   private url: string;
@@ -25,6 +36,7 @@ export class WebSocketService {
   private messageHandlers: Set<MessageHandler> = new Set();
   private systemHandlers: Set<SystemHandler> = new Set();
   private typingHandlers: Set<TypingHandler> = new Set();
+  private consultationUpdateHandlers: Set<ConsultationUpdateHandler> = new Set();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -106,6 +118,11 @@ export class WebSocketService {
     return () => this.typingHandlers.delete(handler);
   }
 
+  onConsultationUpdate(handler: ConsultationUpdateHandler): () => void {
+    this.consultationUpdateHandlers.add(handler);
+    return () => this.consultationUpdateHandlers.delete(handler);
+  }
+
   disconnect(): void {
     if (this.ws) {
       this.ws.close();
@@ -131,7 +148,7 @@ export class WebSocketService {
 
   private handleMessage(data: Record<string, unknown>): void {
     console.log('[WebSocketService] 📨 收到原始消息', data);
-    
+
     switch (data.type) {
       case 'message':
         console.log('[WebSocketService] 📨 处理消息类型', {
@@ -147,6 +164,10 @@ export class WebSocketService {
       case 'typing':
         console.log('[WebSocketService] 📨 处理输入状态', data.data);
         this.typingHandlers.forEach((h) => h((data.data as { senderId?: string })?.senderId || ''));
+        break;
+      case 'consultation_update':
+        console.log('[WebSocketService] 📨 处理问诊更新', data.consultation);
+        this.consultationUpdateHandlers.forEach((h) => h(data.consultation as ConsultationUpdate));
         break;
       default:
         console.warn('[WebSocketService] ⚠️ 未知消息类型', data);
