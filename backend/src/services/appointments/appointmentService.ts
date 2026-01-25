@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { ValidationError } from '../../utils/errorHandler';
 
 /**
  * 预约状态
@@ -128,7 +129,7 @@ export function getDoctorSchedule(doctorId: string, startDate: string, endDate: 
 }[] {
   // Validate date formats
   if (!isValidDateFormat(startDate) || !isValidDateFormat(endDate)) {
-    throw new Error('Invalid date format. Use YYYY-MM-DD format.');
+    throw new ValidationError('Invalid date format. Use YYYY-MM-DD format.');
   }
 
   const schedules: { date: string; availableSlots: string[] }[] = [];
@@ -138,7 +139,7 @@ export function getDoctorSchedule(doctorId: string, startDate: string, endDate: 
 
   // Validate date range
   if (start > end) {
-    throw new Error('Start date must be before end date.');
+    throw new ValidationError('Start date must be before end date.');
   }
 
   // Fixed date loop - create new Date object for each iteration to avoid mutation
@@ -175,12 +176,12 @@ export function createAppointment(
 ): Appointment {
   // Validate ISO 8601 date format
   if (!isValidISODate(appointmentTime)) {
-    throw new Error('Invalid appointment time format. Use ISO 8601 format.');
+    throw new ValidationError('Invalid appointment time format. Use ISO 8601 format.');
   }
 
   // Prevent past appointments
   if (isPastDate(appointmentTime)) {
-    throw new Error('Cannot book appointments in the past.');
+    throw new ValidationError('Cannot book appointments in the past.');
   }
 
   // Check if the time slot is available and not already booked
@@ -196,7 +197,7 @@ export function createAppointment(
 
   // Check if the time slot exists in the schedule
   if (!availableSlots.includes(timeStr)) {
-    throw new Error('Selected time slot is not available for this doctor.');
+    throw new ValidationError('Selected time slot is not available for this doctor.');
   }
 
   // Check for duplicate booking - find existing appointments for the same doctor, date, and time
@@ -209,7 +210,7 @@ export function createAppointment(
   );
 
   if (existingAppointments.length > 0) {
-    throw new Error('This time slot is already booked. Please choose another time.');
+    throw new ValidationError('This time slot is already booked. Please choose another time.');
   }
 
   const appointmentId = uuidv4();
@@ -262,11 +263,11 @@ export function cancelAppointment(id: string): Appointment | undefined {
 
   // Check if appointment is already cancelled or completed
   if (appointment.status === 'cancelled') {
-    throw new Error('Appointment is already cancelled.');
+    throw new ValidationError('Appointment is already cancelled.');
   }
 
   if (appointment.status === 'completed') {
-    throw new Error('Cannot cancel a completed appointment.');
+    throw new ValidationError('Cannot cancel a completed appointment.');
   }
 
   appointment.status = 'cancelled';
