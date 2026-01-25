@@ -7,10 +7,12 @@ import {
   createConsultation,
   getConsultations,
   getConsultationDetail,
+  getConsultationMessages,
   updateConsultationStatus,
   joinConsultation,
   leaveConsultation,
   getPendingConsultations,
+  getDoctorConsultations,
   acceptConsultation,
   closeConsultation,
 } from '../controllers/consultationController';
@@ -50,6 +52,13 @@ router.get('/hospitals', authMiddleware, getHospitalsList);
 router.get('/pending', authMiddleware, getPendingConsultations);
 
 /**
+ * 获取医生的问诊列表（所有未关闭）
+ * 注意：必须放在 /:id 之前，否则会被拦截
+ * GET /api/consultations/doctor
+ */
+router.get('/doctor', authMiddleware, getDoctorConsultations);
+
+/**
  * 创建问诊
  * POST /api/consultations
  */
@@ -66,6 +75,12 @@ router.get('/', authMiddleware, getConsultations);
  * GET /api/consultations/:id
  */
 router.get('/:id', authMiddleware, getConsultationDetail);
+
+/**
+ * 获取问诊消息历史
+ * GET /api/consultations/:id/messages
+ */
+router.get('/:id/messages', authMiddleware, getConsultationMessages);
 
 /**
  * 更新问诊状态

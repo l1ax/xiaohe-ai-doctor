@@ -7,9 +7,11 @@ export interface Consultation {
   patientId: string;
   patientPhone: string;
   doctorId: string;
-  status: 'pending' | 'active' | 'closed';
+  status: 'pending' | 'active' | 'closed' | 'cancelled';
   createdAt: string;
   updatedAt: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
 }
 
 class ConsultationStore {
@@ -46,6 +48,16 @@ class ConsultationStore {
     const consultation = this.consultations.get(id);
     if (consultation) {
       consultation.status = status;
+      consultation.updatedAt = new Date().toISOString();
+    }
+    return consultation;
+  }
+
+  updateLastMessage(id: string, content: string): Consultation | undefined {
+    const consultation = this.consultations.get(id);
+    if (consultation) {
+      consultation.lastMessage = content.length > 50 ? content.slice(0, 50) + '...' : content;
+      consultation.lastMessageTime = new Date().toISOString();
       consultation.updatedAt = new Date().toISOString();
     }
     return consultation;

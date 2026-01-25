@@ -63,11 +63,26 @@ const DoctorChat = observer(function DoctorChat() {
     }
   };
 
+  const loadMessageHistory = async (consultationId: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/consultations/${consultationId}/messages`, {
+        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        console.log('[DoctorChat] 📜 已加载历史消息', { count: data.data.length });
+        setMessages(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load message history:', error);
+    }
+  };
+
   const connectWebSocket = async () => {
     if (!id || !userStore.accessToken) return;
 
     console.log('[DoctorChat] 🔵 开始连接 WebSocket', {
-      conversationId: id,
+      consultationId: id,
       userId: userStore.user?.id,
       userRole: userStore.user?.role,
       wsUrl: WS_URL,
@@ -80,9 +95,12 @@ const DoctorChat = observer(function DoctorChat() {
       await ws.connect();
       setIsConnected(true);
       console.log('[DoctorChat] ✅ WebSocket 连接成功');
-      
+
       ws.join(id);
-      console.log('[DoctorChat] 📥 已发送 join 请求', { conversationId: id });
+      console.log('[DoctorChat] 📥 已发送 join 请求', { consultationId: id });
+
+      // 加载历史消息
+      await loadMessageHistory(id);
 
       ws.onMessage((message: ChatMessage) => {
         console.log('[DoctorChat] 📨 收到消息', {
@@ -142,6 +160,27 @@ const DoctorChat = observer(function DoctorChat() {
     }
   };
 
+  const handleCloseConsultation = async () => {
+    if (!id) return;
+    if (!confirm('确定要结束问诊吗？')) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/consultations/${id}/close`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        console.log('[DoctorChat] ✅ 问诊已结束');
+        alert('问诊已结束');
+        navigate('/consultations');
+      }
+    } catch (error) {
+      console.error('Failed to close consultation:', error);
+      alert('结束问诊失败，请重试');
+    }
+  };
+
   if (!consultation) {
     return <div className="p-4 text-center">加载中...</div>;
   }
@@ -157,7 +196,17 @@ const DoctorChat = observer(function DoctorChat() {
           <h1 className="font-bold">{consultation.doctor?.name}</h1>
           <p className="text-sm text-gray-500">{consultation.doctor?.department}</p>
         </div>
-        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+          {userStore.user?.role === 'patient' && (
+            <button
+              onClick={handleCloseConsultation}
+              className="px-3 py-1 text-sm border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
+            >
+              结束问诊
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Messages */}

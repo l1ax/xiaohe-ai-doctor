@@ -1,10 +1,6 @@
-/**
- * 消息存储服务（MVP 阶段使用内存存储）
- */
-
 export interface Message {
   id: string;
-  conversationId: string;
+  consultationId: string;
   senderId: string;
   senderType: 'patient' | 'doctor';
   content: string;
@@ -14,18 +10,15 @@ export interface Message {
 class MessageStore {
   private messages: Map<string, Message> = new Map();
 
-  addMessage(message: Message): void {
+  addMessage(message: Message): Message {
     this.messages.set(message.id, message);
+    return message;
   }
 
-  getMessagesByConversation(conversationId: string): Message[] {
+  getByConsultationId(consultationId: string): Message[] {
     return Array.from(this.messages.values())
-      .filter((m) => m.conversationId === conversationId)
+      .filter((m) => m.consultationId === consultationId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }
-
-  getMessageById(id: string): Message | undefined {
-    return this.messages.get(id);
   }
 
   clear(): void {

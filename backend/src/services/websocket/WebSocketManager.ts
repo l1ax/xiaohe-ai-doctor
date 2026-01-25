@@ -11,6 +11,8 @@ import {
   ContentType,
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { consultationStore } from '../storage/consultationStore';
+import { messageStore, Message } from '../storage/messageStore';
 
 /**
  * WebSocket 管理器
@@ -272,18 +274,42 @@ export class WebSocketManager {
       senderId: userId,
     });
 
+    // 生成消息 ID
+    const messageId = uuidv4();
+    const content = clientMessage.data?.content || '';
+    const createdAt = new Date().toISOString();
+
+    // 存储消息到 messageStore
+    const newMessage: Message = {
+      id: messageId,
+      consultationId: clientMessage.conversationId,
+      senderId: userId,
+      senderType: connection.userRole === 'doctor' ? 'doctor' : 'patient',
+      content,
+      createdAt,
+    };
+    messageStore.addMessage(newMessage);
+
+    // 更新会话的最后消息
+    consultationStore.updateLastMessage(clientMessage.conversationId, content);
+
+    logger.info('[💾 MESSAGE] 消息已存储', {
+      messageId,
+      consultationId: clientMessage.conversationId,
+    });
+
     // 构建服务端消息
     const serverMessage: ServerMessage = {
       type: WSMessageType.MESSAGE,
       conversationId: clientMessage.conversationId,
       message: {
-        id: uuidv4(),
+        id: messageId,
         senderId: userId,
         senderType: connection.userRole === 'patient' ? SenderType.PATIENT : SenderType.DOCTOR,
         contentType: clientMessage.data?.contentType || ContentType.TEXT,
-        content: clientMessage.data?.content || '',
+        content,
         metadata: clientMessage.data?.imageUrl ? { imageUrl: clientMessage.data.imageUrl } : undefined,
-        createdAt: new Date().toISOString(),
+        createdAt,
       },
     };
 
@@ -297,7 +323,6 @@ export class WebSocketManager {
     // 广播到会话中的所有用户
     this.broadcastToConversation(clientMessage.conversationId, serverMessage, userId);
 
-    // TODO: 存储到数据库
     logger.info('[✅ MESSAGE] 消息处理完成', {
       messageId: serverMessage.message?.id,
       conversationId: clientMessage.conversationId,

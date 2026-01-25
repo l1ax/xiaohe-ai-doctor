@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { wsManager } from '../services/websocket/WebSocketManager';
 import { getDoctorList, getDoctorById, getDepartments, getHospitals } from '../services/doctors/doctorService';
 import { consultationStore, Consultation } from '../services/storage/consultationStore';
+import { messageStore } from '../services/storage/messageStore';
 
 /**
  * Utility function to safely extract route parameter
@@ -147,6 +148,8 @@ export const createConsultation = async (req: Request, res: Response): Promise<v
       status: 'pending',
       createdAt: now,
       updatedAt: now,
+      lastMessage: '等待接诊...',
+      lastMessageTime: now,
     };
 
     consultationStore.createConsultation(consultation);
@@ -396,6 +399,48 @@ export const getPendingConsultations = async (req: Request, res: Response): Prom
 };
 
 /**
+ * 获取医生的问诊列表（所有未关闭的问诊）
+ * 支持按状态筛选: ?status=pending 或 ?status=active
+ * GET /api/consultations/doctor
+ */
+export const getDoctorConsultations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Doctor access required');
+    }
+
+    const { status } = req.query;
+
+    let consultations = consultationStore.getByDoctorId(req.user.userId);
+
+    // 只返回未关闭的问诊
+    consultations = consultations.filter((c) => c.status !== 'closed' && c.status !== 'cancelled');
+
+    // 按 status 筛选
+    if (status) {
+      const validStatuses = ['pending', 'active'];
+      if (!validStatuses.includes(status as string)) {
+        throw new ValidationError(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+      }
+      consultations = consultations.filter((c) => c.status === status);
+    }
+
+    res.json({
+      code: 0,
+      data: consultations.map((c) => ({
+        ...c,
+        patientPhone: maskPhone(c.patientPhone),
+        doctor: getDoctorById(c.doctorId),
+      })),
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get doctor consultations error', error);
+    throw error;
+  }
+};
+
+/**
  * 医生接诊
  * PUT /api/consultations/:id/accept
  */
@@ -438,11 +483,17 @@ export const acceptConsultation = async (req: Request, res: Response): Promise<v
 /**
  * 结束问诊
  * PUT /api/consultations/:id/close
+ *
+ * 授权规则：
+ * - 患者和医生都可以结束问诊
+ * - 必须是问诊的参与者（患者或医生）才能关闭
+ *
+ * 注意：与 updateConsultationStatus 不同，closeConsultation 允许双方参与者关闭
  */
 export const closeConsultation = async (req: Request, res: Response): Promise<void> => {
   try {
-    if (!req.user || req.user.role !== 'doctor') {
-      throw new UnauthorizedError('Doctor access required');
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     const consultationId = getRouteParam(req.params.id);
@@ -452,13 +503,20 @@ export const closeConsultation = async (req: Request, res: Response): Promise<vo
       throw new NotFoundError('Consultation not found');
     }
 
-    if (consultation.doctorId !== req.user.userId) {
-      throw new UnauthorizedError('Not your consultation');
+    // 患者和医生都可以结束问诊
+    if (
+      consultation.patientId !== req.user.userId &&
+      consultation.doctorId !== req.user.userId
+    ) {
+      throw new UnauthorizedError('Access denied');
     }
 
     consultationStore.updateStatus(consultationId, 'closed');
 
-    logger.info('Consultation closed', { consultationId, doctorId: req.user.userId });
+    logger.info('Consultation closed', {
+      consultationId,
+      closedBy: req.user.userId,
+    });
 
     res.json({
       code: 0,
@@ -474,3 +532,41 @@ export const closeConsultation = async (req: Request, res: Response): Promise<vo
 function maskPhone(phone: string): string {
   return phone.slice(0, 3) + '****' + phone.slice(-4);
 }
+
+/**
+ * 获取问诊消息历史
+ * GET /api/consultations/:id/messages
+ */
+export const getConsultationMessages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const consultationId = getRouteParam(req.params.id);
+    const consultation = consultationStore.getById(consultationId);
+
+    if (!consultation) {
+      throw new NotFoundError('Consultation not found');
+    }
+
+    // 权限检查：患者和医生都可以查看消息
+    if (
+      consultation.patientId !== req.user.userId &&
+      consultation.doctorId !== req.user.userId
+    ) {
+      throw new UnauthorizedError('Access denied');
+    }
+
+    const messages = messageStore.getByConsultationId(consultationId);
+
+    res.json({
+      code: 0,
+      data: messages,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get consultation messages error', error);
+    throw error;
+  }
+};
