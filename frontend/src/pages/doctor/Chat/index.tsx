@@ -83,7 +83,7 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
     }
 
     // 创建新的 WebSocket 连接
-    const ws = new WebSocketService(`${WS_URL}/doctor-chat`, userStore.accessToken);
+    const ws = new WebSocketService(`${WS_URL}/ws`, userStore.accessToken);
     wsRef.current = ws;
 
     // 连接 WebSocket
