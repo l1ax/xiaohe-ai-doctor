@@ -265,4 +265,142 @@ export class TestApiClient {
       throw new Error(`Leave consultation response invalid: ${JSON.stringify(body)}`);
     }
   }
+
+  /**
+   * 获取医生排班
+   */
+  async getDoctorSchedule(
+    doctorId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<any[]> {
+    const response: Response = await request(this.app)
+      .get('/api/appointments/schedule')
+      .query({ doctorId, startDate, endDate });
+
+    if (response.status !== 200) {
+      throw new Error(`Get doctor schedule failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: { schedules: any[] } };
+    if (body.code !== 0 || !body.data.schedules) {
+      throw new Error(`Get doctor schedule response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data.schedules;
+  }
+
+  /**
+   * 创建预约
+   */
+  async createAppointment(
+    token: string,
+    data: {
+      doctorId: string;
+      patientName: string;
+      appointmentTime: string;
+    }
+  ): Promise<any> {
+    const response: Response = await request(this.app)
+      .post('/api/appointments')
+      .set('Authorization', `Bearer ${token}`)
+      .send(data);
+
+    if (response.status !== 201) {
+      throw new Error(`Create appointment failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: any };
+    if (body.code !== 0 || !body.data.id) {
+      throw new Error(`Create appointment response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data;
+  }
+
+  /**
+   * 获取我的预约列表
+   */
+  async getMyAppointments(token: string): Promise<any[]> {
+    const response: Response = await request(this.app)
+      .get('/api/appointments')
+      .set('Authorization', `Bearer ${token}`);
+
+    if (response.status !== 200) {
+      throw new Error(`Get my appointments failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: any[] };
+    if (body.code !== 0) {
+      throw new Error(`Get my appointments response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data;
+  }
+
+  /**
+   * 获取预约详情
+   */
+  async getAppointmentDetail(token: string, appointmentId: string): Promise<any> {
+    const response: Response = await request(this.app)
+      .get(`/api/appointments/${appointmentId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    if (response.status !== 200) {
+      throw new Error(`Get appointment detail failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: any };
+    if (body.code !== 0) {
+      throw new Error(`Get appointment detail response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data;
+  }
+
+  /**
+   * 取消预约
+   */
+  async cancelAppointment(token: string, appointmentId: string): Promise<void> {
+    const response: Response = await request(this.app)
+      .put(`/api/appointments/${appointmentId}/cancel`)
+      .set('Authorization', `Bearer ${token}`);
+
+    if (response.status !== 200) {
+      throw new Error(`Cancel appointment failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number };
+    if (body.code !== 0) {
+      throw new Error(`Cancel appointment response invalid: ${JSON.stringify(body)}`);
+    }
+  }
+
+  /**
+   * 获取预约医生列表
+   */
+  async getAppointmentDoctors(
+    token: string,
+    filters?: {
+      department?: string;
+      hospital?: string;
+      available?: boolean;
+    }
+  ): Promise<any[]> {
+    const response: Response = await request(this.app)
+      .get('/api/appointments/doctors')
+      .query(filters || {})
+      .set('Authorization', `Bearer ${token}`);
+
+    if (response.status !== 200) {
+      throw new Error(`Get appointment doctors failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: any[] };
+    if (body.code !== 0) {
+      throw new Error(`Get appointment doctors response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data;
+  }
 }
