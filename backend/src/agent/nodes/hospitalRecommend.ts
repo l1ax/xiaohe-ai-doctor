@@ -44,11 +44,42 @@ export async function hospitalRecommend(state: typeof AgentState.State) {
 
   const prompt = HOSPITAL_PROMPT.replace('{query}', userQuery);
 
-  const response = await llm.invoke([
+  // 使用LLM原生流式输出
+  let fullContent = '';
+  let chunkIndex = 0;
+  let isFirst = true;
+
+  const stream = await llm.stream([
     { role: "user", content: prompt },
   ]);
 
-  const recommendation = response.content as string;
+  for await (const chunk of stream) {
+    const delta = typeof chunk.content === 'string' ? chunk.content : '';
+    if (delta) {
+      fullContent += delta;
+      emitter.emit('message:content', createMessageContentEvent(
+        conversationId,
+        messageId,
+        delta,
+        chunkIndex++,
+        isFirst,
+        false
+      ));
+      isFirst = false;
+    }
+  }
+
+  // 发送结束标记
+  emitter.emit('message:content', createMessageContentEvent(
+    conversationId,
+    messageId,
+    '',
+    chunkIndex,
+    false,
+    true
+  ));
+
+  const recommendation = fullContent;
   console.log('🏥 Hospital recommendation completed');
 
   // 发送工具调用完成事件
@@ -60,19 +91,6 @@ export async function hospitalRecommend(state: typeof AgentState.State) {
     'completed',
     { output: { recommendation }, duration: 500 }
   ));
-
-  // 流式发送内容
-  const words = recommendation.split('');
-  words.forEach((char, index) => {
-    emitter.emit('message:content', createMessageContentEvent(
-      conversationId,
-      messageId,
-      char,
-      index,
-      index === 0,
-      index === words.length - 1
-    ));
-  });
 
   // 发送元数据
   emitter.emit('message:metadata', createMessageMetadataEvent(

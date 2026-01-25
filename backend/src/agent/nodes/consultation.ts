@@ -39,11 +39,42 @@ export async function consultation(state: typeof AgentState.State) {
 
   const prompt = CONSULTATION_PROMPT.replace('{query}', userQuery);
 
-  const response = await llm.invoke([
+  // 使用LLM原生流式输出
+  let fullContent = '';
+  let chunkIndex = 0;
+  let isFirst = true;
+
+  const stream = await llm.stream([
     { role: "user", content: prompt },
   ]);
 
-  const answer = response.content as string;
+  for await (const chunk of stream) {
+    const delta = typeof chunk.content === 'string' ? chunk.content : '';
+    if (delta) {
+      fullContent += delta;
+      emitter.emit('message:content', createMessageContentEvent(
+        conversationId,
+        messageId,
+        delta,
+        chunkIndex++,
+        isFirst,
+        false
+      ));
+      isFirst = false;
+    }
+  }
+
+  // 发送结束标记
+  emitter.emit('message:content', createMessageContentEvent(
+    conversationId,
+    messageId,
+    '',
+    chunkIndex,
+    false,
+    true
+  ));
+
+  const answer = fullContent;
   console.log('💬 Consultation completed');
 
   // 发送工具调用完成事件
@@ -55,19 +86,6 @@ export async function consultation(state: typeof AgentState.State) {
     'completed',
     { output: { answer }, duration: 500 }
   ));
-
-  // 流式发送内容
-  const words = answer.split('');
-  words.forEach((char, index) => {
-    emitter.emit('message:content', createMessageContentEvent(
-      conversationId,
-      messageId,
-      char,
-      index,
-      index === 0,
-      index === words.length - 1
-    ));
-  });
 
   return {
     branchResult: answer,
