@@ -204,6 +204,14 @@ export class WebSocketManager {
       connection.lastHeartbeat = Date.now();
 
       switch (message.type) {
+        case WSMessageType.JOIN:
+          this.handleJoin(userId, message);
+          break;
+
+        case WSMessageType.LEAVE:
+          this.handleLeave(userId, message);
+          break;
+
         case WSMessageType.MESSAGE:
           this.handleChatMessage(userId, message);
           break;
@@ -286,6 +294,62 @@ export class WebSocketManager {
 
     // 广播到会话中的其他用户
     this.broadcastToConversation(clientMessage.conversationId, serverMessage, userId);
+  }
+
+  /**
+   * 处理加入会话
+   */
+  private handleJoin(userId: string, clientMessage: ClientMessage): void {
+    const { conversationId } = clientMessage;
+    if (!conversationId) {
+      this.sendToUser(userId, {
+        type: WSMessageType.SYSTEM,
+        conversationId: '',
+        data: { text: 'Conversation ID required' },
+      });
+      return;
+    }
+
+    this.joinConversation(userId, conversationId);
+
+    // 通知会话中的其他用户
+    this.broadcastToConversation(
+      conversationId,
+      {
+        type: WSMessageType.SYSTEM,
+        conversationId,
+        data: { text: 'User joined the conversation' },
+      },
+      userId
+    );
+
+    // 发送确认给用户
+    this.sendToUser(userId, {
+      type: WSMessageType.SYSTEM,
+      conversationId,
+      data: { text: 'Joined conversation' },
+    });
+  }
+
+  /**
+   * 处理离开会话
+   */
+  private handleLeave(userId: string, clientMessage: ClientMessage): void {
+    const { conversationId } = clientMessage;
+    if (!conversationId) return;
+
+    this.leaveConversation(userId, conversationId);
+
+    // 通知会话中的其他用户
+    this.broadcastToConversation(
+      conversationId,
+      {
+        type: WSMessageType.SYSTEM,
+        conversationId,
+        data: { text: 'User left the conversation' },
+      },
+      userId
+    );
   }
 
   /**
