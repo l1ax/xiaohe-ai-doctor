@@ -474,6 +474,9 @@ export const acceptConsultation = async (req: Request, res: Response): Promise<v
 
     consultationStore.updateStatus(consultationId, 'active');
 
+    // 通知患者问诊已接诊
+    wsManager.broadcastConsultationUpdate(consultationId);
+
     logger.info('Consultation accepted', { consultationId, doctorId: req.user.userId });
 
     res.json({
@@ -519,6 +522,9 @@ export const closeConsultation = async (req: Request, res: Response): Promise<vo
     }
 
     consultationStore.updateStatus(consultationId, 'closed');
+
+    // 广播问诊状态更新
+    wsManager.broadcastConsultationUpdate(consultationId);
 
     logger.info('Consultation closed', {
       consultationId,
