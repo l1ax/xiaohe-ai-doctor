@@ -5,8 +5,8 @@
 import {
   ConsultationDetail,
   ChatMessage,
-  APIResponse,
 } from './types';
+import { storage } from '../../../utils/storage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -14,7 +14,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
  * 获取认证头
  */
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('accessToken');
+  const tokenData = storage.getToken();
+  const token = tokenData?.accessToken;
   return {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -38,10 +39,11 @@ export async function getConsultationDetail(
     throw new Error(`Failed to fetch consultation: ${response.statusText}`);
   }
 
-  const result: APIResponse<ConsultationDetail> = await response.json();
+  const result = await response.json();
 
-  if (!result.success || !result.data) {
-    throw new Error(result.error?.message || '获取问诊详情失败');
+  // 后端返回格式: { code: 0, data: ..., message: 'success' }
+  if (result.code !== 0 || !result.data) {
+    throw new Error(result.message || '获取问诊详情失败');
   }
 
   return result.data;
@@ -64,10 +66,11 @@ export async function getConsultationMessages(
     throw new Error(`Failed to fetch messages: ${response.statusText}`);
   }
 
-  const result: APIResponse<ChatMessage[]> = await response.json();
+  const result = await response.json();
 
-  if (!result.success || !result.data) {
-    throw new Error(result.error?.message || '获取消息列表失败');
+  // 后端返回格式: { code: 0, data: [...], message: 'success' }
+  if (result.code !== 0 || !result.data) {
+    throw new Error(result.message || '获取消息列表失败');
   }
 
   return result.data;
@@ -97,10 +100,11 @@ export async function sendMessage(
     throw new Error(`Failed to send message: ${response.statusText}`);
   }
 
-  const result: APIResponse<ChatMessage> = await response.json();
+  const result = await response.json();
 
-  if (!result.success || !result.data) {
-    throw new Error(result.error?.message || '发送消息失败');
+  // 后端返回格式: { code: 0, data: {...}, message: 'success' }
+  if (result.code !== 0 || !result.data) {
+    throw new Error(result.message || '发送消息失败');
   }
 
   return result.data;
@@ -124,9 +128,10 @@ export async function closeConsultation(
     throw new Error(`Failed to close consultation: ${response.statusText}`);
   }
 
-  const result: APIResponse<void> = await response.json();
+  const result = await response.json();
 
-  if (!result.success) {
-    throw new Error(result.error?.message || '结束问诊失败');
+  // 后端返回格式: { code: 0, message: 'success' }
+  if (result.code !== 0) {
+    throw new Error(result.message || '结束问诊失败');
   }
 }

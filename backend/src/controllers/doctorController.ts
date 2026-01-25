@@ -21,7 +21,11 @@ export const updateDoctorStatus = async (req: Request, res: Response): Promise<v
     }
 
     // 获取或创建医生记录（MVP 阶段支持动态创建）
-    const doctor = getOrCreateDoctor(req.user.userId);
+    // 只允许测试号码注册为医生
+    const doctor = getOrCreateDoctor(req.user.userId, (req.user as any).phone);
+    if (!doctor) {
+      throw new UnauthorizedError('Doctor account not found. Only test phone numbers (13800138000-13800138003) can register as doctors.');
+    }
     doctor.isAvailable = isAvailable;
 
     logger.info('Doctor status updated', {

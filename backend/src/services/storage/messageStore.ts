@@ -4,6 +4,8 @@ export interface Message {
   senderId: string;
   senderType: 'patient' | 'doctor';
   content: string;
+  contentType?: 'text' | 'image' | 'audio';
+  imageUrl?: string;
   createdAt: string;
 }
 

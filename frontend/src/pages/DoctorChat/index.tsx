@@ -37,6 +37,7 @@ const DoctorChat = observer(function DoctorChat() {
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocketService | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +45,10 @@ const DoctorChat = observer(function DoctorChat() {
     if (!id) return;
     fetchConsultation();
     connectWebSocket();
-    return () => wsRef.current?.disconnect();
+    return () => {
+      wsRef.current?.disconnect();
+      wsRef.current = null;
+    };
   }, [id]);
 
   useEffect(() => {
@@ -53,13 +57,19 @@ const DoctorChat = observer(function DoctorChat() {
 
   const fetchConsultation = async () => {
     try {
+      setError(null);
       const res = await fetch(`${API_BASE_URL}/api/consultations/${id}`, {
         headers: { Authorization: `Bearer ${userStore.accessToken}` },
       });
       const data = await res.json();
-      if (data.code === 0) setConsultation(data.data);
+      if (data.code === 0) {
+        setConsultation(data.data);
+      } else {
+        setError(data.message || '加载问诊详情失败');
+      }
     } catch (error) {
       console.error('Failed to fetch consultation:', error);
+      setError('加载问诊详情失败，请检查网络连接');
     }
   };
 
@@ -72,9 +82,12 @@ const DoctorChat = observer(function DoctorChat() {
       if (data.code === 0) {
         console.log('[DoctorChat] 📜 已加载历史消息', { count: data.data.length });
         setMessages(data.data);
+      } else {
+        setError(data.message || '加载消息历史失败');
       }
     } catch (error) {
       console.error('Failed to load message history:', error);
+      setError('加载消息历史失败，请检查网络连接');
     }
   };
 
@@ -110,27 +123,43 @@ const DoctorChat = observer(function DoctorChat() {
           content: message.content,
           currentUserId: userStore.user?.id,
         });
-        setMessages((prev) => [...prev, {
-          id: message.id,
-          senderId: message.senderId,
-          senderType: message.senderType,
-          content: message.content,
-          createdAt: message.createdAt,
-        }]);
+        setMessages((prev) => {
+          // 如果是自己发送的消息，替换临时消息
+          const isOwnMessage = message.senderId === userStore.user?.id;
+          if (isOwnMessage) {
+            // 找到临时消息并替换
+            const tempIndex = prev.findIndex((m) => m.id.startsWith('temp_') && m.content === message.content);
+            if (tempIndex !== -1) {
+              const updated = [...prev];
+              updated[tempIndex] = message;
+              return updated;
+            }
+            // 没找到临时消息，检查是否已存在
+            const exists = prev.some((m) => m.id === message.id);
+            if (exists) return prev;
+            return [...prev, message];
+          }
+          // 其他人的消息，直接添加
+          const exists = prev.some((m) => m.id === message.id);
+          if (exists) return prev;
+          return [...prev, message];
+        });
       });
 
       ws.onTyping(() => setIsTyping(true));
     } catch (error) {
       console.warn('[DoctorChat] ❌ WebSocket 连接失败', error);
       setIsConnected(false);
+      setError('WebSocket 连接失败，请检查网络连接');
     }
   };
 
   const handleSend = async () => {
     if (!inputValue.trim() || !id || !wsRef.current) return;
 
+    const tempId = `temp_${Date.now()}`;
     const message = {
-      id: Date.now().toString(),
+      id: tempId,
       senderId: userStore.user?.id || '',
       senderType: (userStore.user?.role === 'doctor' ? 'doctor' : 'patient') as 'patient' | 'doctor',
       content: inputValue,
@@ -138,19 +167,18 @@ const DoctorChat = observer(function DoctorChat() {
     };
 
     console.log('[DoctorChat] 📤 发送消息', {
-      localMessageId: message.id,
+      tempId: message.id,
       senderId: message.senderId,
-      senderType: message.senderType,
       content: inputValue,
       conversationId: id,
     });
 
     // 先添加到本地列表
     setMessages((prev) => [...prev, message]);
-
-    // 发送消息
-    wsRef.current.sendMessage(id, inputValue);
     setInputValue('');
+
+    // 通过 WebSocket 发送
+    wsRef.current.sendMessage(id, inputValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -208,6 +236,22 @@ const DoctorChat = observer(function DoctorChat() {
           )}
         </div>
       </header>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mx-4 mt-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-500 mt-0.5">error</span>
+          <div className="flex-1">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-red-400 hover:text-red-600"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

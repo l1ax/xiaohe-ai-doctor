@@ -76,6 +76,8 @@ export class WebSocketManager {
         // Prevent race condition by checking isClosing flag
         if (!existingConnection.isClosing) {
           logger.info('Closing existing connection', { userId: payload.userId });
+          // 先从 connections Map 中移除旧连接，这样 handleDisconnection 就不会被调用
+          this.connections.delete(payload.userId);
           existingConnection.isClosing = true;
           existingConnection.ws.close();
         }
@@ -320,8 +322,8 @@ export class WebSocketManager {
       excludeSender: true,
     });
 
-    // 广播到会话中的所有用户
-    this.broadcastToConversation(clientMessage.conversationId, serverMessage, userId);
+    // 广播到会话中的所有用户（包括发送者）
+    this.broadcastToConversation(clientMessage.conversationId, serverMessage);
 
     logger.info('[✅ MESSAGE] 消息处理完成', {
       messageId: serverMessage.message?.id,
@@ -516,6 +518,14 @@ export class WebSocketManager {
    * 处理断开连接
    */
   private handleDisconnection(userId: string): void {
+    const connection = this.connections.get(userId);
+
+    // 如果连接不在 Map 中，说明是被替换的旧连接，不从会话中移除用户
+    if (!connection) {
+      logger.info('Connection already removed from Map (likely replaced by new connection)', { userId });
+      return;
+    }
+
     this.connections.delete(userId);
     this.rateLimitMap.delete(userId);
 

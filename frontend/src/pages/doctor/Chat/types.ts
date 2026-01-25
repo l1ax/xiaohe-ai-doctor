@@ -2,6 +2,9 @@
  * 医生端问诊聊天页面的类型定义
  */
 
+// 导入统一的 API 响应类型
+export type { ApiResponse } from '../../../utils/request';
+
 // 重新导出 WebSocket 服务中的 ChatMessage 类型
 export type { ChatMessage } from '../../../services/websocket';
 
@@ -19,7 +22,7 @@ export interface PatientInfo {
 export interface ConsultationDetail {
   id: string;
   patientId: string;
-  patient: PatientInfo;
+  patient?: PatientInfo;  // 后端暂未返回 patient 对象
   doctorId: string;
   status: 'pending' | 'active' | 'completed' | 'cancelled';
   type: 'ai' | 'expert';
@@ -55,14 +58,4 @@ export interface WSMessage {
     isTyping?: boolean;
   };
   message?: any; // 使用 any 避免循环引用
-}
-
-// API 响应类型
-export interface APIResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
 }

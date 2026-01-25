@@ -51,7 +51,8 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
       setError(null);
       const detail = await getConsultationDetail(consultationId);
       setConsultation(detail);
-      setIsOnline(detail.patient.isOnline);
+      // 后端暂未返回 patient 对象，默认为在线
+      setIsOnline(detail.patient?.isOnline ?? true);
     } catch (err: any) {
       console.error('加载问诊详情失败:', err);
       setError(err.message || '加载问诊详情失败');
@@ -66,7 +67,12 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
 
     try {
       const msgs = await getConsultationMessages(consultationId);
-      setMessages(msgs);
+      // 确保 API 返回的消息有默认 contentType
+      const messagesWithDefaults = msgs.map((msg) => ({
+        ...msg,
+        contentType: msg.contentType || 'text',
+      }));
+      setMessages(messagesWithDefaults);
     } catch (err: any) {
       console.error('加载消息失败:', err);
     }
@@ -75,6 +81,13 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
   // 初始化 WebSocket 连接
   const initWebSocket = useCallback(() => {
     if (!consultationId || !userStore.accessToken) return;
+
+    // 如果已连接且 token 未变，不需要重连
+    if (wsRef.current && wsRef.current.isConnected()) {
+      // 重新加入会话
+      wsRef.current.join(consultationId);
+      return;
+    }
 
     // 清理现有连接
     if (wsRef.current) {
@@ -111,7 +124,15 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
         // 检查是否已存在该消息
         const exists = prev.some((m) => m.id === message.id);
         if (exists) return prev;
-        return [...prev, message as ChatMessage];
+
+        // 转换消息格式：处理 metadata.imageUrl 和 contentType 默认值
+        const chatMessage: ChatMessage = {
+          ...message,
+          contentType: message.contentType || 'text',
+          imageUrl: message.imageUrl || (message as any).metadata?.imageUrl,
+        };
+
+        return [...prev, chatMessage];
       });
     });
 
@@ -129,6 +150,9 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
 
     return () => {
       ws.disconnect();
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -141,13 +165,12 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
       if (!consultationId || !content.trim()) return;
 
       try {
-        // 先通过 WebSocket 发送（实时）
+        // 通过 WebSocket 发送消息
         if (wsRef.current) {
           wsRef.current.sendMessage(consultationId, content);
+        } else {
+          setError('WebSocket 未连接');
         }
-
-        // 同时调用 API 保存到数据库
-        await sendMessage(consultationId, content);
       } catch (err: any) {
         console.error('发送消息失败:', err);
         setError(err.message || '发送消息失败');
@@ -194,17 +217,19 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
 
   // 初始化 WebSocket
   useEffect(() => {
-    const cleanup = initWebSocket();
+    initWebSocket();
     return () => {
-      if (cleanup) cleanup();
       if (wsRef.current) {
         wsRef.current.disconnect();
+        wsRef.current = null;
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [initWebSocket]);
+    // 只在 consultationId 或 accessToken 变化时重新连接
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consultationId, userStore.accessToken]);
 
   // 加载状态
   if (loading) {
@@ -240,14 +265,14 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
       {/* 顶部导航栏 */}
       {consultation && (
         <ChatHeader
-          patientName={consultation.patient.name}
+          patientName={consultation.patient?.name || '患者'}
           isOnline={isOnline}
           onMoreClick={() => console.log('更多操作')}
         />
       )}
 
       {/* 患者信息横幅 */}
-      {consultation && <PatientInfo patient={consultation.patient} />}
+      {consultation && consultation.patient && <PatientInfo patient={consultation.patient} />}
 
       {/* AI 报告卡片（如果有） */}
       {consultation?.aiReport && (

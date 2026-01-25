@@ -49,7 +49,9 @@ const DoctorList = observer(function DoctorList() {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/consultations/departments`);
+      const res = await fetch(`${API_BASE_URL}/api/consultations/departments`, {
+        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+      });
       const data = await res.json();
       if (data.code === 0) setDepartments(data.data);
     } catch (error) {
