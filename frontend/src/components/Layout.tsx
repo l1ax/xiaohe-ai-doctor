@@ -1,7 +1,11 @@
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 
-const Layout = observer(function Layout() {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout = observer(function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,16 +18,9 @@ const Layout = observer(function Layout() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // 登录页不显示底部导航
-  if (location.pathname === '/login') {
-    return <Outlet />;
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-1 pb-24">
-        <Outlet />
-      </main>
+      <main className="flex-1 pb-24">{children}</main>
       <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-6 pt-2 px-6 z-50 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)]">
         <div className="flex justify-between items-center h-14 max-w-lg mx-auto">
           {navItems.map((item) => {
