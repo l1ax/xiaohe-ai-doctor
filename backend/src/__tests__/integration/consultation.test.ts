@@ -218,4 +218,37 @@ describe('Consultation Integration Tests', () => {
       expect(res.body.data[0].content).toBe('Hello doctor');
     });
   });
+
+  describe('GET /api/consultations/doctor', () => {
+    it('should return all non-closed consultations for doctor', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800138000', verifyCode: '123456', role: 'doctor' });
+
+      const token = loginRes.body.data.accessToken;
+
+      const res = await request(app)
+        .get('/api/consultations/doctor')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.code).toBe(0);
+      expect(Array.isArray(res.body.data)).toBe(true);
+    });
+
+    it('should filter consultations by status', async () => {
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({ phone: '13800138000', verifyCode: '123456', role: 'doctor' });
+
+      const token = loginRes.body.data.accessToken;
+
+      const res = await request(app)
+        .get('/api/consultations/doctor?status=pending')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.every((c: any) => c.status === 'pending')).toBe(true);
+    });
+  });
 });

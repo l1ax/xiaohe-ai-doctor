@@ -397,6 +397,43 @@ export const getPendingConsultations = async (req: Request, res: Response): Prom
 };
 
 /**
+ * 获取医生的问诊列表（所有未关闭）
+ * GET /api/consultations/doctor
+ */
+export const getDoctorConsultations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user || req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Doctor access required');
+    }
+
+    const { status } = req.query;
+
+    let consultations = consultationStore.getByDoctorId(req.user.userId);
+
+    // 只返回未关闭的问诊
+    consultations = consultations.filter((c) => c.status !== 'closed' && c.status !== 'cancelled');
+
+    // 按 status 筛选
+    if (status && ['pending', 'active'].includes(status as string)) {
+      consultations = consultations.filter((c) => c.status === status);
+    }
+
+    res.json({
+      code: 0,
+      data: consultations.map((c) => ({
+        ...c,
+        patientPhone: maskPhone(c.patientPhone),
+        doctor: getDoctorById(c.doctorId),
+      })),
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get doctor consultations error', error);
+    throw error;
+  }
+};
+
+/**
  * 医生接诊
  * PUT /api/consultations/:id/accept
  */
