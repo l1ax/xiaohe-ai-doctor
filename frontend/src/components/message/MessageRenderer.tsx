@@ -170,7 +170,7 @@ interface SystemMessageProps {
   type?: 'info' | 'warning' | 'error' | 'success';
 }
 
-export const SystemMessage: React.FC<SystemMessageProps> = ({ content, _type = 'info' }) => {
+export const SystemMessage: React.FC<SystemMessageProps> = ({ content, type: _type = 'info' }) => {
   // Use the new simplified style for system messages
   return (
     <div className="flex justify-center w-full mt-2 mb-4">

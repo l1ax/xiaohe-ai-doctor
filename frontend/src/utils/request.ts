@@ -6,14 +6,6 @@ export interface ApiResponse<T> {
   message: string;
 }
 
-declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_API_BASE_URL: string;
-    };
-  }
-}
-
 class Request {
   private baseUrl: string;
 

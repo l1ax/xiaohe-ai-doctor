@@ -30,6 +30,7 @@ export const ChatPage: React.FC = () => {
   const [state, send] = useMachine(chatMachine);
   const [inputValue, setInputValue] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [_isSSEConnected, setIsSSEConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isConnectingRef = useRef(false);
 
