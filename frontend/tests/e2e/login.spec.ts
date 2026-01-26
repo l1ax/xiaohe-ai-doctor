@@ -1,10 +1,16 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('登录流程', () => {
-  test.beforeEach(async ({ page }) => {
-    // 清除本地存储，确保每次测试从未登录状态开始
-    await page.evaluate(() => localStorage.clear());
-    await page.context().clearCookies();
+  test.beforeEach(async ({ context, page }) => {
+    // 清除 cookies
+    await context.clearCookies();
+
+    // 导航到登录页后再清除 localStorage（避免安全错误）
+    await page.goto('/login');
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
   });
 
   test('完整登录流程', async ({ page }) => {
