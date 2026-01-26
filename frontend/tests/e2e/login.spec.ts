@@ -40,7 +40,8 @@ test.describe('登录流程', () => {
 
     // 8. 登录成功后跳转到首页
     await expect(page).toHaveURL('/');
-    await expect(page.locator('text=小禾AI医生').first()).toBeVisible();
+    // 验证首页核心元素显示
+    await expect(page.locator('text=AI 智能问诊').first()).toBeVisible();
   });
 
   test('登录后访问 Profile 页面显示用户信息', async ({ page }) => {
