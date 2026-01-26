@@ -3,7 +3,9 @@ import { createZhipuLLM } from "../../utils/llm";
 import {
   createToolCallEvent,
   createMessageContentEvent,
+  createMessageMetadataEvent,
 } from "../events/chat-event-types";
+import { orchestrateTools } from "../../services/tools/toolOrchestrator";
 import { v4 as uuidv4 } from 'uuid';
 
 const llm = createZhipuLLM(0.7);
@@ -25,7 +27,7 @@ const MEDICINE_PROMPT = `你是一位药品咨询顾问。用户询问药品相�
 
 export async function medicineInfo(state: typeof AgentState.State) {
   const emitter = state.eventEmitter;
-  const { conversationId, messages, extractedInfo } = state;
+  const { conversationId, messages, extractedInfo, userIntent } = state;
   const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
   const medicineName = extractedInfo?.medicineName || '相关药品';
@@ -43,7 +45,35 @@ export async function medicineInfo(state: typeof AgentState.State) {
     { input: { medicineName } }
   ));
 
-  const prompt = MEDICINE_PROMPT.replace('{query}', userQuery);
+  // 调用工具编排器
+  const toolResult = await orchestrateTools({
+    query: userQuery,
+    intent: userIntent!,
+    imageUrls: lastMessage.imageUrls,
+    conversationId,
+    messageId,
+    eventEmitter: emitter,
+  });
+
+  // 构建增强 Prompt
+  let enhancedPrompt = MEDICINE_PROMPT.replace('{query}', userQuery);
+
+  if (toolResult.success && toolResult.data) {
+    if (toolResult.data.imageDescription) {
+      enhancedPrompt += `\n\n【图片信息】\n${toolResult.data.imageDescription}`;
+    }
+    if (toolResult.data.knowledgeBase) {
+      enhancedPrompt += `\n\n【知识库参考】\n${toolResult.data.knowledgeBase}\n\n请优先基于知识库内容回答。`;
+    }
+    if (toolResult.data.webSearch) {
+      enhancedPrompt += `\n\n【网络搜索结果】\n${toolResult.data.webSearch}\n\n请参考搜索结果回答。`;
+    }
+    enhancedPrompt += `\n\n请基于以上信息，结合你的专业知识，给出专业建议。`;
+  } else {
+    console.log('[MedicineInfo] No tool results, using pure LLM');
+  }
+
+  const prompt = enhancedPrompt;
 
   // 使用LLM原生流式输出
   let fullContent = '';
@@ -91,6 +121,16 @@ export async function medicineInfo(state: typeof AgentState.State) {
     messageId,
     'completed',
     { output: { info }, duration: 500 }
+  ));
+
+  // 发送元数据
+  emitter.emit('message:metadata', createMessageMetadataEvent(
+    conversationId,
+    messageId,
+    undefined,
+    [],
+    undefined,
+    toolResult.toolsUsed
   ));
 
   return {
