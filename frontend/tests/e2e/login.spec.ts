@@ -57,7 +57,8 @@ test.describe('登录流程', () => {
 
     // 验证用户信息显示
     await expect(page.locator('text=白银会员').first()).toBeVisible();
-    await expect(page.locator('text=/138\\*\\*\\*\\*0000/').first()).toBeVisible();
+    // 验证手机号格式 (前3位+****+后4位)
+    await expect(page.locator('text=/138\\*\\*\\*\\*8000/').first()).toBeVisible();
   });
 
   test('验证码倒计时功能', async ({ page }) => {
