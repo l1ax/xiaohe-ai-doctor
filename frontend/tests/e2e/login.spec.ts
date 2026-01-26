@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 
 test.describe('登录流程', () => {
   test.beforeEach(async ({ context, page }) => {
-    // 清除 cookies
+    // 清除所有 cookies
     await context.clearCookies();
 
-    // 导航到登录页后再清除 localStorage（避免安全错误）
-    await page.goto('/login');
-    await page.evaluate(() => {
+    // 在页面加载前注入脚本来清除存储
+    // 这会在每次导航前执行，确保 localStorage 被清除
+    await page.addInitScript(() => {
       localStorage.clear();
       sessionStorage.clear();
     });
@@ -17,23 +17,28 @@ test.describe('登录流程', () => {
     // 1. 访问首页，未登录应该停留在首页（不会强制跳转）
     await page.goto('/');
 
-    // 2. 点击"我的"跳转到登录页
+    // 2. 点击"我的"跳转到 Profile 页面
     await page.locator('button:has-text("我的")').click();
-    await expect(page).toHaveURL(/\/login/);
+    await expect(page).toHaveURL('/profile');
 
-    // 3. 输入手机号
+    // 3. Profile 页面显示"请先登录"按钮，点击跳转到登录页
+    await expect(page.locator('text=请先登录')).toBeVisible();
+    await page.locator('button:has-text("请先登录")').click();
+    await expect(page).toHaveURL('/login');
+
+    // 4. 输入手机号
     await page.locator('input[type="tel"]').fill('13800138000');
 
-    // 4. 点击获取验证码
+    // 5. 点击获取验证码
     await page.locator('button:has-text("获取验证码")').click();
 
-    // 5. 输入验证码 123456
+    // 6. 输入验证码 123456
     await page.locator('input[type="text"]').fill('123456');
 
-    // 6. 点击登录按钮
+    // 7. 点击登录按钮
     await page.locator('button:has-text("登录 / 注册")').click();
 
-    // 7. 登录成功后跳转到首页
+    // 8. 登录成功后跳转到首页
     await expect(page).toHaveURL('/');
     await expect(page.locator('text=小禾AI医生').first()).toBeVisible();
   });
