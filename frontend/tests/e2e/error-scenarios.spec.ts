@@ -190,7 +190,7 @@ test.describe('异常场景 - 无效输入处理', () => {
     await page.waitForLoadState('networkidle');
 
     // 3. 输入仅空格
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     await input.fill('   ');
     await input.dispatchEvent('input');
 
@@ -272,7 +272,7 @@ test.describe('异常场景 - 资源不存在', () => {
 
     // 2. 验证404页面或重定向到首页
     const notFoundOrHome = page.locator('text=404').or(page.locator('text=页面不存在'))
-      .or(page.locator('text=小禾AI医生'));
+      .or(page.locator('text=AI 智能问诊'));
     const hasNotFound = await notFoundOrHome.count() > 0;
 
     const isOnHomePage = page.url() === '/' || page.url().endsWith('/');
@@ -296,7 +296,7 @@ test.describe('边界条件测试', () => {
     await page.waitForLoadState('networkidle');
 
     // 3. 输入超长文本
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     const longText = '这是一个非常长的消息。'.repeat(10);
     await input.fill(longText);
 
@@ -319,7 +319,7 @@ test.describe('边界条件测试', () => {
     await page.waitForLoadState('networkidle');
 
     // 3. 输入特殊字符
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     const specialText = '测试 & 特殊字符 @#$%^&*()';
     await input.fill(specialText);
 
@@ -391,7 +391,7 @@ test.describe('移动端响应式测试', () => {
     await page.waitForURL('/');
 
     // 3. 验证关键元素在小屏幕上可见
-    await expect(page.locator('text=小禾AI医生')).toBeVisible();
+    await expect(page.locator('text=AI 智能问诊').first()).toBeVisible();
   });
 
   test('横屏模式适配', async ({ page }) => {
@@ -410,8 +410,8 @@ test.describe('移动端响应式测试', () => {
     await page.goto('/chat');
     await page.waitForLoadState('networkidle');
 
-    // 4. 验证布局正常
-    await expect(page.locator('textarea')).toBeVisible();
+    // 4. 验证布局正常 - 输入框可见
+    await expect(page.locator('input[placeholder="请描述您的症状..."]')).toBeVisible();
   });
 
   test('触摸交互响应', async ({ page }) => {
