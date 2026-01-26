@@ -56,8 +56,16 @@ test.describe('Chat Page', () => {
     await expect(page.locator('text=测试消息')).toBeVisible();
   });
 
-  test('should display quick question when clicked', async ({ page }) => {
-    // 点击快捷问题
+  test('should display all 4 quick questions', async ({ page }) => {
+    // 验证所有4个快捷问题都显示
+    await expect(page.locator('text=感冒发烧')).toBeVisible();
+    await expect(page.locator('text=头痛眩晕')).toBeVisible();
+    await expect(page.locator('text=腹痛腹泻')).toBeVisible();
+    await expect(page.locator('text=儿童发热')).toBeVisible();
+  });
+
+  test('should fill input when quick question clicked', async ({ page }) => {
+    // 点击快捷问题"感冒发烧"
     await page.locator('text=感冒发烧').click();
 
     // 验证输入框中已填入文本
