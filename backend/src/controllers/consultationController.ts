@@ -154,8 +154,21 @@ export const createConsultation = async (req: Request, res: Response): Promise<v
 
     consultationStore.createConsultation(consultation);
 
-    // 通知医生有新问诊
+    // 通知该问诊的医生和患者
     wsManager.broadcastConsultationUpdate(consultationId);
+
+    // 广播给所有在线医生
+    wsManager.broadcastToOnlineDoctors({
+      type: 'consultation_update' as any,
+      conversationId: consultationId,
+      consultation: {
+        id: consultation.id,
+        status: consultation.status,
+        lastMessage: consultation.lastMessage || '',
+        lastMessageTime: consultation.lastMessageTime || consultation.createdAt,
+        updatedAt: consultation.updatedAt,
+      },
+    });
 
     logger.info('Consultation created', {
       consultationId,

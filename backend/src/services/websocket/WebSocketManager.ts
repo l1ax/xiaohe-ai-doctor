@@ -31,6 +31,7 @@ export class WebSocketManager {
   // WARNING: In-memory storage only - data will be lost on server restart
   // TODO: Implement persistent storage for production use
   private conversations: Map<string, Set<string>> = new Map(); // conversationId -> userIds
+  private onlineDoctors: Set<string> = new Set(); // 在线医生列表
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_INTERVAL = 30000; // 30秒
   private readonly HEARTBEAT_TIMEOUT = 60000; // 60秒无心跳则断开
@@ -103,6 +104,12 @@ export class WebSocketManager {
       this.connections.set(payload.userId, connection);
       // 记录活跃连接 ID
       this.activeConnectionIds.set(payload.userId, connectionId);
+
+      // 如果是医生，加入在线医生列表
+      if (payload.role === 'doctor') {
+        this.onlineDoctors.add(payload.userId);
+        logger.info('Doctor came online', { doctorId: payload.userId });
+      }
 
       logger.info('WebSocket connection established', {
         userId: payload.userId,
@@ -233,6 +240,10 @@ export class WebSocketManager {
           this.handleTyping(userId, message);
           break;
 
+        case WSMessageType.MARK_READ:
+          this.handleMarkRead(userId, message);
+          break;
+
         case WSMessageType.HEARTBEAT:
           // 心跳消息，pong 已在连接级别处理
           break;
@@ -298,6 +309,7 @@ export class WebSocketManager {
       senderType: connection.userRole === 'doctor' ? 'doctor' : 'patient',
       content,
       createdAt,
+      isRead: false,
     };
     messageStore.addMessage(newMessage);
 
@@ -312,8 +324,8 @@ export class WebSocketManager {
       consultationId: clientMessage.conversationId,
     });
 
-    // 构建服务端消息
-    const serverMessage: ServerMessage = {
+    // 构建服务端消息 - 给接收者（未读）
+    const messageForReceivers: ServerMessage = {
       type: WSMessageType.MESSAGE,
       conversationId: clientMessage.conversationId,
       message: {
@@ -324,21 +336,33 @@ export class WebSocketManager {
         content,
         metadata: clientMessage.data?.imageUrl ? { imageUrl: clientMessage.data.imageUrl } : undefined,
         createdAt,
+        isRead: false,
+      },
+    };
+
+    // 构建发送者消息（已读）
+    const messageForSender: ServerMessage = {
+      ...messageForReceivers,
+      message: {
+        ...messageForReceivers.message!,
+        isRead: true,
       },
     };
 
     logger.info('[📤 MESSAGE] 准备广播消息', {
-      messageId: serverMessage.message?.id,
+      messageId: messageForReceivers.message?.id,
       conversationId: clientMessage.conversationId,
       senderId: userId,
-      excludeSender: true,
     });
 
-    // 广播到会话中的所有用户（包括发送者）
-    this.broadcastToConversation(clientMessage.conversationId, serverMessage);
+    // 广播到会话中的其他用户（排除发送者）
+    this.broadcastToConversation(clientMessage.conversationId, messageForReceivers, userId);
+
+    // 发送给发送者（确认消息）
+    this.sendToUser(userId, messageForSender);
 
     logger.info('[✅ MESSAGE] 消息处理完成', {
-      messageId: serverMessage.message?.id,
+      messageId: messageForReceivers.message?.id,
       conversationId: clientMessage.conversationId,
       senderId: userId,
     });
@@ -358,6 +382,47 @@ export class WebSocketManager {
 
     // 广播到会话中的其他用户
     this.broadcastToConversation(clientMessage.conversationId, serverMessage, userId);
+  }
+
+  /**
+   * 处理标记已读
+   */
+  private handleMarkRead(userId: string, clientMessage: ClientMessage): void {
+    const connection = this.connections.get(userId);
+    if (!connection) {
+      logger.warn('[❌ MARK_READ] 连接不存在', { userId });
+      return;
+    }
+
+    const messageIds = (clientMessage.data as any)?.messageIds as string[] | undefined;
+    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+      logger.warn('[❌ MARK_READ] 消息ID列表无效', { userId, messageIds });
+      return;
+    }
+
+    logger.info('[📥 MARK_READ] 收到标记已读请求', {
+      userId,
+      conversationId: clientMessage.conversationId,
+      messageCount: messageIds.length,
+    });
+
+    // 验证用户是否在会话中
+    const conversationUsers = this.conversations.get(clientMessage.conversationId);
+    if (!conversationUsers || !conversationUsers.has(userId)) {
+      logger.warn('[❌ MARK_READ] 用户不在会话中', {
+        userId,
+        conversationId: clientMessage.conversationId,
+      });
+      return;
+    }
+
+    // 标记消息为已读
+    messageStore.markMultipleAsRead(messageIds);
+
+    logger.info('[✅ MARK_READ] 消息已标记为已读', {
+      userId,
+      messageCount: messageIds.length,
+    });
   }
 
   /**
@@ -470,6 +535,30 @@ export class WebSocketManager {
   }
 
   /**
+   * 广播消息给所有在线医生
+   */
+  broadcastToOnlineDoctors(message: ServerMessage): void {
+    const doctorCount = this.onlineDoctors.size;
+    logger.info('[📡 BROADCAST] 广播给所有在线医生', {
+      doctorCount,
+      messageType: message.type,
+    });
+
+    let successCount = 0;
+    for (const doctorId of this.onlineDoctors) {
+      const sent = this.sendToUser(doctorId, message);
+      if (sent) {
+        successCount++;
+      }
+    }
+
+    logger.info('[✅ BROADCAST] 广播完成', {
+      total: doctorCount,
+      success: successCount,
+    });
+  }
+
+  /**
    * 发送消息给指定用户
    */
   sendToUser(userId: string, message: ServerMessage): boolean {
@@ -552,6 +641,9 @@ export class WebSocketManager {
     this.connections.delete(userId);
     this.activeConnectionIds.delete(userId);
     this.rateLimitMap.delete(userId);
+
+    // 从在线医生列表中移除
+    this.onlineDoctors.delete(userId);
 
     // 从所有会话中移除用户
     for (const [conversationId, userIds] of this.conversations.entries()) {
@@ -687,6 +779,7 @@ export class WebSocketManager {
     this.activeConnectionIds.clear();
     this.conversations.clear();
     this.rateLimitMap.clear();
+    this.onlineDoctors.clear();
 
     if (this.wss) {
       this.wss.close();

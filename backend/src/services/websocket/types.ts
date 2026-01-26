@@ -13,6 +13,7 @@ export enum WSMessageType {
   LEAVE = 'leave',
   CONSULTATION_UPDATE = 'consultation_update',
   NEW_CONSULTATION = 'new_consultation',
+  MARK_READ = 'mark_read',
 }
 
 /**
@@ -57,6 +58,7 @@ export interface ServerMessageData {
   content: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
+  isRead?: boolean;
 }
 
 /**
