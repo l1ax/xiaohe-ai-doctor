@@ -60,7 +60,16 @@ export class AIChatController {
 
       // 验证每个 URL 格式
       for (const url of imageUrls) {
-        if (typeof url !== 'string' || !url.startsWith('http')) {
+        if (typeof url !== 'string') {
+          throw new ValidationError('Invalid image URL format');
+        }
+        
+        try {
+          const urlObj = new URL(url);
+          if (!['http:', 'https:'].includes(urlObj.protocol)) {
+            throw new ValidationError('Invalid image URL format');
+          }
+        } catch {
           throw new ValidationError('Invalid image URL format');
         }
       }
