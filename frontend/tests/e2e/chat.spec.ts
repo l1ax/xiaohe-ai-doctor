@@ -1,4 +1,4 @@
-import { test, expect, describe } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * AI Chat 端到端测试
@@ -11,7 +11,7 @@ import { test, expect, describe } from '@playwright/test';
  * 5. 消息正确展示
  */
 
-describe('Chat Page', () => {
+test.describe('Chat Page', () => {
   test.beforeEach(async ({ page }) => {
     // 打开Chat页面
     await page.goto('/chat');
@@ -102,7 +102,7 @@ describe('Chat Page', () => {
   });
 });
 
-describe('Chat Page - Message Flow', () => {
+test.describe('Chat Page - Message Flow', () => {
   test('should show user message after sending', async ({ page }) => {
     // 导航到Chat页面
     await page.goto('/chat');
@@ -139,7 +139,7 @@ describe('Chat Page - Message Flow', () => {
   });
 });
 
-describe('Chat Page - Responsive', () => {
+test.describe('Chat Page - Responsive', () => {
   test('should be mobile responsive', async ({ page }) => {
     // 设置移动端视图
     await page.setViewportSize({ width: 375, height: 667 });
@@ -152,7 +152,7 @@ describe('Chat Page - Responsive', () => {
   });
 });
 
-describe('Chat Page - Medical Advice', () => {
+test.describe('Chat Page - Medical Advice', () => {
   test('should display medical advice card when received', async ({ page }) => {
     // 导航到Chat页面
     await page.goto('/chat');

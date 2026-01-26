@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test';
 test.describe('登录流程', () => {
   test.beforeEach(async ({ page }) => {
     // 清除本地存储，确保每次测试从未登录状态开始
-    await page.context().clearLocalStorage();
+    await page.evaluate(() => localStorage.clear());
+    await page.context().clearCookies();
   });
 
   test('完整登录流程', async ({ page }) => {
