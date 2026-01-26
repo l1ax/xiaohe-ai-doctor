@@ -201,6 +201,25 @@ class DoctorStore {
       return false;
     }
   }
+
+  // 添加或更新问诊（WebSocket 实时更新）
+  addOrUpdateConsultation(consultation: Consultation) {
+    const index = this.pendingConsultations.findIndex(c => c.id === consultation.id);
+    
+    if (index !== -1) {
+      // 更新现有问诊
+      this.pendingConsultations[index] = {
+        ...this.pendingConsultations[index],
+        ...consultation,
+      };
+      console.log('[DoctorStore] 更新问诊:', consultation.id);
+    } else if (consultation.status === 'pending') {
+      // 添加新问诊到列表开头
+      this.pendingConsultations.unshift(consultation);
+      this.stats.pending = this.pendingConsultations.length;
+      console.log('[DoctorStore] 添加新问诊:', consultation.id);
+    }
+  }
 }
 
 export const doctorStore = new DoctorStore();

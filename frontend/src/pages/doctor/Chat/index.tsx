@@ -131,6 +131,15 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
           imageUrl: message.imageUrl || (message as any).metadata?.imageUrl,
         };
 
+        // 如果是对方发送的消息且页面可见，自动标记为已读
+        if (message.senderId !== userStore.user?.id && document.visibilityState === 'visible') {
+          setTimeout(() => {
+            if (wsRef.current && consultationId) {
+              wsRef.current.markAsRead(consultationId, [message.id]);
+            }
+          }, 1000);
+        }
+
         return [...prev, chatMessage];
       });
     });
@@ -229,6 +238,36 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
     // 只在 consultationId 或 accessToken 变化时重新连接
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationId, userStore.accessToken]);
+
+  // 页面可见性变化时，标记未读消息为已读
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && consultationId && wsRef.current) {
+        // 找出所有未读的对方消息
+        const unreadMessages = messages.filter(
+          (msg) => !msg.isRead && msg.senderId !== userStore.user?.id
+        );
+        
+        if (unreadMessages.length > 0) {
+          const messageIds = unreadMessages.map((msg) => msg.id);
+          wsRef.current.markAsRead(consultationId, messageIds);
+          
+          // 更新本地状态
+          setMessages((prev) =>
+            prev.map((msg) =>
+              messageIds.includes(msg.id) ? { ...msg, isRead: true } : msg
+            )
+          );
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [consultationId, messages]);
 
   // 加载状态
   if (loading) {

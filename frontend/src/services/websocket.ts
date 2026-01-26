@@ -103,6 +103,16 @@ export class WebSocketService {
     this.send({ type: 'typing', conversationId, isTyping });
   }
 
+  markAsRead(conversationId: string, messageIds: string[]): void {
+    const payload = {
+      type: 'mark_read',
+      conversationId,
+      data: { messageIds },
+    };
+    console.log('[WebSocketService] 📤 标记已读', payload);
+    this.send(payload);
+  }
+
   onMessage(handler: MessageHandler): () => void {
     this.messageHandlers.add(handler);
     return () => this.messageHandlers.delete(handler);
