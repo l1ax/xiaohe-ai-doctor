@@ -6,6 +6,9 @@ export interface User {
   nickname?: string;
   avatarUrl?: string;
   role: 'patient' | 'doctor';
+  name?: string;
+  department?: string;
+  hospital?: string;
 }
 
 export interface LoginResponse {

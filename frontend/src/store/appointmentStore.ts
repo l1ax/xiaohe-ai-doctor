@@ -96,7 +96,8 @@ class AppointmentStore {
       this.error = null;
       await appointmentApi.createAppointment({
         doctorId: this.selectedDoctor.id,
-        appointmentTime: `${this.selectedDate}T${this.selectedTimeSlot}:00.000Z`,
+        date: this.selectedDate,
+        timeSlot: this.selectedTimeSlot,
       });
     } catch (e: any) {
       runInAction(() => {

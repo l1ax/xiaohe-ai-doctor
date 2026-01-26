@@ -44,6 +44,12 @@ class ConsultationStore {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
+  getByStatus(status: Consultation['status']): Consultation[] {
+    return Array.from(this.consultations.values())
+      .filter((c) => c.status === status)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
   updateStatus(id: string, status: Consultation['status']): Consultation | undefined {
     const consultation = this.consultations.get(id);
     if (consultation) {

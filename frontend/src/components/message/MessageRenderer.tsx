@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { User, Bot, AlertCircle, Stethoscope } from 'lucide-react';
+import { User, Bot } from 'lucide-react';
 import { Message } from '../../machines/chatMachine';
 
 // ============ 基础样式 ============
@@ -170,7 +170,7 @@ interface SystemMessageProps {
   type?: 'info' | 'warning' | 'error' | 'success';
 }
 
-export const SystemMessage: React.FC<SystemMessageProps> = ({ content, type = 'info' }) => {
+export const SystemMessage: React.FC<SystemMessageProps> = ({ content, _type = 'info' }) => {
   // Use the new simplified style for system messages
   return (
     <div className="flex justify-center w-full mt-2 mb-4">

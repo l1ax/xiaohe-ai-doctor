@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ValidationError } from '../../utils/errorHandler';
+import { scheduleStore, TimeSlot as ScheduleTimeSlot } from '../storage/scheduleStore';
 
 /**
  * 预约状态
@@ -80,6 +81,53 @@ export function isPastDate(dateString: string): boolean {
   return appointmentUtc < todayUtc;
 }
 
+/**
+ * 将具体时间映射到时段（morning/afternoon/evening）
+ */
+function mapTimeToTimeSlot(time: string): ScheduleTimeSlot {
+  const hour = parseInt(time.split(':')[0], 10);
+
+  if (hour >= 6 && hour < 12) {
+    return 'morning';
+  } else if (hour >= 12 && hour < 18) {
+    return 'afternoon';
+  } else {
+    return 'evening';
+  }
+}
+
+/**
+ * 根据医生的排班设置，过滤可用的时间段
+ */
+function filterAvailableSlotsBySchedule(
+  doctorId: string,
+  date: string,
+  allSlots: string[]
+): string[] {
+  // 获取医生当天的排班设置
+  const doctorSchedules = scheduleStore.getByDate(doctorId, date);
+
+  // 如果没有任何排班设置，返回所有可用时段（默认行为）
+  if (doctorSchedules.length === 0) {
+    return allSlots;
+  }
+
+  // 创建一个时段可用性的映射
+  const timeSlotAvailability = new Map<ScheduleTimeSlot, boolean>();
+  for (const schedule of doctorSchedules) {
+    timeSlotAvailability.set(schedule.timeSlot, schedule.isAvailable);
+  }
+
+  // 过滤时间段，只保留在可用时段中的时间
+  return allSlots.filter(time => {
+    const timeSlot = mapTimeToTimeSlot(time);
+    const isAvailable = timeSlotAvailability.get(timeSlot);
+
+    // 如果没有设置该时段，默认为可用
+    return isAvailable !== false;
+  });
+}
+
 // Mock 医生排班数据（未来7天）
 // Use seeded random for consistent schedule generation
 function generateMockSchedules(): Map<string, string[]> {
@@ -123,6 +171,7 @@ const mockAppointments: Map<string, Appointment> = new Map();
 
 /**
  * 获取医生排班
+ * 集成医生的排班设置，只返回医生设置的可用时段
  */
 export function getDoctorSchedule(doctorId: string, startDate: string, endDate: string): {
   date: string;
@@ -148,7 +197,10 @@ export function getDoctorSchedule(doctorId: string, startDate: string, endDate: 
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0];
     const key = `${doctorId}_${dateStr}`;
-    const availableSlots = mockSchedules.get(key) || [];
+    const allSlots = mockSchedules.get(key) || [];
+
+    // 根据医生的排班设置过滤可用时间段
+    const availableSlots = filterAvailableSlotsBySchedule(doctorId, dateStr, allSlots);
 
     schedules.push({
       date: dateStr,
@@ -164,6 +216,7 @@ export function getDoctorSchedule(doctorId: string, startDate: string, endDate: 
 
 /**
  * 创建预约
+ * 验证时间段的可用性，包括医生的排班设置和已有预约
  */
 export function createAppointment(
   patientId: string,
@@ -194,9 +247,12 @@ export function createAppointment(
   const timeStr = `${hours}:${minutes}`; // HH:MM format
 
   const scheduleKey = `${doctorId}_${dateStr}`;
-  const availableSlots = mockSchedules.get(scheduleKey) || [];
+  const allSlots = mockSchedules.get(scheduleKey) || [];
 
-  // Check if the time slot exists in the schedule
+  // 根据医生的排班设置过滤可用时间段
+  const availableSlots = filterAvailableSlotsBySchedule(doctorId, dateStr, allSlots);
+
+  // Check if the time slot exists in the schedule and is available according to doctor's schedule settings
   if (!availableSlots.includes(timeStr)) {
     throw new ValidationError('Selected time slot is not available for this doctor.');
   }

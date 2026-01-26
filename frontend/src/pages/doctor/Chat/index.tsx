@@ -19,7 +19,6 @@ import { userStore } from '../../../store';
 import {
   getConsultationDetail,
   getConsultationMessages,
-  sendMessage,
   closeConsultation,
 } from './api';
 import { ConsultationDetail, ChatMessage } from './types';

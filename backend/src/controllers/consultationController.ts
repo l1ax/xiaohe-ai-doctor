@@ -377,6 +377,7 @@ export const leaveConsultation = async (req: Request, res: Response): Promise<vo
 /**
  * 获取待处理的问诊（医生端）
  * GET /api/consultations/pending
+ * MVP 阶段：返回所有待处理问诊（不按医生过滤），因为问诊是广播给所有医生的
  */
 export const getPendingConsultations = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -384,7 +385,8 @@ export const getPendingConsultations = async (req: Request, res: Response): Prom
       throw new UnauthorizedError('Doctor access required');
     }
 
-    const consultations = consultationStore.getPendingByDoctorId(req.user.userId);
+    // MVP 阶段：返回所有待处理问诊，不按 doctorId 过滤
+    const consultations = consultationStore.getByStatus('pending');
 
     res.json({
       code: 0,
