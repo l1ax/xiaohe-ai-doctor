@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { app } from '../../index';
-import { generateToken } from '../../utils/jwt';
+import { jwtService } from '../../services/auth/jwt';
 import { scheduleStore } from '../../services/storage/scheduleStore';
 
 describe('排班验证集成测试 - Schedule Validation Integration', () => {
@@ -12,8 +12,8 @@ describe('排班验证集成测试 - Schedule Validation Integration', () => {
 
   beforeEach(() => {
     // 生成测试用的 JWT token
-    doctorToken = generateToken(doctorId, 'doctor', '13800138000');
-    patientToken = generateToken(patientId, 'patient', '13800138001');
+    doctorToken = jwtService.generateAccessToken({ userId: doctorId, phone: '13800138000', role: 'doctor' });
+    patientToken = jwtService.generateAccessToken({ userId: patientId, phone: '13800138001', role: 'patient' });
 
     // 清空排班设置
     scheduleStore.clear();

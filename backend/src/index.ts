@@ -127,6 +127,9 @@ const gracefulShutdown = (signal: string) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Export for testing
+export { app };
+
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception', error);

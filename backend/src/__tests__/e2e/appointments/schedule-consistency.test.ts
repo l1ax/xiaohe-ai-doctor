@@ -31,6 +31,12 @@ beforeAll(async () => {
 // 禁用测试期间的日志输出
 logger.silent = true;
 
+// 定义排班数据接口
+interface ScheduleSlot {
+  date: string;
+  availableSlots: string[];
+}
+
 describe('预约挂号 - 排班数据一致性测试', () => {
   let apiClient: TestApiClient;
   let userToken: string;
@@ -216,8 +222,8 @@ describe('预约挂号 - 排班数据一致性测试', () => {
       );
 
       // 验证所有可用时段的格式
-      schedules.forEach((schedule) => {
-        schedule.availableSlots.forEach((slot) => {
+      schedules.forEach((schedule: ScheduleSlot) => {
+        schedule.availableSlots.forEach((slot: string) => {
           expect(slot).toMatch(/^\d{2}:\d{2}$/);
           // 验证时间有效性
           const [hours, minutes] = slot.split(':').map(Number);
@@ -241,8 +247,8 @@ describe('预约挂号 - 排班数据一致性测试', () => {
       );
 
       // 验证所有时段在工作时间范围内（假设 08:00-18:00）
-      schedules.forEach((schedule) => {
-        schedule.availableSlots.forEach((slot) => {
+      schedules.forEach((schedule: ScheduleSlot) => {
+        schedule.availableSlots.forEach((slot: string) => {
           const [hours, minutes] = slot.split(':').map(Number);
           const totalMinutes = hours * 60 + minutes;
           // 工作时间：08:00 (480分钟) 到 18:00 (1080分钟)
@@ -452,8 +458,8 @@ describe('预约挂号 - 排班数据一致性测试', () => {
         dateStr
       );
 
-      schedules.forEach((schedule) => {
-        schedule.availableSlots.forEach((slot) => {
+      schedules.forEach((schedule: ScheduleSlot) => {
+        schedule.availableSlots.forEach((slot: string) => {
           expect(typeof slot).toBe('string');
         });
       });

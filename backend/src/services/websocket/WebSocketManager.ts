@@ -590,7 +590,8 @@ export class WebSocketManager {
           logger.info('Connection timeout, closing', { userId });
           connection.isClosing = true;
           connection.ws.close();
-          this.handleDisconnection(userId);
+          const connectionId = this.activeConnectionIds.get(userId) || '';
+          this.handleDisconnection(userId, connectionId);
         } else {
           // 发送 ping
           if (connection.ws.readyState === WebSocket.OPEN) {
