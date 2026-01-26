@@ -30,33 +30,38 @@ import { DoctorChatPage } from './pages/doctor/Chat';
 import ScheduleManagement from './pages/doctor/Schedule';
 import { AppointmentManagement } from './pages/doctor/Appointments';
 import DoctorProfile from './pages/doctor/Profile';
-import { ProtectedRoute } from './components/shared/ProtectedRoute';
+import { ProtectedRoute, PatientRoute } from './components/shared/ProtectedRoute';
 
-// 需要底部导航的页面包裹
+// 需要底部导航的页面包裹（患者端专用）
+const withPatientLayout = (element: React.ReactNode) => (
+  <PatientRoute>{element}</PatientRoute>
+);
+
+// 需要底部导航的页面包裹（带Layout）
 const withLayout = (element: React.ReactNode) => <Layout>{element}</Layout>;
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
-  { path: '/', element: withLayout(<Home />) },
-  { path: '/profile', element: withLayout(<Profile />) },
-  { path: '/settings', element: <Settings /> },
-  { path: '/appointments', element: withLayout(<Appointments />) },
-  { path: '/appointments/doctors', element: withLayout(<Doctors />) },
-  { path: '/appointments/schedule', element: withLayout(<Schedule />) },
-  { path: '/appointments/confirm', element: withLayout(<Confirm />) },
-  { path: '/appointments/:id', element: withLayout(<AppointmentDetail />) },
-  { path: '/consultations', element: withLayout(<Consultations />) },
-  { path: '/prescriptions', element: withLayout(<Prescriptions />) },
-  { path: '/health-records', element: withLayout(<HealthRecords />) },
-  { path: '/family-members', element: withLayout(<FamilyMembers />) },
-  { path: '/address', element: withLayout(<Address />) },
-  { path: '/customer-service', element: withLayout(<CustomerService />) },
-  { path: '/vip', element: withLayout(<VIP />) },
-  { path: '/booking', element: withLayout(<div>挂号页面（开发中）</div>) },
+  { path: '/', element: withPatientLayout(withLayout(<Home />)) },
+  { path: '/profile', element: withPatientLayout(withLayout(<Profile />)) },
+  { path: '/settings', element: <PatientRoute><Settings /></PatientRoute> },
+  { path: '/appointments', element: withPatientLayout(withLayout(<Appointments />)) },
+  { path: '/appointments/doctors', element: withPatientLayout(withLayout(<Doctors />)) },
+  { path: '/appointments/schedule', element: withPatientLayout(withLayout(<Schedule />)) },
+  { path: '/appointments/confirm', element: withPatientLayout(withLayout(<Confirm />)) },
+  { path: '/appointments/:id', element: withPatientLayout(withLayout(<AppointmentDetail />)) },
+  { path: '/consultations', element: withPatientLayout(withLayout(<Consultations />)) },
+  { path: '/prescriptions', element: withPatientLayout(withLayout(<Prescriptions />)) },
+  { path: '/health-records', element: withPatientLayout(withLayout(<HealthRecords />)) },
+  { path: '/family-members', element: withPatientLayout(withLayout(<FamilyMembers />)) },
+  { path: '/address', element: withPatientLayout(withLayout(<Address />)) },
+  { path: '/customer-service', element: withPatientLayout(withLayout(<CustomerService />)) },
+  { path: '/vip', element: withPatientLayout(withLayout(<VIP />)) },
+  { path: '/booking', element: withPatientLayout(withLayout(<div>挂号页面（开发中）</div>)) },
   { path: '/chat', element: <Chat /> },
-  { path: '/doctor-list', element: withLayout(<DoctorList />) },
-  { path: '/doctor-chat/:id', element: <DoctorChat /> },
-  { path: '/doctor-tasks', element: <DoctorTasks /> },
+  { path: '/doctor-list', element: withPatientLayout(withLayout(<DoctorList />)) },
+  { path: '/doctor-chat/:id', element: <PatientRoute><DoctorChat /></PatientRoute> },
+  { path: '/doctor-tasks', element: <PatientRoute><DoctorTasks /></PatientRoute> },
 
   // 医生端路由
   {
