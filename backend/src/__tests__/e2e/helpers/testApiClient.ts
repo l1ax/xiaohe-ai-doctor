@@ -429,4 +429,24 @@ export class TestApiClient {
 
     return body.data;
   }
+
+  /**
+   * 获取问诊消息历史
+   */
+  async getConsultationMessages(token: string, consultationId: string): Promise<any[]> {
+    const response: Response = await request(this.app)
+      .get(`/api/consultations/${consultationId}/messages`)
+      .set('Authorization', `Bearer ${token}`);
+
+    if (response.status !== 200) {
+      throw new Error(`Get consultation messages failed: ${JSON.stringify(response.body)}`);
+    }
+
+    const body = response.body as { code: number; data: any[] };
+    if (body.code !== 0) {
+      throw new Error(`Get consultation messages response invalid: ${JSON.stringify(body)}`);
+    }
+
+    return body.data;
+  }
 }

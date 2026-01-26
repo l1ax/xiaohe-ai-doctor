@@ -372,6 +372,61 @@ describe('WebSocketManager', () => {
       }));
     });
 
+    it('应该向医生和患者发送问诊更新消息', () => {
+      const consultationId = 'consultation-123';
+      const doctorId = 'doctor-id';
+      const patientId = 'patient-id';
+      const createdAt = '2026-01-26T10:30:00Z';
+
+      // Create consultation in store
+      consultationStore.createConsultation({
+        id: consultationId,
+        patientId,
+        patientPhone: '13800138000',
+        doctorId,
+        status: 'active',
+        createdAt,
+        updatedAt: createdAt,
+        lastMessage: '最新消息',
+        lastMessageTime: createdAt,
+      });
+
+      // Spy on sendToUser method
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      // Call broadcastConsultationUpdate
+      wsManager.broadcastConsultationUpdate(consultationId);
+
+      // Verify both doctor and patient received the update
+      expect(sendToUserSpy).toHaveBeenCalledTimes(2);
+
+      // Verify doctor received message with consultation_update type
+      const doctorCall = sendToUserSpy.mock.calls.find(call => call[0] === doctorId);
+      expect(doctorCall).toBeDefined();
+      const doctorMessage = JSON.stringify(doctorCall![1]);
+      expect(doctorMessage).toContain('"type":"consultation_update"');
+      expect(doctorMessage).toContain(consultationId);
+
+      // Verify patient received message with consultation_update type
+      const patientCall = sendToUserSpy.mock.calls.find(call => call[0] === patientId);
+      expect(patientCall).toBeDefined();
+      const patientMessage = JSON.stringify(patientCall![1]);
+      expect(patientMessage).toContain('"type":"consultation_update"');
+      expect(patientMessage).toContain(consultationId);
+    });
+
+    it('当问诊不存在时不应该崩溃', () => {
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      // Should not throw for non-existent consultation
+      expect(() => {
+        wsManager.broadcastConsultationUpdate('non-existent-id');
+      }).not.toThrow();
+
+      // Should not call sendToUser for non-existent consultation
+      expect(sendToUserSpy).not.toHaveBeenCalled();
+    });
+
     it('should handle non-existent consultation gracefully', () => {
       const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
 
@@ -382,6 +437,38 @@ describe('WebSocketManager', () => {
 
       // Should not call sendToUser for non-existent consultation
       expect(sendToUserSpy).not.toHaveBeenCalled();
+    });
+
+    it('当用户未连接时不应发送消息', () => {
+      const consultationId = 'consultation-123';
+      const doctorId = 'offline-doctor';
+      const patientId = 'offline-patient';
+      const createdAt = new Date().toISOString();
+
+      // Create consultation with offline users
+      consultationStore.createConsultation({
+        id: consultationId,
+        patientId,
+        patientPhone: '13800138000',
+        doctorId,
+        status: 'active',
+        createdAt,
+        updatedAt: createdAt,
+        lastMessage: 'Test message',
+        lastMessageTime: createdAt,
+      });
+
+      const sendToUserSpy = vi.spyOn(wsManager, 'sendToUser');
+
+      // Should not throw even when users are offline
+      expect(() => {
+        wsManager.broadcastConsultationUpdate(consultationId);
+      }).not.toThrow();
+
+      // Should still attempt to send to both users (sendToUser returns false for offline users)
+      expect(sendToUserSpy).toHaveBeenCalledTimes(2);
+      expect(sendToUserSpy).toHaveBeenCalledWith(doctorId, expect.anything());
+      expect(sendToUserSpy).toHaveBeenCalledWith(patientId, expect.anything());
     });
 
     it('should include consultation data in update message', () => {
