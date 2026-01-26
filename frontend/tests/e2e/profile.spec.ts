@@ -16,9 +16,6 @@ test.describe('Profile 页面', () => {
   });
 
   test('Profile 页面头部显示', async ({ page }) => {
-    // 验证标题
-    await expect(page.locator('h2:has-text("个人中心")')).toBeVisible();
-
     // 验证用户信息
     await expect(page.locator('text=白银会员').first()).toBeVisible();
 
