@@ -7,13 +7,16 @@ const Login = observer(function Login() {
   const [phone, setPhone] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [selectedRole, setSelectedRole] = useState<'patient' | 'doctor'>('patient');
   const navigate = useNavigate();
 
   useEffect(() => {
     if (userStore.isLoggedIn) {
-      navigate('/', { replace: true });
+      // 根据用户角色跳转到不同页面
+      const redirectPath = userStore.user?.role === 'doctor' ? '/doctor/console' : '/';
+      navigate(redirectPath, { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, userStore.isLoggedIn, userStore.user?.role]);
 
   const handleSendCode = async () => {
     if (!/^1[3-9]\d{9}$/.test(phone)) {
@@ -39,8 +42,10 @@ const Login = observer(function Login() {
       return;
     }
     try {
-      await userStore.login(phone, verifyCode);
-      navigate('/', { replace: true });
+      await userStore.login(phone, verifyCode, selectedRole);
+      // 根据用户角色跳转到不同页面
+      const redirectPath = selectedRole === 'doctor' ? '/doctor/console' : '/';
+      navigate(redirectPath, { replace: true });
     } catch (e: any) {
       alert(e.message || '登录失败');
     }
@@ -104,6 +109,39 @@ const Login = observer(function Login() {
             <p className="text-xs text-text-sec-light dark:text-text-sec-dark mt-2">
               演示验证码：123456
             </p>
+          </div>
+
+          {/* Role Selection */}
+          <div>
+            <label className="block text-sm font-medium text-text-main-light dark:text-text-main-dark mb-2">
+              选择身份
+            </label>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => setSelectedRole('patient')}
+                className={`flex-1 py-3 rounded-xl border-2 transition-colors ${
+                  selectedRole === 'patient'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <span className="material-symbols-outlined block text-center mb-1">person</span>
+                <span className="text-sm">患者</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRole('doctor')}
+                className={`flex-1 py-3 rounded-xl border-2 transition-colors ${
+                  selectedRole === 'doctor'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <span className="material-symbols-outlined block text-center mb-1">medical_services</span>
+                <span className="text-sm">医生</span>
+              </button>
+            </div>
           </div>
 
           {/* Login Button */}

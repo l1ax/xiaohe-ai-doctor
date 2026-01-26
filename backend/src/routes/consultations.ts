@@ -7,9 +7,14 @@ import {
   createConsultation,
   getConsultations,
   getConsultationDetail,
+  getConsultationMessages,
   updateConsultationStatus,
   joinConsultation,
   leaveConsultation,
+  getPendingConsultations,
+  getDoctorConsultations,
+  acceptConsultation,
+  closeConsultation,
 } from '../controllers/consultationController';
 import { authMiddleware } from '../middleware/auth';
 
@@ -40,6 +45,20 @@ router.get('/departments', authMiddleware, getDepartmentsList);
 router.get('/hospitals', authMiddleware, getHospitalsList);
 
 /**
+ * 获取待处理的问诊（医生端）
+ * 注意：必须放在 /:id 之前，否则会被拦截
+ * GET /api/consultations/pending
+ */
+router.get('/pending', authMiddleware, getPendingConsultations);
+
+/**
+ * 获取医生的问诊列表（所有未关闭）
+ * 注意：必须放在 /:id 之前，否则会被拦截
+ * GET /api/consultations/doctor
+ */
+router.get('/doctor', authMiddleware, getDoctorConsultations);
+
+/**
  * 创建问诊
  * POST /api/consultations
  */
@@ -58,6 +77,12 @@ router.get('/', authMiddleware, getConsultations);
 router.get('/:id', authMiddleware, getConsultationDetail);
 
 /**
+ * 获取问诊消息历史
+ * GET /api/consultations/:id/messages
+ */
+router.get('/:id/messages', authMiddleware, getConsultationMessages);
+
+/**
  * 更新问诊状态
  * PUT /api/consultations/:id/status
  */
@@ -74,5 +99,17 @@ router.post('/:id/join', authMiddleware, joinConsultation);
  * POST /api/consultations/:id/leave
  */
 router.post('/:id/leave', authMiddleware, leaveConsultation);
+
+/**
+ * 医生接诊
+ * PUT /api/consultations/:id/accept
+ */
+router.put('/:id/accept', authMiddleware, acceptConsultation);
+
+/**
+ * 结束问诊
+ * PUT /api/consultations/:id/close
+ */
+router.put('/:id/close', authMiddleware, closeConsultation);
 
 export default router;

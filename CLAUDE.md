@@ -83,6 +83,10 @@ The agent checks for relevant skills before any task. Mandatory workflows, not s
 执行任务
 ```
 
+### 注意事项
+
+创建 worktree 工作区后，注意复制源分支的 env 文件，防止因为 LLM 相关 APIKEY 不存在导致测试报错。
+
 ---
 
 ## 项目结构

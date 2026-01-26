@@ -98,8 +98,18 @@ export class SSEHandler {
     }
   }
 
-  private sendAgentEvent(agentEvent: AgentEvent): void {
-    const eventTypeMap: Record<string, SSEEventData['type']> = {
+  private sendAgentEvent(agentEvent: any): void {
+    // 事件类型映射 - 后端发送的事件类型需要与前端 parseServerEvent 匹配
+    // 前端 EventSource 监听使用下划线格式的事件类型
+    const eventTypeMap: Record<string, string> = {
+      'conversation:status': 'conversation_status',
+      'message:status': 'message_status',
+      'message:content': 'message_content',
+      'message:metadata': 'message_metadata',
+      'tool:call': 'tool_call',
+      'conversation:end': 'conversation_end',
+      'error': 'error',
+      // 旧事件类型向后兼容
       'agent:thinking': 'thinking',
       'agent:intent': 'intent',
       'agent:tool_call': 'tool_call',
@@ -113,18 +123,18 @@ export class SSEHandler {
     if (!sseType) return;
 
     const eventData: SSEEventData = {
-      type: sseType,
+      type: sseType as SSEEventData['type'],
       data: agentEvent.data,
     };
 
-    // Extract conversationId from event data (C2) - added by controller
+    // Extract conversationId from event data
     const conversationId = (agentEvent.data as any).conversationId as string | undefined;
 
     if (conversationId) {
       // Send only to connections for this conversation
       this.sendToConversation(conversationId, eventData);
     } else {
-      // Fallback to broadcast if no conversationId (shouldn't happen in normal flow)
+      // Fallback to broadcast if no conversationId
       this.broadcastEvent(eventData);
     }
   }

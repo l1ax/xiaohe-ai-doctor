@@ -14,6 +14,8 @@ interface LogContext {
 }
 
 class Logger {
+  public silent = false;
+
   private formatMessage(
     level: LogLevel,
     message: string,
@@ -25,20 +27,24 @@ class Logger {
   }
 
   debug(message: string, context?: LogContext): void {
+    if (this.silent) return;
     if (process.env.NODE_ENV === 'development') {
       console.debug(this.formatMessage(LogLevel.DEBUG, message, context));
     }
   }
 
   info(message: string, context?: LogContext): void {
+    if (this.silent) return;
     console.log(this.formatMessage(LogLevel.INFO, message, context));
   }
 
   warn(message: string, context?: LogContext): void {
+    if (this.silent) return;
     console.warn(this.formatMessage(LogLevel.WARN, message, context));
   }
 
   error(message: string, error?: any, context?: LogContext): void {
+    if (this.silent) return;
     // I3: Capture and include stack trace in structured format
     const errorData = error ? {
       message: error.message || String(error),
@@ -54,10 +60,12 @@ class Logger {
   }
 
   agent(message: string, context?: LogContext): void {
+    if (this.silent) return;
     console.log(`🤖 ${message}`, context || '');
   }
 
   tool(tool: string, status: string, context?: LogContext): void {
+    if (this.silent) return;
     const icon = this.getToolIcon(tool);
     console.log(`${icon} [${tool}] ${status}`, context || '');
   }

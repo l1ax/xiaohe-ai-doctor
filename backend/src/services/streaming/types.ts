@@ -9,7 +9,7 @@ export interface SSEConnection {
 }
 
 export interface SSEEventData {
-  type: 'thinking' | 'intent' | 'tool_call' | 'content' | 'metadata' | 'done' | 'error';
+  type: 'thinking' | 'intent' | 'tool_call' | 'content' | 'metadata' | 'done' | 'error' | 'conversation_status' | 'message_status' | 'message_content' | 'message_metadata' | 'conversation_end';
   data: any;
 }
 

@@ -1,17 +1,9 @@
 import { storage } from './storage';
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   code: number;
   data: T;
   message: string;
-}
-
-declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_API_BASE_URL: string;
-    };
-  }
 }
 
 class Request {

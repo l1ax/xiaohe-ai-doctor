@@ -1,0 +1,120 @@
+/**
+ * 医生端聊天页面样式
+ */
+
+/* 主容器 */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc;
+  overflow: hidden;
+}
+
+.container.dark {
+  background-color: #0f172a;
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 消息气泡动画 */
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messageBubble {
+  animation: messageIn 0.3s ease-out;
+}
+
+/* 在线状态指示器动画 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.onlineIndicator {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+/* 输入框焦点样式 */
+.inputWrapper {
+  transition: all 0.2s ease;
+}
+
+.inputWrapper:focus-within {
+  border-color: rgba(59, 130, 246, 0.5);
+  background-color: white;
+}
+
+.dark .inputWrapper:focus-within {
+  background-color: rgb(71, 85, 105);
+}
+
+/* 按钮点击效果 */
+.buttonClick {
+  transition: transform 0.1s ease;
+}
+
+.buttonClick:active {
+  transform: scale(0.95);
+}
+
+/* 快捷操作按钮 */
+.quickActionButton {
+  transition: all 0.2s ease;
+}
+
+.quickActionButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.quickActionButton:active {
+  transform: translateY(0);
+}
+
+/* AI 报告卡片渐变背景 */
+.aiReportCard {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%);
+}
+
+.dark .aiReportCard {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+  .container {
+    height: 100dvh; /* 使用 dynamic viewport height 处理移动端浏览器 */
+  }
+}

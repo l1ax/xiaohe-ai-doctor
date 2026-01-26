@@ -45,9 +45,14 @@ export const sendVerificationCode = async (req: Request, res: Response): Promise
 
 export const loginOrRegister = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { phone, verifyCode } = req.body;
+    const { phone, verifyCode, role } = req.body;
     if (!phone || !PHONE_REGEX.test(phone)) {
       throw new ValidationError('Invalid phone number format');
+    }
+
+    // Validate role if provided
+    if (role && role !== 'patient' && role !== 'doctor') {
+      throw new ValidationError('Invalid role. Must be "patient" or "doctor"');
     }
 
     // In mock mode, accept the mock verification code
@@ -62,15 +67,36 @@ export const loginOrRegister = async (req: Request, res: Response): Promise<void
     }
     let user = mockUsers.get(phone);
     if (!user) {
+      // For testing: map test doctor phone to mock doctor IDs
+      let userId: string;
+      if (role === 'doctor' && phone === '13800138000') {
+        userId = 'doctor_001'; // 张医生
+      } else if (role === 'doctor' && phone === '13800138001') {
+        userId = 'doctor_002'; // 李医生
+      } else if (role === 'doctor' && phone === '13800138002') {
+        userId = 'doctor_003'; // 王医生
+      } else if (role === 'doctor' && phone === '13800138003') {
+        userId = 'doctor_004'; // 赵医生
+      } else {
+        userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      }
+
       user = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        id: userId,
         phone,
-        role: 'patient',
+        role: (role as 'patient' | 'doctor') || 'patient',
       };
       mockUsers.set(phone, user);
-      logger.info('New user registered', { phone, userId: user.id });
+      logger.info('New user registered', { phone, userId: user.id, role: user.role });
     } else {
-      logger.info('User logged in', { phone, userId: user.id });
+      // 用户已存在，如果提供了 role 参数，则更新角色
+      if (role && role !== user.role) {
+        user.role = role as 'patient' | 'doctor';
+        mockUsers.set(phone, user);
+        logger.info('User role updated', { phone, userId: user.id, newRole: user.role });
+      } else {
+        logger.info('User logged in', { phone, userId: user.id, role: user.role });
+      }
     }
     const tokenPayload: TokenPayload = {
       userId: user.id,

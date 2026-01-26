@@ -7,6 +7,8 @@ import authRouter from './routes/auth';
 import consultationsRouter from './routes/consultations';
 import appointmentsRouter from './routes/appointments';
 import uploadRouter from './routes/upload';
+import schedulesRouter from './routes/schedules';
+import doctorsRouter from './routes/doctors';
 import { wsManager } from './services/websocket/WebSocketManager';
 import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
@@ -71,6 +73,12 @@ app.use('/api/appointments', appointmentsRouter);
 // Upload routes
 app.use('/api/upload', uploadRouter);
 
+// Doctor schedules routes
+app.use('/api/doctors/schedules', schedulesRouter);
+
+// Doctor routes
+app.use('/api/doctors', doctorsRouter);
+
 // 404 handler
 app.use((req, res) => {
   logger.warn(`Route not found: ${req.method} ${req.path}`);
@@ -118,6 +126,9 @@ const gracefulShutdown = (signal: string) => {
 // Handle shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Export for testing
+export { app };
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {

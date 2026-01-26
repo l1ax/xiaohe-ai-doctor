@@ -12,3 +12,6 @@ backend/.env
 
 # LangGraph API
 .langgraph_api
+
+# MCP Configuration (contains sensitive keys)
+.mcp.json

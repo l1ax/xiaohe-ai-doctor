@@ -1,5 +1,11 @@
 import { AgentState } from "../state";
 import { createZhipuLLM } from "../../utils/llm";
+import {
+  createToolCallEvent,
+  createMessageContentEvent,
+  createMessageMetadataEvent,
+} from "../events/chat-event-types";
+import { v4 as uuidv4 } from 'uuid';
 
 const llm = createZhipuLLM(0.7);
 
@@ -19,45 +25,92 @@ const SYMPTOM_PROMPT = `你是一位专业的医疗健康顾问。用户描述�
 
 export async function symptomAnalysis(state: typeof AgentState.State) {
   const emitter = state.eventEmitter;
-  const lastMessage = state.messages[state.messages.length - 1];
+  const { conversationId, messages } = state;
+  const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
 
-  emitter.emitThinking('正在分析您的症状...');
+  const messageId = state.messageId || `msg_${Date.now()}`;
+  const toolId = `tool_${uuidv4()}`;
 
-  emitter.emitToolCall('symptom_analysis', 'running', {
-    input: { query: userQuery },
-  });
+  // 发送工具调用开始事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'symptom_analysis',
+    messageId,
+    'running',
+    { input: { query: userQuery } }
+  ));
 
   const prompt = SYMPTOM_PROMPT.replace('{query}', userQuery);
 
-  const response = await llm.invoke([
+  // 使用LLM原生流式输出
+  let fullContent = '';
+  let chunkIndex = 0;
+  let isFirst = true;
+
+  const stream = await llm.stream([
     { role: "user", content: prompt },
   ]);
 
-  const analysis = response.content as string;
-  console.log('🩺 Symptom analysis completed');
-
-  emitter.emitToolCall('symptom_analysis', 'completed', {
-    output: { analysis },
-  });
-
-  // Emit content character by character
-  for (const char of analysis) {
-    emitter.emitContent(char);
+  for await (const chunk of stream) {
+    const delta = typeof chunk.content === 'string' ? chunk.content : '';
+    if (delta) {
+      fullContent += delta;
+      emitter.emit('message:content', createMessageContentEvent(
+        conversationId,
+        messageId,
+        delta,
+        chunkIndex++,
+        isFirst,
+        false
+      ));
+      isFirst = false;
+    }
   }
 
-  // Emit metadata with medical advice
-  emitter.emitMetadata({
-    medicalAdvice: {
+  // 发送结束标记
+  emitter.emit('message:content', createMessageContentEvent(
+    conversationId,
+    messageId,
+    '',
+    chunkIndex,
+    false,
+    true
+  ));
+
+  const analysis = fullContent;
+  console.log('🩺 Symptom analysis completed');
+
+  // 发送工具调用完成事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'symptom_analysis',
+    messageId,
+    'completed',
+    { output: { analysis }, duration: 500 }
+  ));
+
+  // 发送元数据
+  emitter.emit('message:metadata', createMessageMetadataEvent(
+    conversationId,
+    messageId,
+    undefined,
+    [
+      { type: 'transfer_to_doctor', label: '咨询人工医生', data: { action: 'transfer' } },
+      { type: 'book_appointment', label: '预约挂号', data: { action: 'booking' } },
+    ],
+    {
       symptoms: [],
       possibleConditions: [],
       suggestions: [],
       urgencyLevel: 'low',
-    },
-    actions: [],
-  });
+    }
+  ));
 
   return {
     branchResult: analysis,
+    messageId,
   };
 }

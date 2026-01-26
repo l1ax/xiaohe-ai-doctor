@@ -16,11 +16,11 @@ test.describe('页面跳转', () => {
 
     // 切换到问诊
     await page.locator('button:has-text("问诊")').click();
-    await expect(page).toHaveURL(/\/chat/);
+    await expect(page).toHaveURL('/consultations');
 
     // 切换到挂号
     await page.locator('button:has-text("挂号")').click();
-    await expect(page).toHaveURL(/\/booking/);
+    await expect(page).toHaveURL('/appointments/doctors');
 
     // 切换到我的
     await page.locator('button:has-text("我的")').click();

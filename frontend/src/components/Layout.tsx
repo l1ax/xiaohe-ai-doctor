@@ -11,8 +11,8 @@ const Layout = observer(function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { path: '/', icon: 'home', label: '首页', activeIcon: 'home' },
-    { path: '/chat', icon: 'medical_services', label: '问诊', hasBadge: true },
-    { path: '/booking', icon: 'edit_calendar', label: '挂号' },
+    { path: '/consultations', icon: 'medical_services', label: '问诊', hasBadge: true },
+    { path: '/appointments/doctors', icon: 'edit_calendar', label: '挂号' },
     { path: '/profile', icon: 'person', label: '我的', activeIcon: 'person' },
   ];
 

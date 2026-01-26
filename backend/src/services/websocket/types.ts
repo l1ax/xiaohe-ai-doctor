@@ -6,10 +6,14 @@ import { WebSocket } from 'ws';
 export enum WSMessageType {
   MESSAGE = 'message',
   TYPING = 'typing',
-  // READ type is kept for future read receipt functionality
   READ = 'read',
   HEARTBEAT = 'heartbeat',
   SYSTEM = 'system',
+  JOIN = 'join',
+  LEAVE = 'leave',
+  CONSULTATION_UPDATE = 'consultation_update',
+  NEW_CONSULTATION = 'new_consultation',
+  MARK_READ = 'mark_read',
 }
 
 /**
@@ -54,6 +58,29 @@ export interface ServerMessageData {
   content: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
+  isRead?: boolean;
+}
+
+/**
+ * 问诊更新消息数据
+ */
+export interface ConsultationUpdateData {
+  id: string;
+  status: 'pending' | 'active' | 'closed' | 'cancelled';
+  lastMessage: string;
+  lastMessageTime: string;
+  updatedAt: string;
+}
+
+/**
+ * 新问诊消息数据
+ */
+export interface NewConsultationData {
+  id: string;
+  patientId: string;
+  patientPhone: string;
+  status: 'pending';
+  createdAt: string;
 }
 
 /**
@@ -66,7 +93,9 @@ export interface ServerMessage {
   data?: {
     text?: string;
     senderId?: string;
+    consultation?: ConsultationUpdateData | NewConsultationData;
   };
+  consultation?: ConsultationUpdateData | NewConsultationData;
 }
 
 /**

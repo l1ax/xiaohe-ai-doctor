@@ -33,6 +33,18 @@ export const AgentState = Annotation.Root({
     default: () => '',
   }),
 
+  // 消息ID
+  messageId: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => '',
+  }),
+
+  // 开始时间（用于计算对话持续时间）
+  startTime: Annotation<number>({
+    reducer: (_, update) => update,
+    default: () => Date.now(),
+  }),
+
   // 事件发射器
   eventEmitter: Annotation<AgentEventEmitter>({
     reducer: (_, update) => update,

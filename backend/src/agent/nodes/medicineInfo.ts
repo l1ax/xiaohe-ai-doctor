@@ -1,5 +1,10 @@
 import { AgentState } from "../state";
 import { createZhipuLLM } from "../../utils/llm";
+import {
+  createToolCallEvent,
+  createMessageContentEvent,
+} from "../events/chat-event-types";
+import { v4 as uuidv4 } from 'uuid';
 
 const llm = createZhipuLLM(0.7);
 
@@ -20,35 +25,76 @@ const MEDICINE_PROMPT = `你是一位药品咨询顾问。用户询问药品相�
 
 export async function medicineInfo(state: typeof AgentState.State) {
   const emitter = state.eventEmitter;
-  const lastMessage = state.messages[state.messages.length - 1];
+  const { conversationId, messages, extractedInfo } = state;
+  const lastMessage = messages[messages.length - 1];
   const userQuery = lastMessage.content;
-  const medicineName = state.extractedInfo?.medicineName || '相关药品';
+  const medicineName = extractedInfo?.medicineName || '相关药品';
 
-  emitter.emitThinking(`正在查询${medicineName}的药品信息...`);
+  const messageId = state.messageId || `msg_${Date.now()}`;
+  const toolId = `tool_${uuidv4()}`;
 
-  emitter.emitToolCall('medicine_query', 'running', {
-    input: { medicineName },
-  });
+  // 发送工具调用开始事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'medicine_info',
+    messageId,
+    'running',
+    { input: { medicineName } }
+  ));
 
   const prompt = MEDICINE_PROMPT.replace('{query}', userQuery);
 
-  const response = await llm.invoke([
+  // 使用LLM原生流式输出
+  let fullContent = '';
+  let chunkIndex = 0;
+  let isFirst = true;
+
+  const stream = await llm.stream([
     { role: "user", content: prompt },
   ]);
 
-  const info = response.content as string;
+  for await (const chunk of stream) {
+    const delta = typeof chunk.content === 'string' ? chunk.content : '';
+    if (delta) {
+      fullContent += delta;
+      emitter.emit('message:content', createMessageContentEvent(
+        conversationId,
+        messageId,
+        delta,
+        chunkIndex++,
+        isFirst,
+        false
+      ));
+      isFirst = false;
+    }
+  }
+
+  // 发送结束标记
+  emitter.emit('message:content', createMessageContentEvent(
+    conversationId,
+    messageId,
+    '',
+    chunkIndex,
+    false,
+    true
+  ));
+
+  const info = fullContent;
   console.log('💊 Medicine info completed');
 
-  emitter.emitToolCall('medicine_query', 'completed', {
-    output: { info },
-  });
-
-  // Emit content character by character
-  for (const char of info) {
-    emitter.emitContent(char);
-  }
+  // 发送工具调用完成事件
+  emitter.emit('tool:call', createToolCallEvent(
+    conversationId,
+    toolId,
+    'medicine_info',
+    messageId,
+    'completed',
+    { output: { info }, duration: 500 }
+  ));
 
   return {
     branchResult: info,
+    messageId,
   };
 }
