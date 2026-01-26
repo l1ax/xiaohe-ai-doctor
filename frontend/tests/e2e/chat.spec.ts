@@ -22,29 +22,17 @@ test.describe('Chat Page', () => {
 
   test('should display welcome message when no messages', async ({ page }) => {
     // 验证欢迎消息存在
-    await expect(page.locator('text=您好，我是小禾AI医生')).toBeVisible();
-
-    // 验证副标题
-    await expect(page.locator('text=有什么健康问题我可以帮您解答？')).toBeVisible();
-
-    // 验证快捷问题按钮存在
-    await expect(page.locator('text=最近总是头疼怎么办')).toBeVisible();
-    await expect(page.locator('text=感冒了吃什么药好')).toBeVisible();
-    await expect(page.locator('text=睡眠不好怎么调理')).toBeVisible();
+    await expect(page.locator('text=请描述您的症状，AI 助手将为您解答')).toBeVisible();
   });
 
   test('should display header with bot info', async ({ page }) => {
     // 验证标题
-    await expect(page.locator('text=小禾AI医生')).toBeVisible();
-
-    // 验证在线状态指示器
-    const statusIndicator = page.locator('.w-2.h-2.bg-gray-400');
-    await expect(statusIndicator).toBeVisible();
+    await expect(page.locator('text=AI 健康助手')).toBeVisible();
   });
 
   test('should allow typing in input field', async ({ page }) => {
     // 找到输入框
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
 
     // 输入文本
     await input.fill('测试头疼');
@@ -55,7 +43,7 @@ test.describe('Chat Page', () => {
 
   test('should send message on Enter key', async ({ page }) => {
     // 输入消息
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     await input.fill('测试消息');
 
     // 按Enter发送
@@ -70,11 +58,11 @@ test.describe('Chat Page', () => {
 
   test('should display quick question when clicked', async ({ page }) => {
     // 点击快捷问题
-    await page.locator('text=最近总是头疼怎么办').click();
+    await page.locator('text=感冒发烧').click();
 
     // 验证输入框中已填入文本
-    const input = page.locator('textarea');
-    await expect(input).toHaveValue('最近总是头疼怎么办');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
+    await expect(input).toHaveValue('感冒发烧');
   });
 
   test('should enable send button when input has content', async ({ page }) => {
@@ -82,7 +70,7 @@ test.describe('Chat Page', () => {
     const sendButton = page.locator('button').filter({ has: page.locator('svg') }).last();
 
     // 输入内容后按钮应该启用
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     await input.fill('测试');
     await input.dispatchEvent('input');
 
@@ -92,13 +80,13 @@ test.describe('Chat Page', () => {
 
   test('should have input placeholder', async ({ page }) => {
     // 验证输入框有正确的占位符
-    const input = page.locator('textarea');
-    await expect(input).toHaveAttribute('placeholder', '描述您的症状或问题...');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
+    await expect(input).toHaveAttribute('placeholder', '请描述您的症状...');
   });
 
   test('should show disclaimer at bottom', async ({ page }) => {
     // 验证免责声明
-    await expect(page.locator('text=AI 仅供参考，具体诊疗请咨询专业医生')).toBeVisible();
+    await expect(page.locator('text=AI建议仅供参考，不可替代医生线下诊疗')).toBeVisible();
   });
 });
 
@@ -109,7 +97,7 @@ test.describe('Chat Page - Message Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // 输入并发送消息
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     await input.fill('我感冒了');
     await input.press('Enter');
 
@@ -126,16 +114,16 @@ test.describe('Chat Page - Message Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // 发送一条消息
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     await input.fill('测试消息');
     await input.press('Enter');
     await page.waitForTimeout(500);
 
     // 点击重置按钮
-    await page.locator('[title="新建对话"]').click();
+    await page.locator('[title="重新开始"]').click();
 
     // 验证欢迎消息重新显示
-    await expect(page.locator('text=您好，我是小禾AI医生')).toBeVisible();
+    await expect(page.getByText('请描述您的症状，AI 助手将为您解答')).toBeVisible();
   });
 });
 
@@ -147,8 +135,8 @@ test.describe('Chat Page - Responsive', () => {
     await page.waitForLoadState('networkidle');
 
     // 验证关键元素在移动端可见
-    await expect(page.locator('text=小禾AI医生')).toBeVisible();
-    await expect(page.locator('textarea')).toBeVisible();
+    await expect(page.locator('text=AI 健康助手')).toBeVisible();
+    await expect(page.locator('input[placeholder="请描述您的症状..."]')).toBeVisible();
   });
 });
 
@@ -169,7 +157,7 @@ test.describe('Chat Page - Medical Advice', () => {
     await page.waitForLoadState('networkidle');
 
     // 发送一条会触发医疗建议的消息
-    const input = page.locator('textarea');
+    const input = page.locator('input[placeholder="请描述您的症状..."]');
     await input.fill('我头疼发热');
     await input.press('Enter');
 
