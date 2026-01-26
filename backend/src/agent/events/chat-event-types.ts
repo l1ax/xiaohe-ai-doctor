@@ -90,6 +90,7 @@ export interface MessageMetadataEvent extends BaseEvent {
       suggestions: string[];
       urgencyLevel: 'low' | 'medium' | 'high';
     };
+    toolsUsed?: string[];  // 使用的工具列表
   };
 }
 
@@ -212,7 +213,8 @@ export function createMessageMetadataEvent(
     possibleConditions: string[];
     suggestions: string[];
     urgencyLevel: 'low' | 'medium' | 'high';
-  }
+  },
+  toolsUsed?: string[]
 ): MessageMetadataEvent {
   return {
     type: 'message:metadata',
@@ -222,6 +224,7 @@ export function createMessageMetadataEvent(
       sources,
       actions,
       medicalAdvice,
+      toolsUsed,
       timestamp: new Date().toISOString(),
     },
   };
