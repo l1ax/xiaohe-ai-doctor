@@ -49,17 +49,17 @@ describe('排班验证功能 - Schedule Validation', () => {
       expect(schedules).toHaveLength(1);
       expect(schedules[0].date).toBe(tomorrowStr);
 
-      // 验证没有上午的时间段（6:00-12:00）
+      // 验证没有上午的时间段（8:00-12:00）
       const morningSlots = schedules[0].availableSlots.filter(time => {
         const hour = parseInt(time.split(':')[0], 10);
-        return hour >= 6 && hour < 12;
+        return hour >= 8 && hour < 12;
       });
       expect(morningSlots).toHaveLength(0);
 
       // 验证下午和晚上的时间段仍然存在
       const afternoonEveningSlots = schedules[0].availableSlots.filter(time => {
         const hour = parseInt(time.split(':')[0], 10);
-        return hour >= 12;
+        return hour >= 14;
       });
       expect(afternoonEveningSlots.length).toBeGreaterThan(0);
     });
@@ -86,19 +86,23 @@ describe('排班验证功能 - Schedule Validation', () => {
       // 验证没有上午和下午的时间段
       const morningSlots = schedules[0].availableSlots.filter(time => {
         const hour = parseInt(time.split(':')[0], 10);
-        return hour >= 6 && hour < 12;
+        return hour >= 8 && hour < 12;
       });
       const afternoonSlots = schedules[0].availableSlots.filter(time => {
         const hour = parseInt(time.split(':')[0], 10);
-        return hour >= 12 && hour < 18;
+        return hour >= 14 && hour < 18;
       });
 
       expect(morningSlots).toHaveLength(0);
       expect(afternoonSlots).toHaveLength(0);
 
-      // 验证总的时间段数量减少
-      const totalSlotsBeforeFilter = 11; // 基于 mock 数据的时间段总数
-      expect(schedules[0].availableSlots.length).toBeLessThan(totalSlotsBeforeFilter);
+      // 验证只有晚上的时间段存在
+      const eveningSlots = schedules[0].availableSlots.filter(time => {
+        const hour = parseInt(time.split(':')[0], 10);
+        return hour >= 18 && hour < 21;
+      });
+      expect(eveningSlots.length).toBeGreaterThan(0);
+      expect(schedules[0].availableSlots.length).toBe(eveningSlots.length);
     });
 
     it('应该支持多个日期的排班查询', () => {
@@ -131,14 +135,14 @@ describe('排班验证功能 - Schedule Validation', () => {
       // 验证明天没有上午时段
       const tomorrowMorningSlots = schedules[0].availableSlots.filter(time => {
         const hour = parseInt(time.split(':')[0], 10);
-        return hour >= 6 && hour < 12;
+        return hour >= 8 && hour < 12;
       });
       expect(tomorrowMorningSlots).toHaveLength(0);
 
       // 验证后天没有下午时段
       const dayAfterTomorrowAfternoonSlots = schedules[1].availableSlots.filter(time => {
         const hour = parseInt(time.split(':')[0], 10);
-        return hour >= 12 && hour < 18;
+        return hour >= 14 && hour < 18;
       });
       expect(dayAfterTomorrowAfternoonSlots).toHaveLength(0);
     });

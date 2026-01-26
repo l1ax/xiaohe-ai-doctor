@@ -18,7 +18,8 @@ export const TimeSlotEditor = ({ selectedDate, schedules, onSave, isLoading }: T
     const key = `${selectedDate}-${timeSlot}`;
     const schedule = scheduleMap.get(key);
     return {
-      isAvailable: schedule?.isAvailable || false,
+      // 默认开启（与患者端逻辑一致：未设置排班时全部可用）
+      isAvailable: schedule?.isAvailable ?? true,
       maxPatients: schedule?.maxPatients || TIME_SLOTS.find(s => s.key === timeSlot)?.defaultMaxPatients || 10
     };
   };

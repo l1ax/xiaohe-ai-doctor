@@ -246,14 +246,14 @@ describe('预约挂号 - 排班数据一致性测试', () => {
         dateStr
       );
 
-      // 验证所有时段在工作时间范围内（假设 08:00-18:00）
+      // 验证所有时段在工作时间范围内（08:00-20:30，覆盖早中晚三个时段）
       schedules.forEach((schedule: ScheduleSlot) => {
         schedule.availableSlots.forEach((slot: string) => {
           const [hours, minutes] = slot.split(':').map(Number);
           const totalMinutes = hours * 60 + minutes;
-          // 工作时间：08:00 (480分钟) 到 18:00 (1080分钟)
+          // 工作时间：08:00 (480分钟) 到 20:30 (1230分钟)
           expect(totalMinutes).toBeGreaterThanOrEqual(480);
-          expect(totalMinutes).toBeLessThanOrEqual(1080);
+          expect(totalMinutes).toBeLessThanOrEqual(1230);
         });
       });
     });

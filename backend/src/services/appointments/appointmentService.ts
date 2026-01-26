@@ -82,17 +82,53 @@ export function isPastDate(dateString: string): boolean {
 }
 
 /**
+ * 为指定时间范围生成时间段数组
+ * @param startHour 开始小时（包含）
+ * @param endHour 结束小时（不包含）
+ * @param intervalMinutes 时间间隔（分钟）
+ */
+function generateTimeSlotsForPeriod(
+  startHour: number,
+  endHour: number,
+  intervalMinutes: number = 30
+): string[] {
+  const slots: string[] = [];
+  for (let hour = startHour; hour < endHour; hour++) {
+    for (let min = 0; min < 60; min += intervalMinutes) {
+      const hourStr = String(hour).padStart(2, '0');
+      const minStr = String(min).padStart(2, '0');
+      slots.push(`${hourStr}:${minStr}`);
+    }
+  }
+  return slots;
+}
+
+/**
  * 将具体时间映射到时段（morning/afternoon/evening）
+ * 时段定义与前端保持一致：
+ * - morning: 8:00-12:00
+ * - afternoon: 14:00-18:00
+ * - evening: 18:00-21:00
  */
 function mapTimeToTimeSlot(time: string): ScheduleTimeSlot {
   const hour = parseInt(time.split(':')[0], 10);
 
-  if (hour >= 6 && hour < 12) {
+  if (hour >= 8 && hour < 12) {
     return 'morning';
-  } else if (hour >= 12 && hour < 18) {
+  } else if (hour >= 14 && hour < 18) {
     return 'afternoon';
-  } else {
+  } else if (hour >= 18 && hour < 21) {
     return 'evening';
+  } else {
+    // 其他时间段（6:00-8:00, 12:00-14:00, 21:00之后）不属于任何标准时段
+    // 根据最接近的时段返回
+    if (hour >= 6 && hour < 8) {
+      return 'morning'; // 早晨边缘时段归入上午
+    } else if (hour >= 12 && hour < 14) {
+      return 'afternoon'; // 午休时段归入下午
+    } else {
+      return 'evening'; // 其他时段归入晚上
+    }
   }
 }
 
@@ -133,17 +169,12 @@ function filterAvailableSlotsBySchedule(
 function generateMockSchedules(): Map<string, string[]> {
   const schedules = new Map<string, string[]>();
   const doctors = ['doctor_001', 'doctor_002', 'doctor_003', 'doctor_004'];
+  // 生成完整的时间段，覆盖早中晚三个时段
+  // 时段定义与前端保持一致
   const timeSlots = [
-    '09:00',
-    '09:30',
-    '10:00',
-    '10:30',
-    '11:00',
-    '14:00',
-    '14:30',
-    '15:00',
-    '15:30',
-    '16:00',
+    ...generateTimeSlotsForPeriod(8, 12),   // Morning: 8:00-11:30
+    ...generateTimeSlotsForPeriod(14, 18),  // Afternoon: 14:00-17:30
+    ...generateTimeSlotsForPeriod(18, 21),  // Evening: 18:00-20:30
   ];
 
   const today = new Date();
