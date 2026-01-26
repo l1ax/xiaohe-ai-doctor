@@ -58,7 +58,7 @@ export const router = createBrowserRouter([
   { path: '/customer-service', element: withPatientLayout(withLayout(<CustomerService />)) },
   { path: '/vip', element: withPatientLayout(withLayout(<VIP />)) },
   { path: '/booking', element: withPatientLayout(withLayout(<div>挂号页面（开发中）</div>)) },
-  { path: '/chat', element: <Chat /> },
+  { path: '/chat', element: withPatientLayout(<Chat />) },
   { path: '/doctor-list', element: withPatientLayout(withLayout(<DoctorList />)) },
   { path: '/doctor-chat/:id', element: <PatientRoute><DoctorChat /></PatientRoute> },
   { path: '/doctor-tasks', element: <PatientRoute><DoctorTasks /></PatientRoute> },

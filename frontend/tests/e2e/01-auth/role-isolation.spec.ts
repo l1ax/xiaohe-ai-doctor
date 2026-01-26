@@ -31,6 +31,11 @@ test.describe('角色隔离 - 医生端', () => {
     await page.goto('/profile');
     await expect(page).toHaveURL('/doctor/console');
   });
+
+  test('医生无法访问患者端AI问诊', async ({ page }) => {
+    await page.goto('/chat');
+    await expect(page).toHaveURL('/doctor/console');
+  });
 });
 
 test.describe('角色隔离 - 患者端', () => {
