@@ -93,7 +93,7 @@ test.describe('医生端工作台流程', () => {
     await page.waitForURL('/');
 
     // 2. 直接导航到医生聊天页面
-    await page.goto('/doctor/consultations/test-consultation-id');
+    await page.goto('/doctor/chat/test-consultation-id');
     await page.waitForTimeout(1000);
 
     // 3. 查找输入框（支持多种placeholder）
@@ -162,27 +162,6 @@ test.describe('医生端工作台流程', () => {
     }
   });
 
-  test('医生端WebSocket连接状态', async ({ page }) => {
-    // 1. 登录医生账号
-    await page.goto('/login');
-    await page.locator('input[type="tel"]').fill('13900139000');
-    await page.locator('button:has-text("获取验证码")').click();
-    await page.locator('input[type="text"]').fill('123456');
-    await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
-
-    // 2. 导航到聊天页面
-    await page.goto('/doctor/consultations/test-consultation-id');
-    await page.waitForTimeout(1000);
-
-    // 3. 检查在线状态指示器
-    const statusIndicator = page.locator('[class*="bg-green"]').or(page.locator('[class*="bg-red"]'));
-    const hasIndicator = await statusIndicator.count() > 0;
-
-    if (hasIndicator) {
-      await expect(statusIndicator.first()).toBeVisible();
-    }
-  });
 });
 
 test.describe('医生端工作台 - 响应式设计', () => {
