@@ -4,10 +4,10 @@ import { aiChatController } from '../controllers/aiChatController';
 const router = express.Router();
 
 /**
- * GET /api/ai-chat/stream
- * Stream chat endpoint using SSE
+ * POST /api/ai-chat/stream
+ * Stream chat endpoint using SSE (changed from GET to POST)
  */
-router.get('/stream', (req, res) => {
+router.post('/stream', (req, res) => {
   aiChatController.streamChat(req, res);
 });
 
