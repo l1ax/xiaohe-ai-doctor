@@ -365,6 +365,35 @@ export function cancelAppointment(id: string): Appointment | undefined {
 }
 
 /**
+ * 确认预约（医生端）
+ */
+export function confirmAppointment(id: string): Appointment | undefined {
+  const appointment = mockAppointments.get(id);
+  if (!appointment) {
+    return undefined;
+  }
+
+  // 验证预约状态
+  if (appointment.status === 'confirmed') {
+    throw new ValidationError('Appointment is already confirmed.');
+  }
+
+  if (appointment.status === 'cancelled') {
+    throw new ValidationError('Cannot confirm a cancelled appointment.');
+  }
+
+  if (appointment.status === 'completed') {
+    throw new ValidationError('Cannot confirm a completed appointment.');
+  }
+
+  // 更新状态为已确认
+  appointment.status = 'confirmed';
+  appointment.updatedAt = new Date().toISOString();
+
+  return appointment;
+}
+
+/**
  * 获取医生的预约列表
  */
 export function getDoctorAppointments(

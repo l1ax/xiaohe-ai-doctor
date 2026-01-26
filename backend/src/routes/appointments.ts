@@ -5,6 +5,7 @@ import {
   getAppointments,
   getAppointmentDetail,
   cancelAppointmentHandler,
+  confirmAppointmentHandler,
   getDoctorsForAppointment,
   getDoctorAppointmentsHandler,
 } from '../controllers/appointmentController';
@@ -54,5 +55,11 @@ router.get('/:id', authMiddleware, getAppointmentDetail);
  * PUT /api/appointments/:id/cancel
  */
 router.put('/:id/cancel', authMiddleware, cancelAppointmentHandler);
+
+/**
+ * 确认预约（医生端）
+ * PUT /api/appointments/:id/confirm
+ */
+router.put('/:id/confirm', authMiddleware, confirmAppointmentHandler);
 
 export default router;

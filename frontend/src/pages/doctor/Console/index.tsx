@@ -48,7 +48,8 @@ const DoctorConsole = observer(() => {
               symptoms: consultation.chiefComplaint || '咨询健康问题',
               status: statusMap[consultation.status] || 'pending',
               urgency: 'medium' as const,
-              createdAt: consultation.createdAt,
+              // 使用 createdAt，如果不存在则使用 updatedAt 作为后备
+              createdAt: consultation.createdAt || consultation.updatedAt || new Date().toISOString(),
             });
           });
         })

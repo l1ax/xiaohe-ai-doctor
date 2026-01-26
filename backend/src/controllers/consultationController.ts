@@ -390,7 +390,12 @@ export const leaveConsultation = async (req: Request, res: Response): Promise<vo
 /**
  * 获取待处理的问诊（医生端）
  * GET /api/consultations/pending
- * MVP 阶段：返回所有待处理问诊（不按医生过滤），因为问诊是广播给所有医生的
+ * 
+ * 待处理定义：
+ * - pending: 新问诊，医生尚未回复
+ * - active: 进行中，医生已回复但患者未结束
+ * 
+ * 只有患者结束问诊（closed）或取消（cancelled）才从列表移除
  */
 export const getPendingConsultations = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -398,8 +403,9 @@ export const getPendingConsultations = async (req: Request, res: Response): Prom
       throw new UnauthorizedError('Doctor access required');
     }
 
-    // MVP 阶段：返回所有待处理问诊，不按 doctorId 过滤
-    const consultations = consultationStore.getByStatus('pending');
+    // 获取医生的所有未关闭问诊（pending + active）
+    let consultations = consultationStore.getByDoctorId(req.user.userId);
+    consultations = consultations.filter((c) => c.status === 'pending' || c.status === 'active');
 
     res.json({
       code: 0,

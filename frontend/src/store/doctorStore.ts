@@ -206,6 +206,16 @@ class DoctorStore {
   addOrUpdateConsultation(consultation: Consultation) {
     const index = this.pendingConsultations.findIndex(c => c.id === consultation.id);
     
+    // 如果是已完成状态，从列表中移除
+    if (consultation.status === 'completed') {
+      if (index !== -1) {
+        this.pendingConsultations.splice(index, 1);
+        this.stats.pending = this.pendingConsultations.length;
+        console.log('[DoctorStore] 移除已完成问诊:', consultation.id);
+      }
+      return;
+    }
+    
     if (index !== -1) {
       // 更新现有问诊
       this.pendingConsultations[index] = {
@@ -213,7 +223,7 @@ class DoctorStore {
         ...consultation,
       };
       console.log('[DoctorStore] 更新问诊:', consultation.id);
-    } else if (consultation.status === 'pending') {
+    } else if (consultation.status === 'pending' || consultation.status === 'ongoing') {
       // 添加新问诊到列表开头
       this.pendingConsultations.unshift(consultation);
       this.stats.pending = this.pendingConsultations.length;

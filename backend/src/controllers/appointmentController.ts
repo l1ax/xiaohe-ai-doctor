@@ -8,6 +8,7 @@ import {
   getUserAppointments,
   getAppointmentById,
   cancelAppointment,
+  confirmAppointment,
   getDoctorAppointments,
 } from '../services/appointments/appointmentService';
 
@@ -247,25 +248,32 @@ export const cancelAppointmentHandler = async (req: Request, res: Response): Pro
     }
 
     const id = getRouteParam(req.params.id);
-    const appointment = cancelAppointment(id);
+    const appointment = getAppointmentById(id);
 
     if (!appointment) {
       throw new NotFoundError('Appointment not found');
     }
 
-    // 权限检查
-    if (appointment.patientId !== req.user.userId) {
-      throw new UnauthorizedError('Access denied');
+    // 权限检查：患者只能取消自己的预约，医生只能取消自己的预约
+    const isPatient = req.user.role === 'patient' && appointment.patientId === req.user.userId;
+    const isDoctor = req.user.role === 'doctor' && appointment.doctorId === req.user.userId;
+
+    if (!isPatient && !isDoctor) {
+      throw new UnauthorizedError('You can only cancel your own appointments');
     }
+
+    // 执行取消操作
+    const cancelledAppointment = cancelAppointment(id);
 
     logger.info('Appointment cancelled', {
       appointmentId: id,
-      patientId: req.user.userId,
+      userId: req.user.userId,
+      role: req.user.role,
     });
 
     res.json({
       code: 0,
-      data: appointment,
+      data: cancelledAppointment,
       message: 'success',
     });
   } catch (error) {
@@ -315,6 +323,55 @@ export const getDoctorAppointmentsHandler = async (
     });
   } catch (error) {
     logger.error('Get doctor appointments error', error);
+    throw error;
+  }
+};
+
+/**
+ * 确认预约（医生端）
+ * PUT /api/appointments/:id/confirm
+ */
+export const confirmAppointmentHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    // 验证用户必须是医生角色
+    if (req.user.role !== 'doctor') {
+      throw new UnauthorizedError('Only doctors can confirm appointments');
+    }
+
+    const id = getRouteParam(req.params.id);
+    const appointment = getAppointmentById(id);
+
+    if (!appointment) {
+      throw new NotFoundError('Appointment not found');
+    }
+
+    // 验证权限：只能确认自己的预约
+    if (appointment.doctorId !== req.user.userId) {
+      throw new UnauthorizedError('You can only confirm your own appointments');
+    }
+
+    // 确认预约
+    const confirmedAppointment = confirmAppointment(id);
+
+    logger.info('Appointment confirmed', {
+      appointmentId: id,
+      doctorId: req.user.userId,
+    });
+
+    res.json({
+      code: 0,
+      data: confirmedAppointment,
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Confirm appointment error', error);
     throw error;
   }
 };

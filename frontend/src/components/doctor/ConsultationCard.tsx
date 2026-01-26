@@ -61,6 +61,13 @@ export const ConsultationCard = ({ consultation, onAccept }: ConsultationCardPro
   };
 
   const handleAccept = async () => {
+    // 如果已经是进行中的问诊，直接进入聊天
+    if (consultation.status === 'active' || consultation.status === 'ongoing') {
+      navigate(`/doctor/chat/${consultation.id}`);
+      return;
+    }
+    
+    // pending 状态，需要先接诊
     const success = await onAccept(consultation.id);
     if (success) {
       navigate(`/doctor/chat/${consultation.id}`);
@@ -112,7 +119,7 @@ export const ConsultationCard = ({ consultation, onAccept }: ConsultationCardPro
           onClick={handleAccept}
           className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition-colors duration-200"
         >
-          立即接诊
+          {consultation.status === 'active' || consultation.status === 'ongoing' ? '继续问诊' : '立即接诊'}
         </button>
       </div>
     </div>

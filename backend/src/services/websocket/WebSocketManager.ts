@@ -752,6 +752,7 @@ export class WebSocketManager {
         status: consultation.status,
         lastMessage: consultation.lastMessage || '',
         lastMessageTime: consultation.lastMessageTime || consultation.createdAt,
+        createdAt: consultation.createdAt,
         updatedAt: consultation.updatedAt,
       },
     };
