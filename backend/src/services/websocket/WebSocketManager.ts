@@ -304,6 +304,9 @@ export class WebSocketManager {
     // 更新会话的最后消息
     consultationStore.updateLastMessage(clientMessage.conversationId, content);
 
+    // 广播问诊更新
+    this.broadcastConsultationUpdate(clientMessage.conversationId);
+
     logger.info('[💾 MESSAGE] 消息已存储', {
       messageId,
       consultationId: clientMessage.conversationId,
@@ -639,6 +642,32 @@ export class WebSocketManager {
 
     userLimit.count++;
     return true;
+  }
+
+  /**
+   * 广播问诊更新给相关用户（医生和患者）
+   */
+  broadcastConsultationUpdate(consultationId: string): void {
+    const consultation = consultationStore.getById(consultationId);
+    if (!consultation) return;
+
+    const updateMessage: ServerMessage = {
+      type: WSMessageType.CONSULTATION_UPDATE,
+      conversationId: consultationId,
+      consultation: {
+        id: consultation.id,
+        status: consultation.status,
+        lastMessage: consultation.lastMessage || '',
+        lastMessageTime: consultation.lastMessageTime || consultation.createdAt,
+        updatedAt: consultation.updatedAt,
+      },
+    };
+
+    // 发送给医生
+    this.sendToUser(consultation.doctorId, updateMessage);
+
+    // 发送给患者
+    this.sendToUser(consultation.patientId, updateMessage);
   }
 
   /**

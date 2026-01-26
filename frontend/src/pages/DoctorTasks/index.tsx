@@ -1,27 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
+import { consultationStore } from '../../store/consultationStore';
+import { WebSocketService } from '../../services/websocket';
 import { userStore } from '../../store';
 
-interface Consultation {
-  id: string;
-  patientId: string;
-  patientPhone: string;
-  doctorId: string;
-  status: 'pending' | 'active' | 'closed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-  lastMessage?: string;
-  lastMessageTime?: string;
-}
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const WS_URL = (import.meta.env as { VITE_API_BASE_URL: string; VITE_WS_URL?: string }).VITE_WS_URL || 'ws://localhost:3000';
 
 const DoctorTasks = observer(function DoctorTasks() {
   const navigate = useNavigate();
-  const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const wsRef = useRef<WebSocketService | null>(null);
 
   const tabs = [
     { key: 'all', label: '全部' },
@@ -29,23 +18,49 @@ const DoctorTasks = observer(function DoctorTasks() {
     { key: 'active', label: '进行中' },
   ];
 
+  // 初始化：加载问诊列表并建立 WebSocket 连接
   useEffect(() => {
-    fetchConsultations(activeTab);
-  }, [activeTab]);
+    // 初始加载问诊列表
+    consultationStore.loadConsultations(consultationStore.currentTab);
 
-  const fetchConsultations = async (statusFilter?: string) => {
-    try {
-      const params = statusFilter && statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-      const res = await fetch(`${API_BASE_URL}/api/consultations/doctor${params}`, {
-        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+    // 初始化 WebSocket
+    if (!wsRef.current && userStore.accessToken) {
+      const ws = new WebSocketService(
+        `${WS_URL}/ws`,
+        userStore.accessToken
+      );
+      wsRef.current = ws;
+
+      ws.connect().then(() => {
+        // 监听问诊更新
+        ws.onConsultationUpdate((consultation) => {
+          console.log('收到问诊更新:', consultation);
+          // 转换 status 字段以匹配 ConsultationStore 的类型
+          const statusMap: Record<string, 'pending' | 'active' | 'closed' | 'cancelled'> = {
+            pending: 'pending',
+            in_progress: 'active',
+            completed: 'closed',
+            cancelled: 'cancelled',
+          };
+          consultationStore.updateConsultation({
+            ...consultation,
+            status: statusMap[consultation.status] || consultation.status,
+          });
+        });
+      }).catch((error) => {
+        console.error('WebSocket 连接失败:', error);
       });
-      const data = await res.json();
-      if (data.code === 0) setConsultations(data.data);
-    } catch (error) {
-      console.error('Failed to fetch consultations:', error);
-    } finally {
-      setLoading(false);
+
+      return () => {
+        ws.disconnect();
+        wsRef.current = null;
+      };
     }
+  }, []);
+
+  // 切换 Tab
+  const handleTabChange = (tab: 'all' | 'pending' | 'active') => {
+    consultationStore.setCurrentTab(tab);
   };
 
   const handleAccept = async (consultationId: string) => {
@@ -63,7 +78,8 @@ const DoctorTasks = observer(function DoctorTasks() {
     }
   };
 
-  if (loading) {
+  // 使用 store 的计算属性
+  if (consultationStore.loading) {
     return <div className="p-4 text-center">加载中...</div>;
   }
 
@@ -79,9 +95,9 @@ const DoctorTasks = observer(function DoctorTasks() {
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key as 'all' | 'pending' | 'active')}
               className={`px-3 py-1 rounded-full text-sm ${
-                activeTab === tab.key ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
+                consultationStore.currentTab === tab.key ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
               }`}
             >
               {tab.label}
@@ -92,13 +108,13 @@ const DoctorTasks = observer(function DoctorTasks() {
 
       {/* Consultation List */}
       <div className="p-4 space-y-4">
-        {consultations.length === 0 ? (
+        {consultationStore.filteredConsultations.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <span className="material-symbols-outlined text-6xl mb-4 block">check_circle</span>
             <p>暂无问诊</p>
           </div>
         ) : (
-          consultations.map((consultation) => (
+          consultationStore.filteredConsultations.map((consultation) => (
             <div key={consultation.id} className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">

@@ -11,6 +11,8 @@ export enum WSMessageType {
   SYSTEM = 'system',
   JOIN = 'join',
   LEAVE = 'leave',
+  CONSULTATION_UPDATE = 'consultation_update',
+  NEW_CONSULTATION = 'new_consultation',
 }
 
 /**
@@ -58,6 +60,28 @@ export interface ServerMessageData {
 }
 
 /**
+ * 问诊更新消息数据
+ */
+export interface ConsultationUpdateData {
+  id: string;
+  status: 'pending' | 'active' | 'closed' | 'cancelled';
+  lastMessage: string;
+  lastMessageTime: string;
+  updatedAt: string;
+}
+
+/**
+ * 新问诊消息数据
+ */
+export interface NewConsultationData {
+  id: string;
+  patientId: string;
+  patientPhone: string;
+  status: 'pending';
+  createdAt: string;
+}
+
+/**
  * 服务端 → 客户端 消息格式
  */
 export interface ServerMessage {
@@ -67,7 +91,9 @@ export interface ServerMessage {
   data?: {
     text?: string;
     senderId?: string;
+    consultation?: ConsultationUpdateData | NewConsultationData;
   };
+  consultation?: ConsultationUpdateData | NewConsultationData;
 }
 
 /**
