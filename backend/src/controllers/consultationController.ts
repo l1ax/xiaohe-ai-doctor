@@ -154,6 +154,9 @@ export const createConsultation = async (req: Request, res: Response): Promise<v
 
     consultationStore.createConsultation(consultation);
 
+    // 通知医生有新问诊
+    wsManager.broadcastConsultationUpdate(consultationId);
+
     logger.info('Consultation created', {
       consultationId,
       patientId: req.user.userId,
