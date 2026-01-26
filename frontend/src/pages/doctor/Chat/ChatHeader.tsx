@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { ChevronLeft, MoreVertical } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useSmartNavigation } from '../../../utils/navigation';
 
 interface ChatHeaderProps {
   patientName: string;
@@ -17,7 +17,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isOnline,
   onMoreClick,
 }) => {
-  const navigate = useNavigate();
+  const { navigateBack } = useSmartNavigation();
 
   // 脱敏处理患者姓名
   const getMaskedName = (name: string): string => {
@@ -31,7 +31,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex items-center justify-between px-4 py-3">
         {/* 左侧：返回按钮 */}
         <button
-          onClick={() => navigate('/doctor/tasks')}
+          onClick={() => navigateBack('/doctor/tasks')}
           className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors text-white"
           aria-label="返回"
         >

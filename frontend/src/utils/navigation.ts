@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, NavigateOptions } from 'react-router-dom';
 
 /**
  * 智能导航 Hook
@@ -17,12 +17,18 @@ export function useSmartNavigation() {
    * @param fallback - 回退路径，如 '/appointments/doctors'
    */
   const navigateBack = (fallback: string) => {
-    // 检查浏览器历史栈状态
-    // 如果 history.state.idx > 0，说明有上一页
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      // 没有上一页，使用 fallback
+    try {
+      // 检查浏览器历史栈状态
+      // 如果 history.state.idx > 0，说明有上一页
+      if (window.history.state && window.history.state.idx > 0) {
+        navigate(-1);
+      } else {
+        // 没有上一页，使用 fallback
+        navigate(fallback, { replace: true });
+      }
+    } catch (error) {
+      // 发生错误时，确保至少能导航到 fallback
+      console.error('[useSmartNavigation] Navigation error:', error);
       navigate(fallback, { replace: true });
     }
   };
@@ -85,7 +91,7 @@ export function getSafeFallback(defaultFallback: string): string {
  * @param fallback - 回退路径
  */
 export function navigateWithFallback(
-  navigate: (to: string, options?: any) => void,
+  navigate: (to: string, options?: NavigateOptions) => void,
   to: string,
   fallback: string
 ) {

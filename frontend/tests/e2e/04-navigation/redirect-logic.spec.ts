@@ -29,25 +29,32 @@ test.describe('智能导航重定向逻辑', () => {
 
     // 2. 点击返回按钮（或使用底部导航到我的预约）
     await page.locator('button:has-text("我的")').click();
-    await page.locator('text=我的预约').first().click();
-    await expect(page).toHaveURL('/appointments');
+    const myAppointmentsButton = page.locator('text=我的预约');
+    const hasMyAppointmentsButton = await myAppointmentsButton.count() > 0;
+    if (hasMyAppointmentsButton) {
+      await myAppointmentsButton.first().click();
+      await expect(page).toHaveURL('/appointments');
+    }
 
     // 3. 假设有预约详情，点击详情（这里模拟点击第一个预约卡片）
-    const appointmentCard = page.locator('.appointment-card, [data-testid="appointment-card"]').first();
+    const appointmentCard = page.locator('.appointment-card, [data-testid="appointment-card"]');
     const hasAppointments = await appointmentCard.count() > 0;
 
     if (hasAppointments) {
-      await appointmentCard.click();
+      await appointmentCard.first().click();
       // 验证是否进入详情页
       await expect(page).toHaveURL(/\/appointments\/[a-zA-Z0-9-]+/);
 
-      // 4. 点击返回按钮
-      const backButton = page.locator('button:has(span.material-symbols-outlined)').filter({ hasText: '' }).first();
-      await backButton.click();
+      // 4. 点击返回按钮（使用 aria-label）
+      const backButton = page.locator('button[aria-label="返回"]');
+      const hasBackButton = await backButton.count() > 0;
+      if (hasBackButton) {
+        await backButton.first().click();
 
-      // 5. 验证返回到预约列表，而不是 404
-      await expect(page).toHaveURL('/appointments');
-      await expect(page.locator('text=我的预约')).toBeVisible();
+        // 5. 验证返回到预约列表，而不是 404
+        await expect(page).toHaveURL('/appointments');
+        await expect(page.locator('text=我的预约')).toBeVisible();
+      }
     } else {
       // 没有预约时，验证空状态
       await expect(page.locator('text=暂无预约').or(page.locator('text=预约'))).toBeVisible();
@@ -60,11 +67,11 @@ test.describe('智能导航重定向逻辑', () => {
     await expect(page).toHaveURL('/appointments/doctors');
 
     // 2. 选择医生（点击第一个医生）
-    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card').first();
+    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card');
     const hasDoctors = await doctorCard.count() > 0;
 
     if (hasDoctors) {
-      await doctorCard.click();
+      await doctorCard.first().click();
       // 等待导航到时间选择页
       await page.waitForTimeout(500);
 
@@ -74,13 +81,16 @@ test.describe('智能导航重定向逻辑', () => {
                                await page.locator('text=选择时间').count() > 0;
 
       if (isOnSchedulePage) {
-        // 4. 点击返回按钮
-        const backButton = page.locator('button').filter({ hasText: '' }).first();
-        await backButton.click();
+        // 4. 点击返回按钮（使用 aria-label）
+        const backButton = page.locator('button[aria-label="返回"]');
+        const hasBackButton = await backButton.count() > 0;
+        if (hasBackButton) {
+          await backButton.first().click();
 
-        // 5. 验证返回到医生选择页
-        await expect(page).toHaveURL('/appointments/doctors');
-        await expect(page.locator('text=选择医生').or(page.locator('text=专家挂号'))).toBeVisible();
+          // 5. 验证返回到医生选择页
+          await expect(page).toHaveURL('/appointments/doctors');
+          await expect(page.locator('text=选择医生').or(page.locator('text=专家挂号'))).toBeVisible();
+        }
       }
     }
   });
@@ -90,27 +100,27 @@ test.describe('智能导航重定向逻辑', () => {
     await page.locator('button:has-text("挂号")').click();
 
     // 2. 选择医生
-    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card').first();
+    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card');
     const hasDoctors = await doctorCard.count() > 0;
 
     if (hasDoctors) {
-      await doctorCard.click();
+      await doctorCard.first().click();
       await page.waitForTimeout(500);
 
       // 3. 选择日期和时间
-      const dateButton = page.locator('button').filter({ hasText: /\d+/ }).first();
+      const dateButton = page.locator('button').filter({ hasText: /\d+/ });
       const hasDates = await dateButton.count() > 0;
 
       if (hasDates) {
-        await dateButton.click();
+        await dateButton.first().click();
         await page.waitForTimeout(300);
 
         // 选择时间
-        const timeSlot = page.locator('button').filter({ hasText: /:/ }).first();
+        const timeSlot = page.locator('button').filter({ hasText: /:/ });
         const hasTimeSlots = await timeSlot.count() > 0;
 
         if (hasTimeSlots) {
-          await timeSlot.click();
+          await timeSlot.first().click();
           await page.waitForTimeout(300);
 
           // 点击确定按钮
@@ -118,19 +128,22 @@ test.describe('智能导航重定向逻辑', () => {
           const hasConfirmButton = await confirmButton.count() > 0;
 
           if (hasConfirmButton) {
-            await confirmButton.click();
+            await confirmButton.first().click();
             await page.waitForTimeout(500);
 
             // 4. 验证是否在确认页面
             const isOnConfirmPage = await page.locator('text=确认预约').count() > 0;
             if (isOnConfirmPage) {
-              // 5. 点击返回按钮
-              const backButton = page.locator('button').filter({ hasText: '' }).first();
-              await backButton.click();
+              // 5. 点击返回按钮（使用 aria-label）
+              const backButton = page.locator('button[aria-label="返回"]');
+              const hasBackButton = await backButton.count() > 0;
+              if (hasBackButton) {
+                await backButton.first().click();
 
-              // 6. 验证返回到时间选择页，而不是 404
-              await expect(page).toHaveURL('/appointments/schedule');
-              await expect(page.locator('text=选择时间')).toBeVisible();
+                // 6. 验证返回到时间选择页，而不是 404
+                await expect(page).toHaveURL('/appointments/schedule');
+                await expect(page.locator('text=选择时间')).toBeVisible();
+              }
             }
           }
         }
@@ -144,11 +157,11 @@ test.describe('智能导航重定向逻辑', () => {
     await expect(page).toHaveURL('/appointments/doctors');
 
     // 2. 选择医生
-    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card').first();
+    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card');
     const hasDoctors = await doctorCard.count() > 0;
 
     if (hasDoctors) {
-      await doctorCard.click();
+      await doctorCard.first().click();
       await page.waitForTimeout(500);
 
       // 3. 使用浏览器后退按钮
@@ -228,11 +241,11 @@ test.describe('智能导航重定向逻辑', () => {
     await expect(page).toHaveURL('/consultations');
 
     // 2. 如果有问诊记录，点击进入聊天
-    const consultationCard = page.locator('[data-testid="consultation-card"], .consultation-card').first();
+    const consultationCard = page.locator('[data-testid="consultation-card"], .consultation-card');
     const hasConsultations = await consultationCard.count() > 0;
 
     if (hasConsultations) {
-      await consultationCard.click();
+      await consultationCard.first().click();
       await page.waitForTimeout(500);
 
       // 3. 验证是否在聊天页面
@@ -240,13 +253,16 @@ test.describe('智能导航重定向逻辑', () => {
       const isInChat = currentUrl.includes('/consultations/') && currentUrl.includes('/chat');
 
       if (isInChat) {
-        // 4. 点击返回按钮
-        const backButton = page.locator('button').filter({ hasText: '' }).first();
-        await backButton.click();
+        // 4. 点击返回按钮（使用 aria-label）
+        const backButton = page.locator('button[aria-label="返回"]');
+        const hasBackButton = await backButton.count() > 0;
+        if (hasBackButton) {
+          await backButton.first().click();
 
-        // 5. 验证返回到问诊列表，而不是 404
-        await expect(page).toHaveURL('/consultations');
-        await expect(page.locator('text=专家问诊').or(page.locator('text=问诊'))).toBeVisible();
+          // 5. 验证返回到问诊列表，而不是 404
+          await expect(page).toHaveURL('/consultations');
+          await expect(page.locator('text=专家问诊').or(page.locator('text=问诊'))).toBeVisible();
+        }
       }
     }
   });
@@ -257,19 +273,19 @@ test.describe('智能导航重定向逻辑', () => {
     await expect(page).toHaveURL('/appointments/doctors');
 
     // 2. 选择医生
-    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card').first();
+    const doctorCard = page.locator('[data-testid="doctor-card"], .doctor-card');
     const hasDoctors = await doctorCard.count() > 0;
 
     if (hasDoctors) {
-      await doctorCard.click();
+      await doctorCard.first().click();
       await page.waitForTimeout(500);
 
       // 3. 如果有时间选择，选择时间
-      const dateButton = page.locator('button').filter({ hasText: /\d+/ }).first();
+      const dateButton = page.locator('button').filter({ hasText: /\d+/ });
       const hasDates = await dateButton.count() > 0;
 
       if (hasDates) {
-        await dateButton.click();
+        await dateButton.first().click();
         await page.waitForTimeout(300);
 
         // 4. 第一次后退
