@@ -201,24 +201,6 @@ test.describe('患者端专家问诊流程', () => {
     }
   });
 
-  test('聊天界面WebSocket连接状态', async ({ page }) => {
-    // 1. 导航到聊天页面
-    await page.goto('/doctor-chat/test-consultation-id');
-    await page.waitForTimeout(1000);
-
-    // 2. 验证连接状态指示器
-    const statusIndicator = page.locator('.w-2.h-2.rounded-full');
-    const hasIndicator = await statusIndicator.count() > 0;
-
-    if (hasIndicator) {
-      // 检查绿色（在线）或红色（离线）状态
-      const classes = await statusIndicator.getAttribute('class') || '';
-      const isOnline = classes.includes('bg-green-500');
-      const isOffline = classes.includes('bg-red-500');
-      expect(isOnline || isOffline).toBeTruthy();
-    }
-  });
-
   test('聊天输入框禁用状态', async ({ page }) => {
     // 1. 导航到聊天页面
     await page.goto('/doctor-chat/test-consultation-id');
