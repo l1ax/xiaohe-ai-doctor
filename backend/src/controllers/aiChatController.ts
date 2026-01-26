@@ -35,38 +35,50 @@ export class AIChatController {
    * Stream chat endpoint using SSE
    */
   async streamChat(req: Request, res: Response): Promise<void> {
-    // Validate query parameters are strings, not arrays (I1)
-    const messageQuery = req.query.message;
-    const conversationIdQuery = req.query.conversationId;
+    // 从 body 读取参数（改造前从 query 读取）
+    const { message, conversationId, imageUrls } = req.body;
 
-    if (!messageQuery) {
-      throw new ValidationError('Message is required');
+    // 验证 message
+    if (!message || typeof message !== 'string') {
+      throw new ValidationError('Message is required and must be a string');
     }
 
-    // I1: Ensure message is a string, not an array
-    // After String() conversion, the value is always a string, so no need to check type again
-    const messageStr = String(Array.isArray(messageQuery) ? messageQuery[0] : messageQuery);
-
-    // Validate message max 5000 chars
-    if (messageStr.length > 5000) {
+    // 验证 message 长度
+    if (message.length > 5000) {
       throw new ValidationError('Message must not exceed 5000 characters');
     }
 
-    const conversationId = conversationIdQuery
-      ? (Array.isArray(conversationIdQuery) ? conversationIdQuery[0] : conversationIdQuery)
-      : `conv_${Date.now()}`;
+    // 验证 imageUrls（可选参数）
+    if (imageUrls !== undefined) {
+      if (!Array.isArray(imageUrls)) {
+        throw new ValidationError('imageUrls must be an array');
+      }
 
-    // Ensure conversationId is a string
-    const conversationIdStr = String(conversationId);
+      if (imageUrls.length > 1) {
+        throw new ValidationError('Currently only 1 image is supported');
+      }
 
-    logger.info('Stream chat request received', { conversationId: conversationIdStr, messageLength: messageStr.length });
+      // 验证每个 URL 格式
+      for (const url of imageUrls) {
+        if (typeof url !== 'string' || !url.startsWith('http')) {
+          throw new ValidationError('Invalid image URL format');
+        }
+      }
+    }
 
-    // Create session-specific event emitter for this request
+    const conversationIdStr = conversationId || `conv_${Date.now()}`;
+
+    logger.info('Stream chat request received', { 
+      conversationId: conversationIdStr, 
+      messageLength: message.length,
+      imageCount: imageUrls?.length || 0,
+    });
+
+    // 创建 session-specific event emitter
     const sessionEmitter = new AgentEventEmitter();
 
-    // Forward session events to global emitter - store listener reference (C1)
+    // Forward session events to global emitter
     const eventForwarder = (event: any) => {
-      // Attach conversationId to all events for proper routing (C2)
       const eventWithConversationId = {
         ...event,
         data: {
@@ -82,9 +94,13 @@ export class AIChatController {
       // Handle SSE connection
       this.sseHandler.handleConnection(req, res, conversationIdStr);
 
-      // Prepare messages
+      // 构建消息（包含 imageUrls）
       const messages: Message[] = [
-        { role: 'user', content: messageStr }
+        { 
+          role: 'user', 
+          content: message,
+          imageUrls,  // 传递给 Agent
+        }
       ];
 
       logger.agent('Starting agent execution', { conversationId: conversationIdStr });
@@ -101,7 +117,6 @@ export class AIChatController {
     } catch (error: any) {
       logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
 
-      // I2: Improve LLM error detection using error instance/name checks
       const isLLMError = error instanceof LLMError ||
                          error.name === 'LLMError' ||
                          error.code === 'LLM_ERROR';
@@ -120,7 +135,6 @@ export class AIChatController {
         },
       };
 
-      // Send error to SSE client before global emitter (C3)
       this.sseHandler.sendToConversation(conversationIdStr, {
         type: 'error',
         data: errorData.data,
@@ -128,7 +142,7 @@ export class AIChatController {
 
       this.globalEmitter.emit('agent:error', errorData);
     } finally {
-      // Cleanup session emitter and its listeners (C1)
+      // Cleanup session emitter
       sessionEmitter.removeListener('*', eventForwarder);
     }
   }
