@@ -65,10 +65,11 @@ test.describe('登录流程', () => {
     await page.locator('input[type="tel"]').fill('13800138000');
     await page.locator('button:has-text("获取验证码")').click();
 
-    // 验证倒计时显示
-    await expect(page.locator('button:has-text("60s")')).toBeVisible();
+    // 验证倒计时显示 - 使用正则匹配数字+s 的格式
+    const getCodeButton = page.locator('button').filter({ hasText: /\d+s/ });
+    await expect(getCodeButton).toBeVisible();
 
-    // 验证点击后按钮变为禁用状态
-    await expect(page.locator('button:has-text("获取验证码")')).toBeDisabled();
+    // 验证获取验证码按钮在倒计时期间被禁用
+    await expect(getCodeButton).toBeDisabled();
   });
 });
