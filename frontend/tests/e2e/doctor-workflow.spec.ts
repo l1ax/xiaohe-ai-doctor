@@ -19,19 +19,23 @@ test.describe('医生端工作台流程', () => {
   });
 
   test('医生登录并访问工作台', async ({ page }) => {
-    // 1. 医生登录
+    // 1. 医生登录 - 先选择医生角色
     await page.goto('/login');
+    // 点击医生角色按钮
+    await page.locator('button:has-text("医生")').click();
+    // 输入手机号
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    // 医生登录后应该跳转到 /doctor/console
+    await page.waitForURL('/doctor/console');
 
     // 2. 导航到医生工作台
     await page.goto('/doctor/console');
 
-    // 3. 验证工作台标题
-    await expect(page.locator('text=工作台')).toBeVisible();
+    // 3. 验证工作台标题（使用 first 避免 strict mode violation）
+    await expect(page.locator('text=工作台').first()).toBeVisible();
 
     // 4. 验证医生信息头部
     const doctorName = page.locator('text=医生');
@@ -51,11 +55,13 @@ test.describe('医生端工作台流程', () => {
   test('查看待处理问诊列表', async ({ page }) => {
     // 1. 登录医生账号
     await page.goto('/login');
+    // 先选择医生角色
+    await page.locator('button:has-text("医生")').click();
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    await page.waitForURL('/doctor/console');
 
     // 2. 导航到工作台
     await page.goto('/doctor/console');
@@ -86,11 +92,13 @@ test.describe('医生端工作台流程', () => {
   test('在聊天界面发送消息', async ({ page }) => {
     // 1. 登录医生账号
     await page.goto('/login');
+    // 先选择医生角色
+    await page.locator('button:has-text("医生")').click();
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    await page.waitForURL('/doctor/console');
 
     // 2. 直接导航到医生聊天页面
     await page.goto('/doctor/chat/test-consultation-id');
@@ -114,11 +122,13 @@ test.describe('医生端工作台流程', () => {
   test('预约管理 - 查看列表和状态筛选', async ({ page }) => {
     // 1. 登录医生账号
     await page.goto('/login');
+    // 先选择医生角色
+    await page.locator('button:has-text("医生")').click();
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    await page.waitForURL('/doctor/console');
 
     // 2. 导航到预约管理页面
     await page.goto('/doctor/appointments');
@@ -139,11 +149,13 @@ test.describe('医生端工作台流程', () => {
   test('工作台统计数据刷新', async ({ page }) => {
     // 1. 登录医生账号
     await page.goto('/login');
+    // 先选择医生角色
+    await page.locator('button:has-text("医生")').click();
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    await page.waitForURL('/doctor/console');
 
     // 2. 导航到工作台
     await page.goto('/doctor/console');
@@ -171,17 +183,19 @@ test.describe('医生端工作台 - 响应式设计', () => {
 
     // 登录医生账号
     await page.goto('/login');
+    // 先选择医生角色
+    await page.locator('button:has-text("医生")').click();
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    await page.waitForURL('/doctor/console');
 
     // 导航到工作台
     await page.goto('/doctor/console');
 
     // 验证关键元素在移动端可见
-    await expect(page.locator('text=工作台')).toBeVisible();
+    await expect(page.locator('text=工作台').first()).toBeVisible();
   });
 
   test('平板端适配', async ({ page }) => {
@@ -190,11 +204,13 @@ test.describe('医生端工作台 - 响应式设计', () => {
 
     // 登录医生账号
     await page.goto('/login');
+    // 先选择医生角色
+    await page.locator('button:has-text("医生")').click();
     await page.locator('input[type="tel"]').fill('13900139000');
     await page.locator('button:has-text("获取验证码")').click();
     await page.locator('input[type="text"]').fill('123456');
     await page.locator('button:has-text("登录 / 注册")').click();
-    await page.waitForURL('/');
+    await page.waitForURL('/doctor/console');
 
     // 导航到预约管理
     await page.goto('/doctor/appointments');
