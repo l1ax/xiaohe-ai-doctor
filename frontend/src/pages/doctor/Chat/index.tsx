@@ -40,6 +40,7 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
   // WebSocket 引用
   const wsRef = useRef<WebSocketService | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentConsultationRef = useRef<string | null>(null);
 
   // 加载问诊详情
   const loadConsultationDetail = useCallback(async () => {
@@ -83,10 +84,24 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
 
     // 如果已连接且 token 未变，不需要重连
     if (wsRef.current && wsRef.current.isConnected()) {
-      // 重新加入会话
+      console.log('[DoctorChat] WebSocket 已连接，切换会话', {
+        old: currentConsultationRef.current,
+        new: consultationId,
+      });
+      
+      // 如果之前在另一个会话中，先离开
+      if (currentConsultationRef.current && currentConsultationRef.current !== consultationId) {
+        console.log('[DoctorChat] 离开旧会话', currentConsultationRef.current);
+        wsRef.current.leave(currentConsultationRef.current);
+      }
+      
+      // 加入新会话
       wsRef.current.join(consultationId);
+      currentConsultationRef.current = consultationId;
       return;
     }
+
+    console.log('[DoctorChat] 初始化 WebSocket 连接', consultationId);
 
     // 清理现有连接
     if (wsRef.current) {
@@ -101,10 +116,12 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
     // 连接 WebSocket
     ws.connect()
       .then(() => {
-        console.log('WebSocket 连接成功');
+        console.log('[DoctorChat] WebSocket 连接成功');
         // 加入问诊房间
         if (consultationId) {
+          console.log('[DoctorChat] 加入问诊房间', consultationId);
           ws.join(consultationId);
+          currentConsultationRef.current = consultationId;
         }
       })
       .catch((err: unknown) => {
@@ -228,12 +245,17 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
     initWebSocket();
     return () => {
       if (wsRef.current) {
+        // 离开当前会话
+        if (currentConsultationRef.current) {
+          wsRef.current.leave(currentConsultationRef.current);
+        }
         wsRef.current.disconnect();
         wsRef.current = null;
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      currentConsultationRef.current = null;
     };
     // 只在 consultationId 或 accessToken 变化时重新连接
     // eslint-disable-next-line react-hooks/exhaustive-deps

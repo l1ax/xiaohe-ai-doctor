@@ -40,6 +40,7 @@ export class WebSocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private intentionalDisconnect = false;
 
   constructor(url: string, token: string) {
     this.url = url;
@@ -55,6 +56,7 @@ export class WebSocketService {
 
         this.ws.onopen = () => {
           this.reconnectAttempts = 0;
+          this.intentionalDisconnect = false;
           console.log('WebSocket connected successfully');
           resolve();
         };
@@ -134,6 +136,7 @@ export class WebSocketService {
   }
 
   disconnect(): void {
+    this.intentionalDisconnect = true;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -185,11 +188,20 @@ export class WebSocketService {
   }
 
   private handleDisconnect(): void {
+    // 如果是主动断开连接，不自动重连
+    if (this.intentionalDisconnect) {
+      console.log('WebSocket 主动断开，不重连');
+      return;
+    }
+
+    // 意外断开才进行重连
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
       console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
       setTimeout(() => this.connect(), delay);
+    } else {
+      console.error('WebSocket 重连失败，已达最大重连次数');
     }
   }
 }
