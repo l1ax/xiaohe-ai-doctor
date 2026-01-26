@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { appointmentStore } from '../../store';
 import { appointmentApi, TimeSlot } from '../../services/appointment';
+import { useSmartNavigation } from '../../utils/navigation';
 
 const Schedule = observer(function Schedule() {
   const navigate = useNavigate();
+  const { navigateBack } = useSmartNavigation();
   const [schedule, setSchedule] = useState<{ date: string; availableSlots: TimeSlot[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -53,11 +55,10 @@ const Schedule = observer(function Schedule() {
     const slots = scheduleItem?.availableSlots || [];
 
     // 如果选择的是今天，过滤掉已过去的时间段
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = currentTime.toISOString().split('T')[0];
     if (date === todayStr) {
-      const currentHours = today.getHours();
-      const currentMinutes = today.getMinutes();
+      const currentHours = currentTime.getHours();
+      const currentMinutes = currentTime.getMinutes();
 
       return slots.map((slot) => {
         const [hours, minutes] = slot.time.split(':').map(Number);
@@ -90,15 +91,14 @@ const Schedule = observer(function Schedule() {
       return false;
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = currentTime.toISOString().split('T')[0];
     if (appointmentStore.selectedDate !== todayStr) {
       return false;
     }
 
     const [hours, minutes] = appointmentStore.selectedTimeSlot.split(':').map(Number);
     const slotTimeInMinutes = hours * 60 + minutes;
-    const currentTimeInMinutes = today.getHours() * 60 + today.getMinutes();
+    const currentTimeInMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
 
     return slotTimeInMinutes <= currentTimeInMinutes;
   };
@@ -116,7 +116,11 @@ const Schedule = observer(function Schedule() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <div className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-gray-800 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+        <button
+          onClick={() => navigateBack('/appointments/doctors')}
+          className="p-2 -ml-2"
+          aria-label="返回"
+        >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-xl font-bold">选择时间</h1>

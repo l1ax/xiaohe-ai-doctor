@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { appointmentStore } from '../../store';
+import { useSmartNavigation } from '../../utils/navigation';
 
 const Confirm = observer(function Confirm() {
   const navigate = useNavigate();
+  const { navigateBack } = useSmartNavigation();
 
   const handleConfirm = async () => {
     try {
@@ -30,7 +32,11 @@ const Confirm = observer(function Confirm() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <div className="flex items-center gap-4 px-4 py-3 bg-white dark:bg-gray-800 shadow-sm">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+        <button
+          onClick={() => navigateBack('/appointments/schedule')}
+          className="p-2 -ml-2"
+          aria-label="返回"
+        >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h1 className="text-xl font-bold">确认预约</h1>

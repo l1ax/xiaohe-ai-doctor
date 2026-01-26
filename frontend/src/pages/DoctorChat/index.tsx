@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { userStore } from '../../store';
 import { WebSocketService, ChatMessage } from '../../services/websocket';
+import { useSmartNavigation } from '../../utils/navigation';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 // WebSocket URL: 在开发环境使用完整 URL，在生产环境使用相对路径
@@ -32,6 +33,7 @@ interface Message {
 const DoctorChat = observer(function DoctorChat() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { navigateBack } = useSmartNavigation();
   const [consultation, setConsultation] = useState<Consultation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -217,7 +219,11 @@ const DoctorChat = observer(function DoctorChat() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm px-4 py-3 flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+        <button
+          onClick={() => navigateBack('/consultations')}
+          className="p-2 -ml-2"
+          aria-label="返回"
+        >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex-1">
