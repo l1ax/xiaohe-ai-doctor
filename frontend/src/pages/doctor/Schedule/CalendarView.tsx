@@ -33,11 +33,15 @@ export const CalendarView = ({ selectedDate, onDateSelect, scheduledDates }: Cal
   // 填充日期
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateObj = new Date(dateStr);
+    const isPast = dateObj < today;
+
     calendarDays.push({
       day,
       dateStr,
       isToday: dateStr === todayStr,
-      isScheduled: scheduledDates.has(dateStr)
+      isScheduled: scheduledDates.has(dateStr),
+      isPast
     });
   }
 
@@ -116,16 +120,19 @@ export const CalendarView = ({ selectedDate, onDateSelect, scheduledDates }: Cal
             return <div key={index} className="aspect-square" />;
           }
 
-          const { day, dateStr, isToday, isScheduled } = dayInfo;
+          const { day, dateStr, isToday, isScheduled, isPast } = dayInfo;
           const isSelected = dateStr === selectedDate;
 
           return (
             <button
               key={dateStr}
-              onClick={() => onDateSelect(dateStr)}
+              onClick={() => !isPast && onDateSelect(dateStr)}
+              disabled={isPast}
               className={`aspect-square flex flex-col items-center justify-center rounded-lg transition-all relative ${
                 isSelected
                   ? 'bg-blue-600 text-white shadow-md'
+                  : isPast
+                  ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
                   : isToday
                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold'
                   : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'

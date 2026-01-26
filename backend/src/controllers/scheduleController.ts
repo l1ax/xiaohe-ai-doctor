@@ -97,6 +97,16 @@ export const setSchedule = async (req: Request, res: Response): Promise<void> =>
       throw new ValidationError('Invalid date format. Expected YYYY-MM-DD');
     }
 
+    // 验证日期必须在今天或之后
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const scheduleDate = new Date(date);
+    scheduleDate.setHours(0, 0, 0, 0);
+
+    if (scheduleDate < today) {
+      throw new ValidationError('Schedule date cannot be in the past');
+    }
+
     // 验证时段
     const validTimeSlots = ['morning', 'afternoon', 'evening'];
     if (!validTimeSlots.includes(timeSlot)) {

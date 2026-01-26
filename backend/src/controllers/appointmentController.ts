@@ -99,19 +99,36 @@ export const getSchedule = async (req: Request, res: Response): Promise<void> =>
 };
 
 /**
- * 创建预约
- * POST /api/appointments
- */
+   * 创建预约
+   * POST /api/appointments
+   * 支持两种请求格式：
+   * 1. 完整格式：{ doctorId, appointmentTime, patientName }
+   * 2. 简单格式：{ doctorId, date, timeSlot } - 自动组合为 appointmentTime
+   */
 export const createAppointmentHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    const { doctorId, appointmentTime, patientName } = req.body;
+    const { doctorId, appointmentTime, patientName, date, timeSlot } = req.body;
 
-    if (!doctorId || !appointmentTime) {
-      throw new ValidationError('Missing required fields');
+    // 支持两种格式：直接传 appointmentTime 或分开传 date + timeSlot
+    let finalAppointmentTime = appointmentTime;
+
+    if (!doctorId) {
+      throw new ValidationError('Missing required fields: doctorId');
+    }
+
+    // 如果前端传的是 date + timeSlot 格式，组合成 ISO 8601 时间
+    if (!appointmentTime && date && timeSlot) {
+      // 构造完整的 ISO 8601 时间（当天 timeSlot 选定的时间）
+      // timeSlot 格式为 "HH:MM"，构造为当天该时间的 ISO 字符串
+      finalAppointmentTime = `${date}T${timeSlot}:00Z`;
+    }
+
+    if (!finalAppointmentTime) {
+      throw new ValidationError('Missing required fields: appointmentTime or date/timeSlot');
     }
 
     // 验证医生存在
@@ -129,7 +146,7 @@ export const createAppointmentHandler = async (req: Request, res: Response): Pro
       doctor.name,
       doctor.hospital,
       doctor.department,
-      appointmentTime
+      finalAppointmentTime
     );
 
     logger.info('Appointment created', {

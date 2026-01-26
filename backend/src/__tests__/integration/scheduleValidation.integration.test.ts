@@ -114,9 +114,8 @@ describe('排班验证集成测试 - Schedule Validation Integration', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error.code).toBe('VALIDATION_ERROR');
-      expect(response.body.error.message).toContain('not available');
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.message).toContain('not available');
     });
 
     it('应该能够创建预约，当时段在医生的可用排班内', async () => {
@@ -152,6 +151,107 @@ describe('排班验证集成测试 - Schedule Validation Integration', () => {
       expect(response.body.code).toBe(0);
       expect(response.body.data.id).toBeDefined();
       expect(response.body.data.appointmentTime).toBe(appointmentTime);
+    });
+
+    it('应该能够使用 date + timeSlot 格式创建预约（前端友好格式）', async () => {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      // 使用前端发送的 date + timeSlot 格式
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({
+          doctorId,
+          date: tomorrowStr,
+          timeSlot: '14:00',
+          patientName: '李四',
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.code).toBe(0);
+      expect(response.body.data.id).toBeDefined();
+      expect(response.body.data.appointmentTime).toBe(`${tomorrowStr}T14:00:00Z`);
+      expect(response.body.data.patientName).toBe('李四');
+    });
+
+    it('应该拒绝缺少 doctorId 的预约请求', async () => {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({
+          date: tomorrowStr,
+          timeSlot: '14:00',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('应该拒绝无效的 doctorId', async () => {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({
+          doctorId: 'invalid_doctor_id',
+          date: tomorrowStr,
+          timeSlot: '14:00',
+        });
+
+      expect(response.status).toBe(404);
+      expect(response.body.code).toBe('NOT_FOUND');
+    });
+  });
+
+  describe('POST /api/doctors/schedules - 排班日期验证', () => {
+    it('应该拒绝设置过去的排班日期', async () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      const response = await request(app)
+        .post('/api/doctors/schedules')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({
+          date: yesterdayStr,
+          timeSlot: 'morning',
+          isAvailable: true,
+          maxPatients: 10,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.message).toContain('past');
+    });
+
+    it('应该允许设置今天及未来的排班日期', async () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      const response = await request(app)
+        .post('/api/doctors/schedules')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({
+          date: todayStr,
+          timeSlot: 'morning',
+          isAvailable: true,
+          maxPatients: 10,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.code).toBe(0);
     });
   });
 });
