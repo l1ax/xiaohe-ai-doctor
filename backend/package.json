@@ -23,6 +23,7 @@
     "@langchain/langgraph": "^1.1.1",
     "@langchain/openai": "^1.2.3",
     "@supabase/storage-js": "^2.91.1",
+    "@tavily/core": "^0.7.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
