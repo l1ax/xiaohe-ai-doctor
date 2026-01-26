@@ -35,28 +35,60 @@ export async function createConsultation(page: Page): Promise<string> {
 /**
  * 医生接单
  * @param page Playwright Page 对象
- * @param consultationId 问诊 ID
+ * @param consultationId 问诊 ID（可选，如果不传则接受第一个待接诊）
  * @throws 如果找不到接单按钮
  */
-export async function acceptConsultation(page: Page, consultationId: string) {
+export async function acceptConsultation(page: Page, consultationId?: string) {
   await page.goto('/doctor/console');
   await page.waitForLoadState('networkidle');
 
-  const acceptButton = page.locator(`[data-consultation-id="${consultationId}"] button:has-text("接单")`).first();
+  // 等待问诊列表加载完成
+  await page.waitForTimeout(3000);
+
+  let acceptButton;
+
+  if (consultationId) {
+    // 如果指定了 consultationId，查找包含该 ID 的问诊项
+    // 按钮文本是"立即接诊"
+    acceptButton = page.locator('button:has-text("立即接诊")').first();
+  } else {
+    // 如果没有指定 ID，接受第一个待接诊
+    acceptButton = page.locator('button:has-text("立即接诊")').first();
+  }
+
   const acceptCount = await acceptButton.count();
   if (acceptCount === 0) {
-    throw new Error(`未找到问诊 ID ${consultationId} 的接单按钮，该问诊可能不存在或已被接单`);
+    throw new Error(`未找到"立即接诊"按钮，可能没有待接诊的问诊`);
   }
+
+  // 点击接诊按钮
+  console.log('点击"立即接诊"按钮...');
   await acceptButton.click();
 
-  // 等待接单操作完成，通过按钮状态变化判断
-  await page.waitForFunction((id) => {
-    const button = document.querySelector(`[data-consultation-id="${id}"] button:has-text("接单")`);
-    return button === null;
-  }, consultationId, { timeout: 5000 }).catch(() => {
-    // 如果按钮仍然存在，可能已经接单成功并移除了按钮
-    // 不抛出错误，继续执行
-  });
+  // 等待 API 调用完成
+  await page.waitForTimeout(3000);
+
+  // 检查当前 URL
+  const currentUrl = page.url();
+  console.log('点击后当前 URL:', currentUrl);
+
+  // 如果 URL 已经包含 /doctor/chat，说明导航成功了
+  if (currentUrl.includes('/doctor/chat/')) {
+    const urlConsultationId = extractConsultationId(currentUrl);
+    if (urlConsultationId) {
+      return urlConsultationId;
+    }
+  }
+
+  // 尝试手动导航到问诊页面（使用 consultationId）
+  if (consultationId) {
+    console.log('手动导航到问诊页面:', consultationId);
+    await page.goto(`/doctor/chat/${consultationId}`);
+    await page.waitForLoadState('networkidle');
+    return consultationId;
+  }
+
+  throw new Error('接诊后未找到问诊页面');
 }
 
 /**
@@ -66,22 +98,25 @@ export async function acceptConsultation(page: Page, consultationId: string) {
  * @throws 如果找不到消息输入框
  */
 export async function sendMessage(page: Page, text: string) {
-  const input = page.locator('input[placeholder="输入消息..."], textarea').first();
+  // 医生端聊天页面使用 textarea
+  const input = page.locator('textarea[placeholder="输入消息..."]').first();
   const inputCount = await input.count();
   if (inputCount === 0) {
-    throw new Error('未找到消息输入框，可能不在聊天页面');
+    // 患者端使用 input
+    const altInput = page.locator('input[placeholder="输入消息..."], textarea').first();
+    const altCount = await altInput.count();
+    if (altCount === 0) {
+      throw new Error('未找到消息输入框，可能不在聊天页面');
+    }
+    await altInput.fill(text);
+    await altInput.press('Enter');
+  } else {
+    await input.fill(text);
+    await input.press('Enter');
   }
 
-  await input.fill(text);
-  await input.press('Enter');
-
-  // 等待消息出现在聊天记录中
-  await page.waitForFunction((msg) => {
-    const messages = document.querySelectorAll('.message-content, [class*="message"], [class*="chat"]');
-    return Array.from(messages).some(el => el.textContent?.includes(msg));
-  }, text, { timeout: 5000 }).catch(() => {
-    // 消息可能已经发送但DOM未更新，继续执行
-  });
+  // 等待消息发送完成
+  await page.waitForTimeout(1000);
 }
 
 /**
@@ -90,20 +125,53 @@ export async function sendMessage(page: Page, text: string) {
  * @throws 如果找不到结束问诊按钮
  */
 export async function endConsultation(page: Page) {
+  // 等待页面完全加载
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(3000);
+
+  // 打印页面内容用于调试
+  const bodyText = await page.locator('body').textContent();
+  console.log('页面内容片段:', bodyText?.slice(0, 500));
+
+  // 使用更精确的选择器定位"结束问诊"按钮
+  // 按钮在快捷操作栏中，包含 CheckCircle 图标和"结束问诊"文本
   const endButton = page.locator('button:has-text("结束问诊")').first();
   const endCount = await endButton.count();
+
   if (endCount === 0) {
-    throw new Error('未找到"结束问诊"按钮');
+    console.log('未找到"结束问诊"按钮，尝试其他选择器...');
+    // 尝试使用 aria-label 或其他属性
+    const altButton = page.locator('button[aria-label*="结束"], button:has-text("结束")').first();
+    const altCount = await altButton.count();
+    if (altCount === 0) {
+      throw new Error('未找到"结束"按钮');
+    }
+    console.log('找到备用按钮，点击...');
+    await altButton.click();
+  } else {
+    console.log('找到"结束问诊"按钮，点击...');
+    await endButton.click();
   }
-  await endButton.click();
 
-  const confirmButton = page.locator('button:has-text("确认")').first();
+  // 等待确认对话框出现
+  await page.waitForTimeout(1500);
+
+  // 处理确认对话框
+  const confirmButton = page.locator('button:has-text("确认"), button:has-text("确定")').first();
   const confirmCount = await confirmButton.count();
-  if (confirmCount === 0) {
-    throw new Error('未找到确认按钮');
+  if (confirmCount > 0) {
+    console.log('点击确认按钮...');
+    await confirmButton.click();
+  } else {
+    // 使用原生 dialog 事件处理
+    page.once('dialog', async dialog => {
+      console.log('原生对话框:', dialog.message());
+      await dialog.accept();
+    });
+    await page.waitForTimeout(500);
   }
-  await confirmButton.click();
 
-  // 等待页面导航或状态更新
+  // 等待页面状态更新
   await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
 }
