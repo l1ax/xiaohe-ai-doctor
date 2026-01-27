@@ -7,7 +7,8 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
-  status: 'pending' | 'sending' | 'streaming' | 'complete' | 'failed';
+  status: 'pending' | 'sending' | 'streaming' | 'complete' | 'failed' | 'thinking';
+  imageUrls?: string[];  // 新增：支持图片数组
   medicalAdvice?: MedicalAdvice;
 }
 
@@ -80,7 +81,7 @@ export interface ChatContext {
 // ============ 事件类型 ============
 
 export type ChatEventType =
-  | { type: 'SEND_MESSAGE'; content: string }
+  | { type: 'SEND_MESSAGE'; content: string; imageUrls?: string[] }  // 修改：添加 imageUrls
   | { type: 'RETRY' }
   | { type: 'CANCEL' }
   | { type: 'TOOL_CALL'; toolId: string; toolName: string; status: string; input?: Record<string, unknown>; output?: Record<string, unknown>; duration?: number }
@@ -111,6 +112,7 @@ export const chatMachine = setup({
           id: `msg_${Date.now()}`,
           role: 'user',
           content: event.content,
+          imageUrls: event.imageUrls,  // 新增：保存图片 URLs
           timestamp: new Date().toISOString(),
           status: 'complete',
         };
@@ -118,9 +120,32 @@ export const chatMachine = setup({
       },
     }),
 
+    addThinkingMessage: assign({
+      messages: ({ context }): Message[] => {
+        const thinkingMessage: Message = {
+          id: 'thinking_temp',
+          role: 'assistant',
+          content: '',
+          timestamp: new Date().toISOString(),
+          status: 'thinking', // 特殊状态：思考中
+        };
+        return [...context.messages, thinkingMessage];
+      },
+    }),
+
+    removeThinkingMessage: assign({
+      messages: ({ context }): Message[] => {
+        return context.messages.filter(m => m.id !== 'thinking_temp');
+      },
+    }),
+
     addAssistantMessage: assign({
       messages: ({ context, event }): Message[] => {
         if (event.type !== 'MESSAGE_CONTENT' || !event.isFirst) return context.messages;
+
+        // 移除临时的"思考中"消息
+        const messagesWithoutThinking = context.messages.filter(m => m.id !== 'thinking_temp');
+
         const newMessage: Message = {
           id: event.messageId,
           role: 'assistant',
@@ -128,7 +153,7 @@ export const chatMachine = setup({
           timestamp: new Date().toISOString(),
           status: 'streaming',
         };
-        return [...context.messages, newMessage];
+        return [...messagesWithoutThinking, newMessage];
       },
     }),
 
@@ -171,6 +196,25 @@ export const chatMachine = setup({
     addToolCall: assign({
       toolCalls: ({ context, event }): ToolCall[] => {
         if (event.type !== 'TOOL_CALL') return context.toolCalls;
+
+        // 检查是否已存在相同 ID 的 toolCall
+        const existingIndex = context.toolCalls.findIndex(t => t.id === event.toolId);
+
+        if (existingIndex !== -1) {
+          // 如果已存在，更新它（避免重复添加）
+          return context.toolCalls.map((tool, index) =>
+            index === existingIndex
+              ? {
+                  ...tool,
+                  status: event.status as ToolCall['status'],
+                  output: event.output,
+                  duration: event.duration,
+                }
+              : tool
+          );
+        }
+
+        // 如果不存在，添加新的
         const newTool: ToolCall = {
           id: event.toolId,
           name: event.toolName,
@@ -247,7 +291,7 @@ export const chatMachine = setup({
       on: {
         SEND_MESSAGE: {
           target: 'sending',
-          actions: ['addUserMessage', 'setTyping'],
+          actions: ['addUserMessage', 'addThinkingMessage', 'setTyping'],
         },
         RESET: {
           target: 'idle',
@@ -267,7 +311,7 @@ export const chatMachine = setup({
         },
         ERROR: {
           target: 'error',
-          actions: ['setError'],
+          actions: ['setError', 'removeThinkingMessage'],
         },
       },
     },
@@ -285,10 +329,11 @@ export const chatMachine = setup({
         },
         ERROR: {
           target: 'error',
-          actions: ['setError'],
+          actions: ['setError', 'removeThinkingMessage'],
         },
         DONE: {
           target: 'complete',
+          actions: ['removeThinkingMessage'],
         },
       },
     },
@@ -321,7 +366,7 @@ export const chatMachine = setup({
       on: {
         SEND_MESSAGE: {
           target: 'sending',
-          actions: ['addUserMessage', 'setTyping'],
+          actions: ['addUserMessage', 'addThinkingMessage', 'setTyping'],
         },
         RESET: {
           target: 'idle',
@@ -333,6 +378,7 @@ export const chatMachine = setup({
       on: {
         RETRY: {
           target: 'sending',
+          actions: ['addThinkingMessage'],
         },
         CANCEL: {
           target: 'idle',
@@ -340,7 +386,7 @@ export const chatMachine = setup({
         },
         SEND_MESSAGE: {
           target: 'sending',
-          actions: ['addUserMessage', 'setTyping'],
+          actions: ['addUserMessage', 'addThinkingMessage', 'setTyping'],
         },
         RESET: {
           target: 'idle',

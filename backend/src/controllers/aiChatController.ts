@@ -35,38 +35,52 @@ export class AIChatController {
    * Stream chat endpoint using SSE
    */
   async streamChat(req: Request, res: Response): Promise<void> {
-    // Validate query parameters are strings, not arrays (I1)
-    const messageQuery = req.query.message;
-    const conversationIdQuery = req.query.conversationId;
+    const { message, conversationId, imageUrls } = req.body;
 
-    if (!messageQuery) {
-      throw new ValidationError('Message is required');
+    if (!message || typeof message !== 'string') {
+      throw new ValidationError('Message is required and must be a string');
     }
 
-    // I1: Ensure message is a string, not an array
-    // After String() conversion, the value is always a string, so no need to check type again
-    const messageStr = String(Array.isArray(messageQuery) ? messageQuery[0] : messageQuery);
-
-    // Validate message max 5000 chars
-    if (messageStr.length > 5000) {
+    if (message.length > 5000) {
       throw new ValidationError('Message must not exceed 5000 characters');
     }
 
-    const conversationId = conversationIdQuery
-      ? (Array.isArray(conversationIdQuery) ? conversationIdQuery[0] : conversationIdQuery)
-      : `conv_${Date.now()}`;
+    if (imageUrls !== undefined) {
+      if (!Array.isArray(imageUrls)) {
+        throw new ValidationError('imageUrls must be an array');
+      }
 
-    // Ensure conversationId is a string
-    const conversationIdStr = String(conversationId);
+      if (imageUrls.length > 1) {
+        throw new ValidationError('Currently only 1 image is supported');
+      }
 
-    logger.info('Stream chat request received', { conversationId: conversationIdStr, messageLength: messageStr.length });
+      for (const url of imageUrls) {
+        if (typeof url !== 'string') {
+          throw new ValidationError('Invalid image URL format');
+        }
+        
+        try {
+          const urlObj = new URL(url);
+          if (!['http:', 'https:'].includes(urlObj.protocol)) {
+            throw new ValidationError('Invalid image URL format');
+          }
+        } catch {
+          throw new ValidationError('Invalid image URL format');
+        }
+      }
+    }
 
-    // Create session-specific event emitter for this request
+    const conversationIdStr = conversationId || `conv_${Date.now()}`;
+
+    logger.info('Stream chat request received', { 
+      conversationId: conversationIdStr, 
+      messageLength: message.length,
+      imageCount: imageUrls?.length || 0,
+    });
+
     const sessionEmitter = new AgentEventEmitter();
 
-    // Forward session events to global emitter - store listener reference (C1)
     const eventForwarder = (event: any) => {
-      // Attach conversationId to all events for proper routing (C2)
       const eventWithConversationId = {
         ...event,
         data: {
@@ -78,59 +92,80 @@ export class AIChatController {
     };
     sessionEmitter.on('*', eventForwarder);
 
-    try {
-      // Handle SSE connection
-      this.sseHandler.handleConnection(req, res, conversationIdStr);
+    const executeAgent = async () => {
+      try {
+        this.sseHandler.handleConnection(req, res, conversationIdStr);
 
-      // Prepare messages
-      const messages: Message[] = [
-        { role: 'user', content: messageStr }
-      ];
+        const messages: Message[] = [
+          {
+            role: 'user',
+            content: message,
+            imageUrls,
+          }
+        ];
 
-      logger.agent('Starting agent execution', { conversationId: conversationIdStr });
+        logger.agent('Starting agent execution', { conversationId: conversationIdStr });
 
-      // Run agent with session emitter
-      await runAgent({
-        messages,
-        conversationId: conversationIdStr,
-        eventEmitter: sessionEmitter,
-      });
+        this.sseHandler.sendToConversation(conversationIdStr, {
+          type: 'conversation_status',
+          data: {
+            conversationId: conversationIdStr,
+            status: 'starting',
+            message: '正在启动 AI 助手...',
+            timestamp: new Date().toISOString(),
+          },
+        });
 
-      logger.agent('Agent execution completed', { conversationId: conversationIdStr });
-
-    } catch (error: any) {
-      logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
-
-      // I2: Improve LLM error detection using error instance/name checks
-      const isLLMError = error instanceof LLMError ||
-                         error.name === 'LLMError' ||
-                         error.code === 'LLM_ERROR';
-
-      if (isLLMError) {
-        throw new LLMError(error.message || 'LLM service error', error);
-      }
-
-      const errorData = {
-        type: 'agent:error',
-        data: {
-          error: error.message || 'Unknown error',
-          code: 'AGENT_ERROR',
-          timestamp: new Date().toISOString(),
+        await runAgent({
+          messages,
           conversationId: conversationIdStr,
-        },
-      };
+          eventEmitter: sessionEmitter,
+        });
 
-      // Send error to SSE client before global emitter (C3)
-      this.sseHandler.sendToConversation(conversationIdStr, {
-        type: 'error',
-        data: errorData.data,
-      });
+        logger.agent('Agent execution completed', { conversationId: conversationIdStr });
 
-      this.globalEmitter.emit('agent:error', errorData);
-    } finally {
-      // Cleanup session emitter and its listeners (C1)
-      sessionEmitter.removeListener('*', eventForwarder);
-    }
+        // 标准 SSE 流式传输模式：
+        // 1. Agent 执行完成，conversation:end 事件已由 synthesizeResponse 节点发送
+        // 2. 等待足够时间让前端接收并处理所有事件
+        // 3. 后端关闭连接（前端收到 DONE 事件后也可以主动关闭）
+
+        await new Promise(r => setTimeout(r, 500)); // 增加延迟确保所有事件都被前端接收
+        this.sseHandler.closeConnectionByConversation(conversationIdStr);
+
+      } catch (error: any) {
+        logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
+
+        const isLLMError = error instanceof LLMError ||
+                          error.name === 'LLMError' ||
+                          error.code === 'LLM_ERROR';
+
+        if (isLLMError) {
+          throw new LLMError(error.message || 'LLM service error', error);
+        }
+
+        const errorData = {
+          type: 'agent:error',
+          data: {
+            error: error.message || 'Unknown error',
+            code: 'AGENT_ERROR',
+            timestamp: new Date().toISOString(),
+            conversationId: conversationIdStr,
+          },
+        };
+
+        this.sseHandler.sendToConversation(conversationIdStr, {
+          type: 'error',
+          data: errorData.data,
+        });
+
+        this.globalEmitter.emit('agent:error', errorData);
+        throw error;
+      } finally {
+        sessionEmitter.removeListener('*', eventForwarder);
+      }
+    };
+
+    return executeAgent();
   }
 
   /**

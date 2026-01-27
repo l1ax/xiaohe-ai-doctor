@@ -6,6 +6,8 @@ export interface SSEConnection {
   conversationId: string;
   connectedAt: Date;
   timeout?: NodeJS.Timeout;
+  closePromise?: Promise<void>;
+  closeResolver?: () => void;
 }
 
 export interface SSEEventData {

@@ -33,6 +33,11 @@ app.use((req, res, next) => {
 
   // Log response when finished
   res.on('finish', () => {
+    // @ts-ignore - Skip logging for SSE connections (they manage their own lifecycle)
+    if (res._isSSE) {
+      return;
+    }
+
     const duration = Date.now() - startTime;
     const level = res.statusCode >= 400 ? 'warn' : 'info';
 

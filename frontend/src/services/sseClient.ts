@@ -1,12 +1,15 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { ChatEvent, parseServerEvent, ChatEventType } from '../machines/chatMachine';
+import { userStore } from '../store/userStore';
 
 export type SSEEventHandler = (event: ChatEventType) => void;
 
 export interface SSEConfig {
   url: string;
+  method?: 'GET' | 'POST';
   conversationId: string;
   message?: string;
+  imageUrls?: string[];
   onEvent?: SSEEventHandler;
   onError?: (error: Error) => void;
   onClose?: () => void;
@@ -15,7 +18,6 @@ export interface SSEConfig {
 
 /**
  * SSE Client using fetch + eventsource-parser
- * This replaces the native EventSource to avoid automatic reconnection issues
  */
 export class SSEClient {
   private config: SSEConfig;
@@ -33,26 +35,58 @@ export class SSEClient {
       return;
     }
 
-    const url = new URL(this.config.url);
-    if (this.config.conversationId) {
-      url.searchParams.set('conversationId', this.config.conversationId);
-    }
-    if (this.config.message) {
-      url.searchParams.set('message', this.config.message);
-    }
+    const { method = 'POST', conversationId, message, imageUrls } = this.config;
+    
+    let fetchOptions: RequestInit;
+    let fetchUrl: string = this.config.url;
+    
+    if (method === 'POST') {
+      const token = userStore.accessToken;
+      if (!token) {
+        throw new Error('未登录，请先登录');
+      }
 
-    this.abortController = new AbortController();
-    this.isManualClose = false;
-
-    try {
-      const response = await fetch(url.toString(), {
+      this.abortController = new AbortController();
+      fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          conversationId,
+          message,
+          imageUrls,
+        }),
+        signal: this.abortController.signal,
+      };
+    } else {
+      const url = new URL(this.config.url);
+      if (conversationId) {
+        url.searchParams.set('conversationId', conversationId);
+      }
+      if (message) {
+        url.searchParams.set('message', message);
+      }
+      fetchUrl = url.toString();
+      
+      this.abortController = new AbortController();
+      fetchOptions = {
         method: 'GET',
         headers: {
           'Accept': 'text/event-stream',
           'Cache-Control': 'no-cache',
         },
         signal: this.abortController.signal,
-      });
+      };
+    }
+
+    this.isManualClose = false;
+
+    try {
+      const response = await fetch(fetchUrl, fetchOptions);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -63,10 +97,8 @@ export class SSEClient {
       }
 
       this.isConnected = true;
-      console.log('[SSE] Connection established');
       this.config.onOpen?.();
 
-      // Parse the SSE stream
       const eventStream = response.body
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream());
@@ -76,9 +108,8 @@ export class SSEClient {
       try {
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (done) {
-            console.log('[SSE] Stream ended');
             break;
           }
 
@@ -87,9 +118,8 @@ export class SSEClient {
           }
         }
       } catch (error) {
-        if (this.isManualClose) {
-          console.log('[SSE] Connection closed by user');
-        } else {
+        if (!this.isManualClose) {
+          console.error('[SSE] Read loop error:', error);
           throw error;
         }
       } finally {
@@ -98,13 +128,10 @@ export class SSEClient {
 
     } catch (error) {
       if (this.isManualClose) {
-        console.log('[SSE] Connection closed manually');
         return;
       }
 
-      // Check if it's an abort error
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('[SSE] Request aborted');
         return;
       }
 
@@ -121,30 +148,17 @@ export class SSEClient {
   private handleParsedEvent(parsedEvent: { event?: string; data?: string; id?: string }): void {
     const { event: eventType, data: eventData } = parsedEvent;
 
-    // Skip empty data or heartbeat without meaningful content
     if (!eventData) {
-      if (eventType === 'heartbeat') {
-        console.log('[SSE] Heartbeat received');
-      }
       return;
     }
 
     try {
       const data = JSON.parse(eventData);
       
-      // Handle connected event
-      if (eventType === 'connected') {
-        console.log('[SSE] Connected:', data);
+      if (eventType === 'connected' || eventType === 'heartbeat') {
         return;
       }
 
-      // Handle heartbeat
-      if (eventType === 'heartbeat') {
-        console.log('[SSE] Heartbeat received');
-        return;
-      }
-
-      // Create ChatEvent and parse it
       const chatEvent: ChatEvent = {
         type: eventType || 'message',
         data: data,
@@ -166,7 +180,6 @@ export class SSEClient {
       this.abortController = null;
     }
     this.isConnected = false;
-    console.log('[SSE] Connection closed manually');
   }
 
   getConnected(): boolean {

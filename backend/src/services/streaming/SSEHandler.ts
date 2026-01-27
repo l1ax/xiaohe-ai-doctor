@@ -49,9 +49,11 @@ export class SSEHandler {
       timestamp: new Date().toISOString(),
     });
 
-    req.on('close', () => {
-      this.closeConnection(connectionId);
-    });
+    // 只监听客户端主动断开，不要在请求对象上监听 'close'
+    // 因为对于 SSE 流式响应，连接应该保持打开直到业务逻辑完成
+    // req.on('close', () => {
+    //   this.closeConnection(connectionId);
+    // });
 
     if (!this.heartbeatInterval) {
       this.startHeartbeat();
@@ -61,11 +63,13 @@ export class SSEHandler {
       this.startEventListener();
     }
 
-    const timeout = setTimeout(() => {
-      this.closeConnection(connectionId);
-    }, this.config.timeout);
+    // 对于 AI 流式响应，不要设置自动超时关闭
+    // 让业务逻辑决定何时关闭（Agent 执行完成后）
+    // const timeout = setTimeout(() => {
+    //   this.closeConnection(connectionId);
+    // }, this.config.timeout);
 
-    this.connections.set(connectionId, { ...connection, timeout });
+    // this.connections.set(connectionId, { ...connection, timeout });
   }
 
   startEventListener(): void {
@@ -144,9 +148,11 @@ export class SSEHandler {
       const dataStr = JSON.stringify(data);
       res.write(`event: ${event}\n`);
       res.write(`data: ${dataStr}\n\n`);
+      // 立即刷新缓冲区，确保数据发送到客户端
+      res.flush();
       return true;
     } catch (error) {
-      console.error('Error sending SSE event:', error);
+      console.error('[SSE] Error sending event:', error);
       return false;
     }
   }
@@ -182,13 +188,14 @@ export class SSEHandler {
   private closeConnection(connectionId: string): void {
     const connection = this.connections.get(connectionId);
     if (connection) {
+      // 清理超时定时器（如果存在）
       if (connection.timeout) {
         clearTimeout(connection.timeout);
       }
       try {
         connection.res.end();
       } catch (error) {
-        console.error('Error closing connection:', error);
+        console.error('[SSE] Error closing connection:', error);
       }
       this.connections.delete(connectionId);
     }
@@ -214,6 +221,23 @@ export class SSEHandler {
       if (connection.conversationId === conversationId) {
         this.sendSSEEvent(connection.res, eventData.type, eventData.data);
       }
+    }
+  }
+
+  closeConnectionByConversation(conversationId: string): void {
+    const connectionsToClose: string[] = [];
+
+    for (const [connectionId, connection] of this.connections) {
+      if (connection.conversationId === conversationId) {
+        connectionsToClose.push(connectionId);
+      }
+    }
+
+    // 在关闭连接前，确保所有数据已发送
+    // 注意：这个方法应该是异步的，但为了兼容性保持同步
+    // 实际的关闭操作应该在 aiChatController 中通过 await 确保完成
+    for (const connectionId of connectionsToClose) {
+      this.closeConnection(connectionId);
     }
   }
 }

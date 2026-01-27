@@ -7,6 +7,7 @@ export type UserIntent =
 export interface Message {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  imageUrls?: string[];  // 新增：支持多张图片
 }
 
 // Export event types
