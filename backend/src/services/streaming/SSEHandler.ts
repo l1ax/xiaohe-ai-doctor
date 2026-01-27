@@ -148,8 +148,7 @@ export class SSEHandler {
       const dataStr = JSON.stringify(data);
       res.write(`event: ${event}\n`);
       res.write(`data: ${dataStr}\n\n`);
-      // 立即刷新缓冲区，确保数据发送到客户端
-      res.flush();
+      // Note: res.write() automatically flushes in Node.js, no need for explicit flush()
       return true;
     } catch (error) {
       console.error('[SSE] Error sending event:', error);
