@@ -1,8 +1,12 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
-import { ChatEvent, parseServerEvent, ChatEventType } from '../machines/chatMachine';
 import { userStore } from '../store/userStore';
 
-export type SSEEventHandler = (event: ChatEventType) => void;
+export interface RawSSEEvent {
+  type: string;
+  data: any;
+}
+
+export type SSEEventHandler = (event: RawSSEEvent) => void;
 
 export interface SSEConfig {
   url: string;
@@ -154,20 +158,18 @@ export class SSEClient {
 
     try {
       const data = JSON.parse(eventData);
-      
+
       if (eventType === 'connected' || eventType === 'heartbeat') {
         return;
       }
 
-      const chatEvent: ChatEvent = {
+      // 直接传递原始事件格式 { type, data }
+      const rawEvent: RawSSEEvent = {
         type: eventType || 'message',
         data: data,
       };
 
-      const parsedChatEvent = parseServerEvent(chatEvent);
-      if (parsedChatEvent) {
-        this.config.onEvent?.(parsedChatEvent);
-      }
+      this.config.onEvent?.(rawEvent);
     } catch (error) {
       console.error('[SSE] Failed to parse event:', error, { eventType, eventData });
     }
@@ -186,43 +188,3 @@ export class SSEClient {
     return this.isConnected;
   }
 }
-
-// ============ SSE 客户端管理器 ============
-
-class SSEClientManager {
-  private clients: Map<string, SSEClient> = new Map();
-  private defaultUrl: string = '';
-
-  setDefaultUrl(url: string): void {
-    this.defaultUrl = url;
-  }
-
-  createClient(config: Partial<SSEConfig> & { conversationId: string }): SSEClient {
-    const url = config.url || this.defaultUrl;
-    const client = new SSEClient({
-      url,
-      ...config,
-    });
-    this.clients.set(config.conversationId, client);
-    return client;
-  }
-
-  getClient(conversationId: string): SSEClient | undefined {
-    return this.clients.get(conversationId);
-  }
-
-  removeClient(conversationId: string): void {
-    const client = this.clients.get(conversationId);
-    if (client) {
-      client.close();
-      this.clients.delete(conversationId);
-    }
-  }
-
-  closeAll(): void {
-    this.clients.forEach((client) => client.close());
-    this.clients.clear();
-  }
-}
-
-export const sseClientManager = new SSEClientManager();
