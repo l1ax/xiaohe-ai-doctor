@@ -3,7 +3,7 @@ import { basename } from 'path';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Bucket 名称
 const BUCKET_NAME = 'xiaohe-uploads';
@@ -18,13 +18,13 @@ export class StorageService {
 
   constructor() {
     // 验证环境变量
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      console.warn('WARNING: SUPABASE_URL or SUPABASE_SERVICE_KEY not configured. Storage service will not be available.');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('WARNING: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured. Storage service will not be available.');
     } else {
       const storageUrl = `${SUPABASE_URL}/storage/v1`;
       this.client = new StorageClient(storageUrl, {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       });
     }
   }

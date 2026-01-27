@@ -41,8 +41,11 @@ export const uploadImage = async (req: Request, res: Response): Promise<void> =>
       throw new ValidationError('Storage service not available');
     }
 
-    // 生成文件名
-    const fileName = `${Date.now()}_${req.user.userId}_${req.file.originalname}`;
+    // 生成文件名 - 只保留扩展名，移除原始文件名中的中文字符
+    // 提取文件扩展名（确保是ASCII）
+    const ext = req.file.originalname.split('.').pop()?.toLowerCase() || 'jpg';
+    // 生成纯ASCII文件名：时间戳_用户ID.扩展名
+    const fileName = `${Date.now()}_${req.user.userId}.${ext}`;
     const path = `uploads/${req.user.userId}`;
 
     // 上传到 Supabase Storage

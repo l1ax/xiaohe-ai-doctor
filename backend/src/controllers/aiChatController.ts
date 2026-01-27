@@ -35,20 +35,16 @@ export class AIChatController {
    * Stream chat endpoint using SSE
    */
   async streamChat(req: Request, res: Response): Promise<void> {
-    // 从 body 读取参数（改造前从 query 读取）
     const { message, conversationId, imageUrls } = req.body;
 
-    // 验证 message
     if (!message || typeof message !== 'string') {
       throw new ValidationError('Message is required and must be a string');
     }
 
-    // 验证 message 长度
     if (message.length > 5000) {
       throw new ValidationError('Message must not exceed 5000 characters');
     }
 
-    // 验证 imageUrls（可选参数）
     if (imageUrls !== undefined) {
       if (!Array.isArray(imageUrls)) {
         throw new ValidationError('imageUrls must be an array');
@@ -58,7 +54,6 @@ export class AIChatController {
         throw new ValidationError('Currently only 1 image is supported');
       }
 
-      // 验证每个 URL 格式
       for (const url of imageUrls) {
         if (typeof url !== 'string') {
           throw new ValidationError('Invalid image URL format');
@@ -83,10 +78,8 @@ export class AIChatController {
       imageCount: imageUrls?.length || 0,
     });
 
-    // 创建 session-specific event emitter
     const sessionEmitter = new AgentEventEmitter();
 
-    // Forward session events to global emitter
     const eventForwarder = (event: any) => {
       const eventWithConversationId = {
         ...event,
@@ -99,61 +92,80 @@ export class AIChatController {
     };
     sessionEmitter.on('*', eventForwarder);
 
-    try {
-      // Handle SSE connection
-      this.sseHandler.handleConnection(req, res, conversationIdStr);
+    const executeAgent = async () => {
+      try {
+        this.sseHandler.handleConnection(req, res, conversationIdStr);
 
-      // 构建消息（包含 imageUrls）
-      const messages: Message[] = [
-        { 
-          role: 'user', 
-          content: message,
-          imageUrls,  // 传递给 Agent
-        }
-      ];
+        const messages: Message[] = [
+          {
+            role: 'user',
+            content: message,
+            imageUrls,
+          }
+        ];
 
-      logger.agent('Starting agent execution', { conversationId: conversationIdStr });
+        logger.agent('Starting agent execution', { conversationId: conversationIdStr });
 
-      // Run agent with session emitter
-      await runAgent({
-        messages,
-        conversationId: conversationIdStr,
-        eventEmitter: sessionEmitter,
-      });
+        this.sseHandler.sendToConversation(conversationIdStr, {
+          type: 'conversation_status',
+          data: {
+            conversationId: conversationIdStr,
+            status: 'starting',
+            message: '正在启动 AI 助手...',
+            timestamp: new Date().toISOString(),
+          },
+        });
 
-      logger.agent('Agent execution completed', { conversationId: conversationIdStr });
-
-    } catch (error: any) {
-      logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
-
-      const isLLMError = error instanceof LLMError ||
-                         error.name === 'LLMError' ||
-                         error.code === 'LLM_ERROR';
-
-      if (isLLMError) {
-        throw new LLMError(error.message || 'LLM service error', error);
-      }
-
-      const errorData = {
-        type: 'agent:error',
-        data: {
-          error: error.message || 'Unknown error',
-          code: 'AGENT_ERROR',
-          timestamp: new Date().toISOString(),
+        await runAgent({
+          messages,
           conversationId: conversationIdStr,
-        },
-      };
+          eventEmitter: sessionEmitter,
+        });
 
-      this.sseHandler.sendToConversation(conversationIdStr, {
-        type: 'error',
-        data: errorData.data,
-      });
+        logger.agent('Agent execution completed', { conversationId: conversationIdStr });
 
-      this.globalEmitter.emit('agent:error', errorData);
-    } finally {
-      // Cleanup session emitter
-      sessionEmitter.removeListener('*', eventForwarder);
-    }
+        // 标准 SSE 流式传输模式：
+        // 1. Agent 执行完成，conversation:end 事件已由 synthesizeResponse 节点发送
+        // 2. 等待足够时间让前端接收并处理所有事件
+        // 3. 后端关闭连接（前端收到 DONE 事件后也可以主动关闭）
+
+        await new Promise(r => setTimeout(r, 500)); // 增加延迟确保所有事件都被前端接收
+        this.sseHandler.closeConnectionByConversation(conversationIdStr);
+
+      } catch (error: any) {
+        logger.error('Agent execution failed', error, { conversationId: conversationIdStr });
+
+        const isLLMError = error instanceof LLMError ||
+                          error.name === 'LLMError' ||
+                          error.code === 'LLM_ERROR';
+
+        if (isLLMError) {
+          throw new LLMError(error.message || 'LLM service error', error);
+        }
+
+        const errorData = {
+          type: 'agent:error',
+          data: {
+            error: error.message || 'Unknown error',
+            code: 'AGENT_ERROR',
+            timestamp: new Date().toISOString(),
+            conversationId: conversationIdStr,
+          },
+        };
+
+        this.sseHandler.sendToConversation(conversationIdStr, {
+          type: 'error',
+          data: errorData.data,
+        });
+
+        this.globalEmitter.emit('agent:error', errorData);
+        throw error;
+      } finally {
+        sessionEmitter.removeListener('*', eventForwarder);
+      }
+    };
+
+    return executeAgent();
   }
 
   /**

@@ -6,13 +6,7 @@ import { createConversationEndEvent } from "../events/chat-event-types";
  * MVP阶段直接返回分支结果，后续可优化为多分支结果整合
  */
 export async function synthesizeResponse(state: typeof AgentState.State) {
-  const { branchResult, userIntent, conversationId, eventEmitter, messageId, startTime } = state;
-
-  // MVP阶段直接使用分支结果
-  const finalResponse = {
-    role: 'assistant' as const,
-    content: branchResult || '抱歉，我暂时无法回答这个问题。',
-  };
+  const { userIntent, conversationId, eventEmitter, messageId, startTime } = state;
 
   console.log(`✅ Final response synthesized for intent: ${userIntent}`);
 
@@ -27,7 +21,6 @@ export async function synthesizeResponse(state: typeof AgentState.State) {
     2 // user + assistant
   ));
 
-  return {
-    messages: [finalResponse],
-  };
+  // 不需要返回messages，因为分支节点（如consultation）已经通过SSE发送了消息
+  return {};
 }

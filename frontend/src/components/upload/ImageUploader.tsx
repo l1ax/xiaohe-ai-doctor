@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { userStore } from '../../store/userStore';
 
 interface ImageUploaderProps {
   onImageUploaded: (url: string) => void;
@@ -56,7 +57,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('token');
+    const token = userStore.accessToken;
     if (!token) {
       throw new Error('未登录，请先登录');
     }

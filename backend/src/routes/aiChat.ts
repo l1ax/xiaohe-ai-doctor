@@ -1,14 +1,31 @@
 import express from 'express';
 import { aiChatController } from '../controllers/aiChatController';
+import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
 
 /**
  * POST /api/ai-chat/stream
  * Stream chat endpoint using SSE (changed from GET to POST)
+ * 
+ * 关键：不要让路由处理函数立即返回，保持响应打开直到 SSE 连接真正结束
  */
-router.post('/stream', (req, res) => {
-  aiChatController.streamChat(req, res);
+router.post('/stream', authMiddleware, async (req, res) => {
+  // @ts-ignore
+  res._isSSE = true;
+  
+  try {
+    await aiChatController.streamChat(req, res);
+  } catch (error: any) {
+    console.error('[Route] Stream chat error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: 'Stream processing failed',
+        data: { error: error.message }
+      });
+    }
+  }
 });
 
 /**
