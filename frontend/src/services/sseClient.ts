@@ -5,8 +5,10 @@ export type SSEEventHandler = (event: ChatEventType) => void;
 
 export interface SSEConfig {
   url: string;
+  method?: 'GET' | 'POST';  // 新增，默认 POST
   conversationId: string;
   message?: string;
+  imageUrls?: string[];  // 新增
   onEvent?: SSEEventHandler;
   onError?: (error: Error) => void;
   onClose?: () => void;
@@ -33,26 +35,53 @@ export class SSEClient {
       return;
     }
 
-    const url = new URL(this.config.url);
-    if (this.config.conversationId) {
-      url.searchParams.set('conversationId', this.config.conversationId);
-    }
-    if (this.config.message) {
-      url.searchParams.set('message', this.config.message);
-    }
-
-    this.abortController = new AbortController();
-    this.isManualClose = false;
-
-    try {
-      const response = await fetch(url.toString(), {
+    const { method = 'POST', conversationId, message, imageUrls } = this.config;
+    
+    let fetchOptions: RequestInit;
+    let fetchUrl: string = this.config.url;
+    
+    if (method === 'POST') {
+      // POST 请求：通过 body 传递参数
+      fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify({
+          conversationId,
+          message,
+          imageUrls,
+        }),
+        signal: this.abortController.signal,
+      };
+    } else {
+      // GET 请求：兼容旧版（通过 query 参数）
+      const url = new URL(this.config.url);
+      if (conversationId) {
+        url.searchParams.set('conversationId', conversationId);
+      }
+      if (message) {
+        url.searchParams.set('message', message);
+      }
+      fetchUrl = url.toString();
+      
+      fetchOptions = {
         method: 'GET',
         headers: {
           'Accept': 'text/event-stream',
           'Cache-Control': 'no-cache',
         },
         signal: this.abortController.signal,
-      });
+      };
+    }
+
+    this.abortController = new AbortController();
+    this.isManualClose = false;
+
+    try {
+      const response = await fetch(fetchUrl, fetchOptions);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
