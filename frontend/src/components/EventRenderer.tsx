@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownRenderer } from './shared/MarkdownRenderer';
+import { 
+  ChevronDown, 
+  Terminal, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
 import { Event } from '../models/events/Event';
 import { ToolCallEvent } from '../models/events/ToolCallEvent';
 import { MessageContentEvent } from '../models/events/MessageContentEvent';
@@ -37,28 +44,56 @@ export const EventRenderer: React.FC<EventRendererProps> = observer(({ event }) 
  * 工具调用渲染器
  */
 const ToolCallRenderer: React.FC<{ event: ToolCallEvent }> = observer(({ event }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   const statusIcon = {
-    running: '⏳',
-    completed: '✅',
-    failed: '❌',
+    running: <Loader2 className="w-4 h-4 animate-spin" />,
+    completed: <CheckCircle2 className="w-4 h-4 text-green-500" />,
+    failed: <XCircle className="w-4 h-4 text-red-500" />,
   };
 
   const statusText = {
     running: '执行中',
-    completed: '已完成',
-    failed: '失败',
+    completed: '执行成功',
+    failed: '请求失败',
   };
+
+  const hasOutput = event.output !== undefined;
 
   return (
     <div className="tool-call-event">
-      <div className="tool-call-header">
-        <span className="tool-icon">{statusIcon[event.status]}</span>
-        <span className="tool-name">{event.name}</span>
-        <span className="tool-status">{statusText[event.status]}</span>
-        {event.duration && <span className="tool-duration">{event.duration}ms</span>}
+      <div 
+        className="tool-call-header" 
+        onClick={() => hasOutput && setIsOpen(!isOpen)}
+      >
+        <div className="tool-icon-wrapper">
+          {statusIcon[event.status]}
+        </div>
+        <div className="tool-name">使用工具: {event.name}</div>
+        <div className="tool-status">{statusText[event.status]}</div>
+        {hasOutput && (
+          <ChevronDown className={`tool-chevron w-4 h-4 ${isOpen ? 'open' : ''}`} />
+        )}
       </div>
-      {event.status === 'failed' && event.output?.error && (
-        <div className="tool-error">{String(event.output.error)}</div>
+
+      {isOpen && hasOutput && (
+        <div className="tool-details">
+          <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
+            <Terminal className="w-3 h-3" />
+            <span>工具输出内容</span>
+          </div>
+          <pre className="tool-output-box">
+            {typeof event.output === 'object' 
+              ? JSON.stringify(event.output, null, 2) 
+              : String(event.output)}
+          </pre>
+          {event.status === 'failed' && event.output?.error && (
+            <div className="tool-error">
+              <AlertCircle className="w-3 h-3 inline mr-1" />
+              {String(event.output.error)}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -72,9 +107,7 @@ const MessageContentRenderer: React.FC<{ event: MessageContentEvent }> = observe
 
   return (
     <div className="message-content-event">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {event.content}
-      </ReactMarkdown>
+      <MarkdownRenderer content={event.content} />
       {!event.isComplete && <span className="typing-cursor">▋</span>}
     </div>
   );
@@ -86,8 +119,12 @@ const MessageContentRenderer: React.FC<{ event: MessageContentEvent }> = observe
 const ThinkingRenderer: React.FC<{ event: ThinkingEvent }> = observer(() => {
   return (
     <div className="thinking-event">
-      <span className="thinking-icon">🤔</span>
-      <span className="thinking-text">思考中...</span>
+      <div className="thinking-shimmer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <span className="thinking-text">小禾正在思考为您提供最准确的建议...</span>
     </div>
   );
 });
@@ -98,9 +135,11 @@ const ThinkingRenderer: React.FC<{ event: ThinkingEvent }> = observer(() => {
 const ErrorRenderer: React.FC<{ event: ErrorEvent }> = observer(({ event }) => {
   return (
     <div className="error-event">
-      <span className="error-icon">❌</span>
-      <span className="error-message">{event.message}</span>
-      {event.code && <span className="error-code">({event.code})</span>}
+      <AlertCircle className="w-5 h-5 text-red-500" />
+      <div className="flex-1">
+        <span className="error-message">{event.message}</span>
+        {event.code && <span className="error-code text-xs block opacity-70">错误代码: {event.code}</span>}
+      </div>
     </div>
   );
 });
@@ -109,9 +148,6 @@ const ErrorRenderer: React.FC<{ event: ErrorEvent }> = observer(({ event }) => {
  * 对话状态渲染器
  */
 const ConversationStatusRenderer: React.FC<{ event: ConversationStatusEvent }> = observer(({ event }) => {
-  // 大多数状态事件不需要显示 UI，只在关键状态显示
-  // 不显示：idle, processing, streaming, complete, starting
-  // 只在错误或特殊状态显示
   if (['idle', 'processing', 'streaming', 'complete', 'starting'].includes(event.status)) {
     return null;
   }

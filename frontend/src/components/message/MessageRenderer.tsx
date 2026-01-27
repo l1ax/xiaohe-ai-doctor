@@ -1,9 +1,9 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
 import { User, Bot } from 'lucide-react';
 import { Message, ToolCall } from '../../machines/chatMachine';
 import { ToolCallCard } from './ToolCallCard';
 import { ThinkingDots } from './ThinkingDots';
+import { MarkdownRenderer } from '../shared/MarkdownRenderer';
 
 // ============ 基础样式 ============
 
@@ -115,26 +115,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
                   <p className="whitespace-pre-wrap">{content}</p>
                 ) : (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown
-                      components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>,
-                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                        em: ({ children }) => <em>{children}</em>,
-                        a: ({ href, children }) => (
-                          <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
-                            {children}
-                          </a>
-                        ),
-                        blockquote: ({ children }) => (
-                          <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">{children}</blockquote>
-                        ),
-                      }}
-                    >
-                      {content}
-                    </ReactMarkdown>
+                    <MarkdownRenderer content={content} />
                   </div>
                 )
               )}
