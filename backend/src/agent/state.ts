@@ -62,6 +62,12 @@ export const AgentState = Annotation.Root({
     }),
   }),
 
+  // 路由决策
+  routeDecision: Annotation<'quick' | 'react'>({
+    reducer: (_, update) => update,
+    default: () => 'react',
+  }),
+
   // ========== ReAct 循环 ==========
   // 思考过程记录
   scratchpad: Annotation<string>({

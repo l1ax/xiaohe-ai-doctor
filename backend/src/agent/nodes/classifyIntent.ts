@@ -77,6 +77,10 @@ export async function classifyIntent(
       },
     });
 
+    // ========== 路由决策 ==========
+    const routeDecision = determineRoute(primaryIntent);
+    console.log(`[ClassifyIntent] 路由决策: ${routeDecision}`);
+
     return {
       userIntent: intents,
       primaryIntent,
@@ -86,6 +90,7 @@ export async function classifyIntent(
         hasEmergencyKeywords: false,
         severity: 'mild',
       },
+      routeDecision,
     };
   } catch (error) {
     console.error('[ClassifyIntent] Error:', error);
@@ -100,6 +105,47 @@ export async function classifyIntent(
         hasEmergencyKeywords: false,
         severity: 'mild',
       },
+      routeDecision: 'react', // 默认走 ReAct
     };
   }
+}
+
+/**
+ * 路由决策常量
+ */
+const QUICK_INTENTS: UserIntent[] = [
+  'symptom_consult',
+  'medicine_info',
+  'health_advice',
+];
+
+const REACT_INTENTS: UserIntent[] = [
+  'emergency',
+  'general_qa',
+];
+
+/**
+ * 决定使用哪个路由
+ * @param primaryIntent 主要意图
+ * @returns 'quick' 或 'react'
+ */
+function determineRoute(primaryIntent: UserIntent | null): 'quick' | 'react' {
+  if (!primaryIntent) {
+    console.log('[RouteDecision] 无主要意图，默认走 ReAct');
+    return 'react';
+  }
+
+  if (QUICK_INTENTS.includes(primaryIntent)) {
+    console.log(`[RouteDecision] 意图 ${primaryIntent} 走快速通道`);
+    return 'quick';
+  }
+
+  if (REACT_INTENTS.includes(primaryIntent)) {
+    console.log(`[RouteDecision] 意图 ${primaryIntent} 走 ReAct 循环`);
+    return 'react';
+  }
+
+  // 默认走 ReAct（保守策略）
+  console.log(`[RouteDecision] 意图 ${primaryIntent} 未明确分类，默认走 ReAct`);
+  return 'react';
 }
