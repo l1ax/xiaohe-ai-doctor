@@ -25,15 +25,17 @@ export async function finalResponse(
   const duration = startTime ? Date.now() - startTime : 0;
 
   // 发送会话结束事件
-  eventEmitter.emit(
-    'conversation:end',
-    createConversationEndEvent(
-      conversationId,
-      messageId || `msg_${Date.now()}`,
-      duration,
-      messages.length
-    )
-  );
+  if (eventEmitter) {
+    eventEmitter.emit(
+      'conversation:end',
+      createConversationEndEvent(
+        conversationId,
+        messageId || `msg_${Date.now()}`,
+        duration,
+        messages.length
+      )
+    );
+  }
 
   console.log(`✅ Conversation ${conversationId} completed, duration: ${duration}ms`);
 

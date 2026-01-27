@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { finalResponse } from '../finalResponse';
 import { AgentEventEmitter } from '../../events/AgentEventEmitter';
 import type { AgentStateType } from '../../state';
+import type { Message } from '../../types';
 
 describe('finalResponse', () => {
   let mockEmitter: AgentEventEmitter;
@@ -20,7 +21,7 @@ describe('finalResponse', () => {
       isFinished: true,
       fallbackResponse: null,
       messages: [
-        { role: 'user', content: '测试消息' } as any,
+        { role: 'user', content: '测试消息' } as Message,
       ],
     };
 
