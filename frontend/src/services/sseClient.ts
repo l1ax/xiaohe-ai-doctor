@@ -42,6 +42,7 @@ export class SSEClient {
     
     if (method === 'POST') {
       // POST 请求：通过 body 传递参数
+      this.abortController = new AbortController();
       fetchOptions = {
         method: 'POST',
         headers: {
@@ -67,6 +68,7 @@ export class SSEClient {
       }
       fetchUrl = url.toString();
       
+      this.abortController = new AbortController();
       fetchOptions = {
         method: 'GET',
         headers: {
@@ -77,9 +79,6 @@ export class SSEClient {
       };
     }
 
-    if (!this.abortController) {
-      this.abortController = new AbortController();
-    }
     this.isManualClose = false;
 
     try {
