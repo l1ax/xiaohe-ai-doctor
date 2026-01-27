@@ -8,6 +8,7 @@ export interface Message {
   content: string;
   timestamp: string;
   status: 'pending' | 'sending' | 'streaming' | 'complete' | 'failed';
+  imageUrls?: string[];  // 新增：支持图片数组
   medicalAdvice?: MedicalAdvice;
 }
 
@@ -80,7 +81,7 @@ export interface ChatContext {
 // ============ 事件类型 ============
 
 export type ChatEventType =
-  | { type: 'SEND_MESSAGE'; content: string }
+  | { type: 'SEND_MESSAGE'; content: string; imageUrls?: string[] }  // 修改：添加 imageUrls
   | { type: 'RETRY' }
   | { type: 'CANCEL' }
   | { type: 'TOOL_CALL'; toolId: string; toolName: string; status: string; input?: Record<string, unknown>; output?: Record<string, unknown>; duration?: number }
@@ -111,6 +112,7 @@ export const chatMachine = setup({
           id: `msg_${Date.now()}`,
           role: 'user',
           content: event.content,
+          imageUrls: event.imageUrls,  // 新增：保存图片 URLs
           timestamp: new Date().toISOString(),
           status: 'complete',
         };
