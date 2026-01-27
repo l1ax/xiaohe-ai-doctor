@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { User, Bot } from 'lucide-react';
-import { Message } from '../../machines/chatMachine';
+import { Message, ToolCall } from '../../machines/chatMachine';
+import { ToolCallCard } from './ToolCallCard';
 
 // ============ 基础样式 ============
 
@@ -35,9 +36,10 @@ interface TextMessageProps {
   content: string;
   role: 'user' | 'assistant' | 'system';
   isStreaming?: boolean;
+  imageUrls?: string[];
 }
 
-export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStreaming }) => {
+export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStreaming, imageUrls }) => {
   if (role === 'system') {
     return (
       <div className={messageStyles.system.container}>
@@ -55,7 +57,6 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
       {/* Assistant Avatar */}
       {role === 'assistant' && (
         <div className={styles.avatarContainer}>
-          {/* Use an image if available, otherwise Bot icon */}
            <img 
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-" 
             alt="AI Doctor"
@@ -65,7 +66,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
               e.currentTarget.parentElement?.classList.add('bg-primary/10');
             }}
            />
-           <Bot className="w-6 h-6 text-primary absolute opacity-0" style={{ opacity: 0 }} /> {/* Fallback handled by onError logic physically or just use Bot icon if img fails logic which is complex here. Let's keep it simple: Image first. */}
+           <Bot className="w-6 h-6 text-primary absolute opacity-0" style={{ opacity: 0 }} />
         </div>
       )}
 
@@ -75,31 +76,50 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
         )}
         
         <div className={styles.bubble}>
-          {role === 'user' ? (
-            <p className="whitespace-pre-wrap">{content}</p>
-          ) : (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown
-                components={{
-                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                  ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
-                  li: ({ children }) => <li className="mb-1">{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                  em: ({ children }) => <em>{children}</em>,
-                  a: ({ href, children }) => (
-                    <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
-                      {children}
-                    </a>
-                  ),
-                  blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">{children}</blockquote>
-                  ),
+          {/* 图片（如果有） */}
+          {imageUrls && imageUrls.length > 0 && (
+            <div className="mb-2">
+              <img 
+                src={imageUrls[0]} 
+                alt="用户上传的图片"
+                className="max-w-full rounded-lg border border-slate-200 dark:border-slate-700"
+                style={{ maxHeight: '200px', objectFit: 'contain' }}
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYflia3ovb3lpLHotKU8L3RleHQ+PC9zdmc+';
+                  e.currentTarget.alt = '图片加载失败';
                 }}
-              >
-                {content}
-              </ReactMarkdown>
+              />
             </div>
+          )}
+          
+          {/* 文字内容 */}
+          {content && (
+            role === 'user' ? (
+              <p className="whitespace-pre-wrap">{content}</p>
+            ) : (
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-inside mb-2">{children}</ol>,
+                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    em: ({ children }) => <em>{children}</em>,
+                    a: ({ href, children }) => (
+                      <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-gray-300 pl-3 italic my-2">{children}</blockquote>
+                    ),
+                  }}
+                >
+                  {content}
+                </ReactMarkdown>
+              </div>
+            )
           )}
           {isStreaming && (
             <span className="inline-block w-2 h-4 bg-primary/50 ml-1 animate-pulse" />
@@ -260,17 +280,24 @@ export const MedicalAdviceCard: React.FC<MedicalAdviceCardProps> = ({ advice }) 
 
 interface MessageRendererProps {
   message: Message;
+  toolCalls?: ToolCall[];
 }
 
-export const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
+export const MessageRenderer: React.FC<MessageRendererProps> = ({ message, toolCalls }) => {
   const isStreaming = message.status === 'streaming';
 
   return (
     <div>
+      {/* 工具调用卡片（仅 AI 回复时显示） */}
+      {message.role === 'assistant' && toolCalls && toolCalls.length > 0 && (
+        <ToolCallCard tools={toolCalls} />
+      )}
+      
       <TextMessage
         content={message.content}
         role={message.role}
         isStreaming={isStreaming}
+        imageUrls={message.imageUrls}
       />
       {message.medicalAdvice && (
         <MedicalAdviceCard advice={message.medicalAdvice} />
@@ -283,14 +310,28 @@ export const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => 
 
 interface MessagesListProps {
   messages: Message[];
+  toolCalls?: ToolCall[];
 }
 
-export const MessagesList: React.FC<MessagesListProps> = ({ messages }) => {
+export const MessagesList: React.FC<MessagesListProps> = ({ messages, toolCalls }) => {
   return (
     <div className="flex flex-col pb-4">
-      {messages.map((message) => (
-        <MessageRenderer key={message.id} message={message} />
-      ))}
+      {messages.map((message) => {
+        // 最后一条 AI 消息显示工具调用
+        const isLastAssistant = 
+          message.role === 'assistant' && 
+          message === messages.filter(m => m.role === 'assistant').slice(-1)[0];
+        
+        const relatedTools = isLastAssistant ? toolCalls : undefined;
+        
+        return (
+          <MessageRenderer 
+            key={message.id} 
+            message={message} 
+            toolCalls={relatedTools}
+          />
+        );
+      })}
     </div>
   );
 };
