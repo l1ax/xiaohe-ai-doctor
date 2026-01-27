@@ -106,6 +106,7 @@ export interface ToolCallEvent extends BaseEvent {
     output?: Record<string, any>;
     error?: string;
     duration?: number;
+    iteration?: number;
   };
 }
 
@@ -236,7 +237,7 @@ export function createToolCallEvent(
   toolName: string,
   messageId: string,
   status: ToolStatus,
-  options?: { input?: Record<string, any>; output?: Record<string, any>; error?: string; duration?: number }
+  options?: { input?: Record<string, any>; output?: Record<string, any>; error?: string; duration?: number; iteration?: number }
 ): ToolCallEvent {
   return {
     type: 'tool:call',

@@ -42,9 +42,9 @@ export const AgentState = Annotation.Root({
   }),
 
   // 意图置信度
-  intentConfidence: Annotation<Record<UserIntent, number>>({
+  intentConfidence: Annotation<Partial<Record<UserIntent, number>>>({
     reducer: (_, update) => update,
-    default: () => ({} as Record<UserIntent, number>),
+    default: () => ({}),
   }),
 
   // 意图分类提取的信息

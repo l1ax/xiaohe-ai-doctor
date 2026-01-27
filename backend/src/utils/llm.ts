@@ -6,7 +6,7 @@ export function createZhipuLLM(temperature: number = 0.7) {
   }
   
   return new ChatOpenAI({
-    model: "glm-4-flash",
+    model: "glm-4.5-airx",
     apiKey: process.env.ZHIPU_API_KEY,
     temperature,
     configuration: {

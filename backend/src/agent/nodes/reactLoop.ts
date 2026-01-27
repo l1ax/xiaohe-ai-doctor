@@ -81,12 +81,20 @@ ${scratchpad}
     // 5. 验证解析结果
     if (!isValidReActOutput(parsed)) {
       console.error('[ReactLoop] Parse error:', formatParseError(parsed));
+
+      // 构建完整的错误反馈到 scratchpad
+      const errorEntry = [
+        `Thought: ${parsed.thought || 'Parse error'}`,
+        parsed.action ? `Action: ${parsed.action}` : '',
+        parsed.parseError
+          ? `Observation: ${parsed.parseError}`
+          : `Observation: 输出格式错误，请按照 ReAct 格式输出（Thought → Action → Action Input）`,
+        '',
+      ].filter(Boolean).join('\n') + '\n';
+
       return {
         agentIteration: agentIteration + 1,
-        scratchpad: appendToScratchpad(
-          scratchpad,
-          `Thought: ${parsed.thought || 'Parse error'}\n\n`
-        ),
+        scratchpad: appendToScratchpad(scratchpad, errorEntry),
       };
     }
 
@@ -138,11 +146,15 @@ ${scratchpad}
 
     const updatedScratchpad = appendToScratchpad(scratchpad, newEntry);
 
-    // 8. 返回更新
+    // 8. 检查是否是需要等待用户回复的工具
+    // ask_followup_question 执行后应该结束当前回合，等待用户回复
+    const shouldWaitForUser = parsed.action === 'ask_followup_question' && toolResult.success;
+
+    // 9. 返回更新
     return {
       agentIteration: agentIteration + 1,
       scratchpad: updatedScratchpad,
-      isFinished: parsed.isFinished,
+      isFinished: parsed.isFinished || shouldWaitForUser,
       toolsUsed: [...toolsUsed, parsed.action!],
     };
   } catch (error) {

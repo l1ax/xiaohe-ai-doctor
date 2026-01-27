@@ -58,8 +58,9 @@ export interface FinishParams {
   finalResponse: string;
   summary: string;
   actions?: Array<{
-    type: string;
+    type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel';
     label: string;
+    data?: Record<string, any>;
   }>;
   informationSources?: Array<'knowledge_base' | 'web_search' | 'model_knowledge' | 'user_provided'>;
   reliabilityNote?: string;

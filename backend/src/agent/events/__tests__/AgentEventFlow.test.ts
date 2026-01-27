@@ -24,11 +24,24 @@ describe('Agent Event Flow Integration Tests', () => {
 
       const mockState: typeof AgentState.State = {
         messages: [{ role: 'user', content: 'I have a headache' }],
-        userIntent: [],
-        extractedInfo: {},
-        branchResult: null,
         conversationId: 'test-conv-1',
         messageId: 'msg_123',
+        userId: '',
+        userIntent: [],
+        primaryIntent: null,
+        intentConfidence: {},
+        extractedInfo: {},
+        riskIndicators: {
+          hasEmergencyKeywords: false,
+          severity: 'mild',
+        },
+        scratchpad: '',
+        agentIteration: 0,
+        maxIterations: 10,
+        isFinished: false,
+        fallbackResponse: null,
+        toolsUsed: [],
+        branchResult: null,
         startTime: Date.now(),
         eventEmitter: emitter,
       };

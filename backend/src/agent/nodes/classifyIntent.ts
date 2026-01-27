@@ -60,7 +60,7 @@ export async function classifyIntent(
     const primaryIntent = intents[0] || 'general_qa';
 
     // 计算置信度（简化版）
-    const intentConfidence: Record<UserIntent, number> = {};
+    const intentConfidence: Partial<Record<UserIntent, number>> = {};
     intents.forEach((intent: UserIntent, index: number) => {
       intentConfidence[intent] = 1.0 - (index * 0.2);
     });

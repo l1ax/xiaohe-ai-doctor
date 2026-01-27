@@ -70,7 +70,7 @@ describe('classifyIntent - Multi-Intent Support', () => {
 
     const result = await classifyIntent(mockState as AgentStateType);
 
-    expect(result.riskIndicators.hasEmergencyKeywords).toBe(true);
-    expect(result.riskIndicators.severity).toBe('severe');
+    expect(result.riskIndicators?.hasEmergencyKeywords).toBe(true);
+    expect(result.riskIndicators?.severity).toBe('severe');
   });
 });
