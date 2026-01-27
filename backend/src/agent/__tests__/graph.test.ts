@@ -6,16 +6,20 @@ describe('Agent Graph Structure', () => {
     expect(() => createAgentGraph()).not.toThrow();
   });
 
-  it('should have correct node structure', () => {
+  it('should have correct node names', () => {
     const graph = createAgentGraph();
+    const nodeNames = Object.keys((graph as any).nodes);
 
-    // 验证图已成功编译
-    expect(graph).toBeDefined();
-    expect(graph.invoke).toBeDefined();
-    expect(graph.stream).toBeDefined();
+    // 应该包含新节点
+    expect(nodeNames).toContain('classifyIntent');
+    expect(nodeNames).toContain('reactLoop');
+    expect(nodeNames).toContain('finalResponse');
 
-    // 验证图的基本结构
-    expect(typeof graph.invoke).toBe('function');
-    expect(typeof graph.stream).toBe('function');
+    // 不应该包含旧节点
+    expect(nodeNames).not.toContain('symptomAnalysis');
+    expect(nodeNames).not.toContain('consultation');
+    expect(nodeNames).not.toContain('hospitalRecommend');
+    expect(nodeNames).not.toContain('medicineInfo');
+    expect(nodeNames).not.toContain('synthesizeResponse');
   });
 });
