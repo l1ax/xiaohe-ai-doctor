@@ -103,6 +103,18 @@ ${scratchpad}
       };
     }
 
+    // 检查 actionInput 是否有效
+    if (!parsed.actionInput) {
+      console.error(`[ReactLoop] Invalid action input for tool: ${parsed.action}`);
+      return {
+        agentIteration: agentIteration + 1,
+        scratchpad: appendToScratchpad(
+          scratchpad,
+          `Thought: ${parsed.thought}\nAction: ${parsed.action}\nObservation: 工具参数无效（Action Input 为空）\n\n`
+        ),
+      };
+    }
+
     const toolResult = await tool.execute(parsed.actionInput, {
       conversationId,
       messageId,

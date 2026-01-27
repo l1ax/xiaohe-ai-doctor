@@ -27,6 +27,18 @@ export class SSEHandler {
   }
 
   handleConnection(req: IncomingMessage, res: ServerResponse, conversationId: string): void {
+    // 关闭该 conversationId 的所有旧连接，避免重复发送
+    const oldConnections: string[] = [];
+    for (const [connId, conn] of this.connections) {
+      if (conn.conversationId === conversationId) {
+        oldConnections.push(connId);
+      }
+    }
+    for (const connId of oldConnections) {
+      console.log(`[SSE] Closing old connection for conversation: ${conversationId}`);
+      this.closeConnection(connId);
+    }
+
     const connectionId = `conn_${this.connectionIdCounter++}_${Date.now()}`;
 
     res.setHeader('Content-Type', 'text/event-stream');
