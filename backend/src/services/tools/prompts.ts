@@ -34,33 +34,6 @@ export const RECOGNITION_PROMPTS: Record<Exclude<UserIntent, 'hospital_recommend
 };
 
 /**
- * 网页摘要 Prompt
- */
-export const SUMMARIZE_WEBPAGE_PROMPT = (content: string, date: string): string => `Today's date is ${date}.
-
-You are tasked with summarizing webpage content for research purposes.
-
-**Instructions:**
-1. Extract the main topic and key points from the content
-2. Identify important facts, statistics, and findings
-3. Capture relevant quotes or excerpts that contain valuable information
-4. Filter out navigation, ads, and irrelevant boilerplate content
-5. Focus on factual information that answers research questions
-
-**Webpage Content:**
-${content}
-
-Provide:
-1. A concise summary of the main content
-2. Key excerpts with important quotes or data points
-
-Return your response in JSON format with:
-{
-  "summary": "<concise summary of main content>",
-  "key_excerpts": "<important quotes and data points>"
-}`;
-
-/**
  * 判断意图是否需要图片识别
  */
 export function shouldRecognizeImage(intent: UserIntent): boolean {

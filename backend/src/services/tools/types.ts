@@ -75,5 +75,5 @@ export interface ToolResult {
 export const TIMEOUT_CONFIG = {
   imageRecognition: 10000,   // 10s
   knowledgeBase: 5000,       // 5s
-  webSearch: 20000,          // 20s (实际需要约 8-16 秒，波动较大)
+  webSearch: 20000,          // 20s (实际需要约 1-2 秒，预留缓冲)
 } as const;

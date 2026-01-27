@@ -1,7 +1,5 @@
 import { tavily } from '@tavily/core';
-import { createZhipuLLM } from '../../utils/llm';
 import { WebSearchResult } from './types';
-import { SUMMARIZE_WEBPAGE_PROMPT } from './prompts';
 
 /**
  * Tavily API 响应结构
@@ -18,14 +16,6 @@ interface TavilySearchResponse {
 }
 
 /**
- * LLM 摘要响应结构
- */
-interface SummaryResponse {
-  summary: string;
-  key_excerpts: string;
-}
-
-/**
  * 搜索网络
  * @param query 搜索查询
  * @returns 搜索结果
@@ -36,16 +26,13 @@ export async function searchWeb(query: string): Promise<WebSearchResult> {
     throw new Error('TAVILY_API_KEY environment variable is not set');
   }
 
-  // 初始化 Tavily 客户端
   const client = tavily({ apiKey });
 
   try {
-    // 执行搜索（最多 3 条结果）
     const response = (await client.search(query, {
       maxResults: 3,
     })) as unknown as TavilySearchResponse;
 
-    // 如果没有结果，返回空结果
     if (!response.results || response.results.length === 0) {
       return {
         hasResults: false,
@@ -55,22 +42,19 @@ export async function searchWeb(query: string): Promise<WebSearchResult> {
       };
     }
 
-    // 构建 sources（使用原始 content）
+    // 直接使用 Tavily 返回的内容，不再调用 LLM 摘要
     const sources = response.results.map((result) => ({
       title: result.title,
       url: result.url,
       content: result.content,
     }));
 
-    // 生成总体摘要
-    const overallSummary = await summarizeWebpageContent(
-      response.results.map((r) => r.content).join('\n\n'),
-      new Date().toISOString().split('T')[0]
-    );
+    // summary 字段使用简单拼接（用于向后兼容）
+    const summary = sources.map((s, i) => `${i + 1}. ${s.title}`).join('\n');
 
     return {
       hasResults: true,
-      summary: overallSummary.summary,
+      summary,
       sources,
       source: 'web_search',
     };
@@ -79,49 +63,6 @@ export async function searchWeb(query: string): Promise<WebSearchResult> {
       throw error;
     }
     throw new Error('Failed to search web');
-  }
-}
-
-/**
- * 使用 LLM 摘要网页内容
- * @param content 网页内容
- * @param date 日期字符串
- * @returns 摘要结果
- */
-export async function summarizeWebpageContent(
-  content: string,
-  date: string
-): Promise<SummaryResponse> {
-  const llm = createZhipuLLM(0); // temperature=0 保证稳定
-
-  const prompt = SUMMARIZE_WEBPAGE_PROMPT(content, date);
-
-  try {
-    const response = await llm.invoke([
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ]);
-
-    const responseContent = typeof response.content === 'string'
-      ? response.content
-      : String(response.content);
-
-    // 清理 LLM 响应中的 markdown 代码块标记
-    const cleanedContent = responseContent
-      .replace(/```json\s*/g, '')
-      .replace(/```\s*/g, '')
-      .trim();
-
-    const parsed = JSON.parse(cleanedContent) as SummaryResponse;
-    return parsed;
-  } catch (error) {
-    // 如果解析失败，返回原始内容作为摘要
-    if (error instanceof SyntaxError) {
-      throw new Error(`Failed to parse LLM response: ${error.message}`);
-    }
-    throw error;
   }
 }
 
@@ -135,13 +76,12 @@ export function formatWebSearch(result: WebSearchResult): string {
     return '';
   }
 
-  let formatted = `搜索结果摘要：\n${result.summary}\n\n`;
+  let formatted = '网络搜索结果：\n\n';
 
-  formatted += '来源：\n';
   result.sources.forEach((source, index) => {
     formatted += `${index + 1}. ${source.title}\n`;
     formatted += `   URL: ${source.url}\n`;
-    formatted += `   摘要: ${source.content}\n\n`;
+    formatted += `   内容: ${source.content}\n\n`;
   });
 
   return formatted;

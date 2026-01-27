@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { searchWeb, summarizeWebpageContent, formatWebSearch } from '../webSearch';
+import { searchWeb, formatWebSearch } from '../webSearch';
 import { WebSearchResult } from '../types';
 
 // Mock @tavily/core
@@ -16,53 +16,23 @@ vi.mock('@tavily/core', () => {
   };
 });
 
-// Mock @langchain/openai
-const mockInvoke = vi.hoisted(() => vi.fn());
-const mockLLMInstance = {
-  invoke: mockInvoke,
-};
-
-vi.mock('@langchain/openai', () => {
-  class MockChatOpenAI {
-    constructor() {
-      return mockLLMInstance;
-    }
-  }
-  return {
-    ChatOpenAI: MockChatOpenAI,
-  };
-});
-
-// Mock ../../utils/llm
-const mockCreateZhipuLLM = vi.hoisted(() => vi.fn(() => mockLLMInstance));
-
-vi.mock('../../utils/llm', () => {
-  return {
-    createZhipuLLM: mockCreateZhipuLLM,
-  };
-});
-
 describe('WebSearch', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSearch.mockReset();
-    mockInvoke.mockReset();
     mockTavily.mockReset();
-    mockCreateZhipuLLM.mockReset();
-    
+
     // 设置环境变量
     process.env.TAVILY_API_KEY = 'test-tavily-api-key';
-    process.env.ZHIPU_API_KEY = 'test-zhipu-api-key';
-    
+
     // 重置 mock 返回值
     mockTavily.mockReturnValue({
       search: mockSearch,
     });
-    mockCreateZhipuLLM.mockReturnValue(mockLLMInstance);
   });
 
   describe('searchWeb', () => {
-    it('should successfully search and return summary results', async () => {
+    it('should successfully search and return results without LLM summarization', async () => {
       const mockTavilyResponse = {
         results: [
           {
@@ -83,22 +53,13 @@ describe('WebSearch', () => {
         query: '感冒的症状',
       };
 
-      const mockLLMResponse = {
-        content: JSON.stringify({
-          summary: '感冒的主要症状包括发热、咳嗽、流鼻涕。治疗方法包括休息、多喝水。预防措施包括勤洗手、保持室内通风。',
-          key_excerpts: '发热、咳嗽、流鼻涕；休息、多喝水；勤洗手、保持室内通风',
-        }),
-      };
-
       mockSearch.mockResolvedValue(mockTavilyResponse);
-      // mockInvoke 会被调用一次（总体摘要）
-      mockInvoke.mockResolvedValue(mockLLMResponse);
 
       const result = await searchWeb('感冒的症状');
 
       expect(result).toEqual({
         hasResults: true,
-        summary: '感冒的主要症状包括发热、咳嗽、流鼻涕。治疗方法包括休息、多喝水。预防措施包括勤洗手、保持室内通风。',
+        summary: '1. 感冒的症状和治疗\n2. 感冒预防措施',
         sources: [
           {
             title: '感冒的症状和治疗',
@@ -139,10 +100,9 @@ describe('WebSearch', () => {
       expect(mockSearch).toHaveBeenCalledWith('不存在的疾病', {
         maxResults: 3,
       });
-      expect(mockInvoke).not.toHaveBeenCalled();
     });
 
-    it('should use LLM to summarize webpage content', async () => {
+    it('should return raw content directly without LLM processing', async () => {
       const mockTavilyResponse = {
         results: [
           {
@@ -156,20 +116,11 @@ describe('WebSearch', () => {
         query: '测试查询',
       };
 
-      const mockLLMResponse = {
-        content: JSON.stringify({
-          summary: '这是摘要后的内容',
-          key_excerpts: '关键信息点',
-        }),
-      };
-
       mockSearch.mockResolvedValue(mockTavilyResponse);
-      mockInvoke.mockResolvedValue(mockLLMResponse);
 
       const result = await searchWeb('测试查询');
 
-      expect(mockInvoke).toHaveBeenCalledTimes(1); // 只调用一次（总体摘要）
-      expect(result.summary).toBe('这是摘要后的内容');
+      expect(result.summary).toBe('1. 测试网页');
       expect(result.sources[0].content).toBe('这是一段很长的网页内容，需要被摘要。包含了很多详细信息。');
     });
 
@@ -188,45 +139,11 @@ describe('WebSearch', () => {
     });
   });
 
-  describe('summarizeWebpageContent', () => {
-    it('should summarize webpage content using LLM', async () => {
-      const mockLLMResponse = {
-        content: JSON.stringify({
-          summary: '这是摘要内容',
-          key_excerpts: '关键摘录',
-        }),
-      };
-
-      mockInvoke.mockResolvedValue(mockLLMResponse);
-
-      const result = await summarizeWebpageContent('网页内容', '2024-01-01');
-
-      expect(result).toEqual({
-        summary: '这是摘要内容',
-        key_excerpts: '关键摘录',
-      });
-
-      expect(mockInvoke).toHaveBeenCalled();
-    });
-
-    it('should handle LLM response parsing errors', async () => {
-      const mockLLMResponse = {
-        content: 'Invalid JSON response',
-      };
-
-      mockInvoke.mockResolvedValue(mockLLMResponse);
-
-      await expect(
-        summarizeWebpageContent('网页内容', '2024-01-01')
-      ).rejects.toThrow();
-    });
-  });
-
   describe('formatWebSearch', () => {
     it('should format web search result correctly', () => {
       const result: WebSearchResult = {
         hasResults: true,
-        summary: '这是搜索结果摘要',
+        summary: '1. 标题1\n2. 标题2',
         sources: [
           {
             title: '标题1',
@@ -244,11 +161,13 @@ describe('WebSearch', () => {
 
       const formatted = formatWebSearch(result);
 
-      expect(formatted).toContain('这是搜索结果摘要');
+      expect(formatted).toContain('网络搜索结果：');
       expect(formatted).toContain('标题1');
       expect(formatted).toContain('https://example.com/1');
+      expect(formatted).toContain('内容1');
       expect(formatted).toContain('标题2');
       expect(formatted).toContain('https://example.com/2');
+      expect(formatted).toContain('内容2');
     });
 
     it('should handle empty results', () => {
