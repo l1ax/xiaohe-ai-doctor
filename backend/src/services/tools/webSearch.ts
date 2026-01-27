@@ -104,11 +104,17 @@ export async function summarizeWebpageContent(
       },
     ]);
 
-    const responseContent = typeof response.content === 'string' 
-      ? response.content 
+    const responseContent = typeof response.content === 'string'
+      ? response.content
       : String(response.content);
 
-    const parsed = JSON.parse(responseContent) as SummaryResponse;
+    // 清理 LLM 响应中的 markdown 代码块标记
+    const cleanedContent = responseContent
+      .replace(/```json\s*/g, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    const parsed = JSON.parse(cleanedContent) as SummaryResponse;
     return parsed;
   } catch (error) {
     // 如果解析失败，返回原始内容作为摘要
