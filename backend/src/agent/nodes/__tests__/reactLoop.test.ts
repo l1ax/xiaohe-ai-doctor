@@ -10,8 +10,8 @@ Action: ask_followup_question
 Action Input: {"question": "头疼多久了？", "reason": "需要了解持续时间"}`,
 });
 
-vi.mock('@langchain/community/chat_models/zhipuai', () => ({
-  ChatZhipuAI: vi.fn().mockImplementation(function() {
+vi.mock('../../../utils/llm', () => ({
+  createZhipuLLM: vi.fn().mockImplementation(function() {
     return {
       invoke: mockInvoke,
     };

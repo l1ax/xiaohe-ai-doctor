@@ -1,4 +1,3 @@
-import { ChatZhipuAI } from '@langchain/community/chat_models/zhipuai';
 import type { AgentStateType } from '../state';
 import { buildReActSystemPrompt, injectToolDescriptions } from '../prompts/reactSystem';
 import { buildIntentGuidance, buildPriorityReminder } from '../prompts/intentGuidance';
@@ -6,6 +5,7 @@ import { formatToolDescriptions, getP0Tools } from '../tools/index';
 import { parseReActOutput, isValidReActOutput, formatParseError } from '../parser/reactParser';
 import { formatScratchpadEntry, appendToScratchpad } from '../utils/scratchpad';
 import { getToolByName } from '../tools/index';
+import { createZhipuLLM } from '../../utils/llm';
 
 /**
  * ReAct Loop 节点 - 执行一次 Think → Act → Observe 循环
@@ -68,10 +68,7 @@ ${scratchpad}
 现在，按照 ReAct 格式开始你的思考和行动：`;
 
     // 3. 调用 LLM
-    const llm = new ChatZhipuAI({
-      model: 'glm-4-plus',
-      temperature: 0.7,
-    });
+    const llm = createZhipuLLM(0.7);
 
     const response = await llm.invoke(fullPrompt);
     const llmOutput = typeof response.content === 'string'

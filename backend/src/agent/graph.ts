@@ -1,47 +1,53 @@
 import 'dotenv/config';
-import { StateGraph, END } from "@langchain/langgraph";
-import { AgentState } from "./state";
-import { classifyIntent } from "./nodes/classifyIntent";
-import { symptomAnalysis } from "./nodes/symptomAnalysis";
-import { consultation } from "./nodes/consultation";
-import { hospitalRecommend } from "./nodes/hospitalRecommend";
-import { medicineInfo } from "./nodes/medicineInfo";
-import { synthesizeResponse } from "./nodes/synthesizeResponse";
-import { routeByIntent } from "./router";
+import { StateGraph, END } from '@langchain/langgraph';
+import { AgentState } from './state';
+import { classifyIntent } from './nodes/classifyIntent';
+import { reactLoop } from './nodes/reactLoop';
+import { finalResponse } from './nodes/finalResponse';
 
+/**
+ * 决定 ReAct 循环是否继续
+ */
+function shouldContinueLoop(state: typeof AgentState.State): string {
+  const { isFinished } = state;
+
+  if (isFinished) {
+    return 'finalResponse';
+  }
+
+  return 'reactLoop';
+}
+
+/**
+ * 创建 Agent 图
+ *
+ * 流程：classifyIntent → reactLoop (循环) → finalResponse → END
+ */
 export function createAgentGraph() {
   const workflow = new StateGraph(AgentState)
     // 添加节点
-    .addNode("classifyIntent", classifyIntent)
-    .addNode("symptomAnalysis", symptomAnalysis)
-    .addNode("consultation", consultation)
-    .addNode("hospitalRecommend", hospitalRecommend)
-    .addNode("medicineInfo", medicineInfo)
-    .addNode("synthesizeResponse", synthesizeResponse)
-    
+    .addNode('classifyIntent', classifyIntent)
+    .addNode('reactLoop', reactLoop)
+    .addNode('finalResponse', finalResponse)
+
     // 入口：意图分类
-    .addEdge("__start__", "classifyIntent")
-    
-    // 条件路由：根据意图分发到不同分支
+    .addEdge('__start__', 'classifyIntent')
+
+    // 意图分类后进入 ReAct 循环
+    .addEdge('classifyIntent', 'reactLoop')
+
+    // ReAct 循环条件边：根据 isFinished 决定继续循环还是进入最终响应
     .addConditionalEdges(
-      "classifyIntent",
-      routeByIntent,
+      'reactLoop',
+      shouldContinueLoop,
       {
-        symptomAnalysis: "symptomAnalysis",
-        consultation: "consultation",
-        hospitalRecommend: "hospitalRecommend",
-        medicineInfo: "medicineInfo",
+        reactLoop: 'reactLoop',         // 继续循环
+        finalResponse: 'finalResponse',  // 结束循环
       }
     )
-    
-    // 各分支都汇聚到综合回答
-    .addEdge("symptomAnalysis", "synthesizeResponse")
-    .addEdge("consultation", "synthesizeResponse")
-    .addEdge("hospitalRecommend", "synthesizeResponse")
-    .addEdge("medicineInfo", "synthesizeResponse")
-    
-    // 综合回答后结束
-    .addEdge("synthesizeResponse", END);
+
+    // 最终响应后结束
+    .addEdge('finalResponse', END);
 
   return workflow.compile();
 }
