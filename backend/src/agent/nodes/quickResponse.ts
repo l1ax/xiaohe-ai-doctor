@@ -3,7 +3,7 @@ import { queryKnowledgeBase } from '../tools/queryKnowledgeBase';
 import { searchWeb } from '../tools/searchWeb';
 import { createZhipuLLM } from '../../utils/llm';
 import { buildQuickResponsePrompt } from '../prompts/quickResponsePrompt';
-import { createMessageContentEvent } from '../events/chat-event-types';
+import { createMessageContentEvent, createConversationEndEvent } from '../events/chat-event-types';
 
 /**
  * Quick Response 节点 - 快速响应通道
@@ -25,6 +25,7 @@ export async function quickResponse(
     messageId,
     userId,
     eventEmitter,
+    startTime,
   } = state;
 
   const userQuery = messages[messages.length - 1].content;
@@ -55,6 +56,19 @@ export async function quickResponse(
     // 检查是否有有效结果
     if (!selectedResult.success || !selectedResult.result) {
       console.error('[QuickResponse] 工具调用失败，使用降级响应');
+
+      // 发送对话结束事件
+      const duration = startTime ? Date.now() - startTime : 0;
+      eventEmitter.emit(
+        'conversation:end',
+        createConversationEndEvent(
+          conversationId,
+          messageId,
+          duration,
+          messages.length
+        )
+      );
+
       return {
         isFinished: true,
         fallbackResponse: '抱歉，我暂时无法查询到相关信息。请您稍后再试，或者联系人工客服。',
@@ -81,12 +95,39 @@ export async function quickResponse(
     console.log('[QuickResponse] 流式发送响应...');
     await streamResponse(finalResponse, conversationId, messageId, eventEmitter);
 
+    // 6. 发送对话结束事件
+    const duration = startTime ? Date.now() - startTime : 0;
+    eventEmitter.emit(
+      'conversation:end',
+      createConversationEndEvent(
+        conversationId,
+        messageId,
+        duration,
+        messages.length
+      )
+    );
+
+    console.log(`✅ QuickResponse completed for ${conversationId}, duration: ${duration}ms`);
+
     return {
       isFinished: true,
       toolsUsed: [useKnowledgeBase ? 'query_knowledge_base' : 'search_web'],
     };
   } catch (error) {
     console.error('[QuickResponse] Error:', error);
+
+    // 即使出错也要发送对话结束事件
+    const duration = startTime ? Date.now() - startTime : 0;
+    eventEmitter.emit(
+      'conversation:end',
+      createConversationEndEvent(
+        conversationId,
+        messageId,
+        duration,
+        messages.length
+      )
+    );
+
     return {
       isFinished: true,
       fallbackResponse: '抱歉，我遇到了技术问题。请稍后再试。',
