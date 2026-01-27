@@ -77,7 +77,9 @@ export class SSEClient {
       };
     }
 
-    this.abortController = new AbortController();
+    if (!this.abortController) {
+      this.abortController = new AbortController();
+    }
     this.isManualClose = false;
 
     try {
