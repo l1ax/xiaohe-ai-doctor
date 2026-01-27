@@ -32,7 +32,31 @@ export default {
       boxShadow: {
         soft: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
       },
+      keyframes: {
+        'thinking-dot': {
+          '0%, 60%, 100%': { transform: 'translateY(0)', opacity: '0.4' },
+          '30%': { transform: 'translateY(-8px)', opacity: '1' },
+        },
+      },
+      animation: {
+        'thinking-dot': 'thinking-dot 1.4s ease-in-out infinite',
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addUtilities }) {
+      const newUtilities = {
+        '.animation-delay-0': {
+          'animation-delay': '0s',
+        },
+        '.animation-delay-150': {
+          'animation-delay': '0.15s',
+        },
+        '.animation-delay-300': {
+          'animation-delay': '0.3s',
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
 };

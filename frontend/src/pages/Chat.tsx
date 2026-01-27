@@ -36,6 +36,7 @@ export const ChatPage: React.FC = () => {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isConnectingRef = useRef(false);
+  const currentClientRef = useRef<any>(null); // 保存当前 client 引用
 
   // Auto scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -50,14 +51,14 @@ export const ChatPage: React.FC = () => {
   const handleSendMessage = useCallback(async (content?: string) => {
     const messageContent = (content || inputValue).trim();
     const imageUrls = uploadedImageUrl ? [uploadedImageUrl] : undefined;
-    
+
     // 验证：至少有文字或图片
     if (!messageContent && !imageUrls) {
       toast.error('请输入消息或上传图片');
       return;
     }
-    
-    if (state.matches('streaming') || isConnectingRef.current) return;
+
+    if (state.matches('streaming')) return;
 
     const newConversationId = conversationId || `conv_${Date.now()}`;
     setConversationId(newConversationId);
@@ -80,6 +81,14 @@ export const ChatPage: React.FC = () => {
       message: messageContent,
       imageUrls,
       onEvent: (event: ChatEventType) => {
+        // 标准 SSE 流式传输模式：当收到 DONE 事件后，前端主动关闭连接
+        if (event.type === 'DONE') {
+          console.log('[SSE] Received DONE event, closing connection...');
+          setTimeout(() => {
+            client.close();
+            currentClientRef.current = null;
+          }, 100); // 短暂延迟确保所有事件都被处理
+        }
         send(event);
       },
       onError: (error) => {
@@ -89,7 +98,6 @@ export const ChatPage: React.FC = () => {
       },
       onOpen: () => {
         setIsSSEConnected(true);
-        isConnectingRef.current = false;
         console.log('SSE Connected');
       },
       onClose: () => {
@@ -98,6 +106,9 @@ export const ChatPage: React.FC = () => {
         console.log('SSE Closed');
       },
     });
+
+    // 保存当前 client 引用
+    currentClientRef.current = client;
 
     // Connect to SSE (this will trigger the agent)
     client.connect().catch((error) => {
@@ -140,13 +151,25 @@ export const ChatPage: React.FC = () => {
 
     switch (status) {
       case 'sending':
-        return <SystemMessage content="正在发送消息..." type="info" />;
+        return (
+          <div className="flex justify-center w-full mb-4">
+            <div className="flex items-center gap-2 bg-slate-200/50 dark:bg-slate-800/50 px-4 py-2 rounded-full backdrop-blur-sm">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-slate-500 dark:text-slate-400 text-sm">正在发送消息...</span>
+            </div>
+          </div>
+        );
       case 'processing':
-        return <SystemMessage content={message || 'AI 正在分析您的问题...'} type="info" />;
+        return (
+          <div className="flex justify-center w-full mb-4">
+            <div className="flex items-center gap-2 bg-slate-200/50 dark:bg-slate-800/50 px-4 py-2 rounded-full backdrop-blur-sm">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-slate-500 dark:text-slate-400 text-sm">{message || 'AI 正在分析您的问题...'}</span>
+            </div>
+          </div>
+        );
       case 'streaming':
-        // Streaming status is handled by the streaming message itself usually, 
-        // but we can show a subtle indicator if needed. 
-        // Design doesn't show explicit status for streaming other than cursor/text.
+        // Streaming status is handled by the streaming message itself
         return null;
       case 'error':
         return <SystemMessage content={message || '出错了，请重试'} type="error" />;
@@ -253,10 +276,10 @@ export const ChatPage: React.FC = () => {
         {/* Input Row */}
         <div className="flex items-end gap-2 p-3 pb-3">
           {/* Voice Input Button */}
-          <button 
-            aria-label="Voice Input" 
+          <button
+            aria-label="Voice Input"
             className="flex items-center justify-center shrink-0 w-11 h-11 rounded-full text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 transition-all active:scale-95"
-            disabled={state.matches('streaming') || isConnectingRef.current}
+            disabled={state.matches('streaming')}
           >
             <Mic className="w-6 h-6" />
           </button>
@@ -270,7 +293,7 @@ export const ChatPage: React.FC = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={state.matches('streaming') || isConnectingRef.current}
+              disabled={state.matches('streaming')}
             />
           </div>
 
@@ -278,13 +301,13 @@ export const ChatPage: React.FC = () => {
           {!uploadedImageUrl && !inputValue ? (
             <ImageUploader
               onImageUploaded={setUploadedImageUrl}
-              disabled={state.matches('streaming') || isConnectingRef.current}
+              disabled={state.matches('streaming')}
             />
           ) : (
-            <button 
+            <button
               aria-label="发送消息"
               onClick={() => handleSendMessage()}
-              disabled={state.matches('streaming') || isConnectingRef.current}
+              disabled={state.matches('streaming')}
               className="flex items-center justify-center shrink-0 w-11 h-11 rounded-full text-white bg-primary hover:bg-primary-dark shadow-md transition-all active:scale-95 disabled:opacity-50"
             >
               <Send className="w-5 h-5 ml-0.5" />
