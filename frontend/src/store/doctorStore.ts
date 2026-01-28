@@ -13,7 +13,7 @@ export interface Consultation {
   patientName: string;
   patientAvatar?: string;
   symptoms: string;
-  status: 'pending' | 'ongoing' | 'completed';
+  status: 'pending' | 'active' | 'ongoing' | 'completed' | 'closed' | 'cancelled';
   urgency: 'low' | 'medium' | 'high';
   createdAt: string;
   waitingTime?: number; // 等待时间（分钟）

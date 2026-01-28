@@ -62,16 +62,23 @@ export const ConsultationCard = ({ consultation, onAccept }: ConsultationCardPro
   };
 
   const handleAccept = async () => {
-    // 如果已经是进行中的问诊，直接进入聊天
-    if (consultation.status === 'ongoing') {
+    // 如果已经是进行中或已接诊的问诊，直接进入聊天
+    if (consultation.status === 'ongoing' || consultation.status === 'active') {
       navigate(`/doctor/chat/${consultation.id}`);
       return;
     }
     
     // pending 状态，需要先接诊
-    const success = await onAccept(consultation.id);
-    if (success) {
-      navigate(`/doctor/chat/${consultation.id}`);
+    try {
+      const success = await onAccept(consultation.id);
+      if (success) {
+        navigate(`/doctor/chat/${consultation.id}`);
+      }
+    } catch (error: any) {
+      // 如果后端返回"已被接诊"错误，说明状态已变，直接进入
+      if (error.message?.includes('已被接诊') || error.message?.includes('active')) {
+        navigate(`/doctor/chat/${consultation.id}`);
+      }
     }
   };
 

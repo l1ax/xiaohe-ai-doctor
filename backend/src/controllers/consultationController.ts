@@ -602,6 +602,9 @@ export const getConsultationMessages = async (req: Request, res: Response): Prom
 
     const messages = messageStore.getByConsultationId(consultationId);
 
+    // 自动标记为已读
+    messageStore.markConsultationAsRead(consultationId, req.user.userId);
+
     res.json({
       code: 0,
       data: messages,
@@ -609,6 +612,63 @@ export const getConsultationMessages = async (req: Request, res: Response): Prom
     });
   } catch (error) {
     logger.error('Get consultation messages error', error);
+    throw error;
+  }
+};
+
+/**
+ * 获取用户未读消息数
+ * GET /api/consultations/unread
+ */
+export const getUnreadCount = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const unreadCounts = messageStore.getUnreadCounts(req.user.userId);
+    const total = messageStore.getTotalUnreadCount(req.user.userId);
+
+    // 转换为对象格式
+    const byConsultation: Record<string, number> = {};
+    unreadCounts.forEach((count, consultationId) => {
+      byConsultation[consultationId] = count;
+    });
+
+    res.json({
+      code: 0,
+      data: {
+        total,
+        byConsultation,
+      },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Get unread count error', error);
+    throw error;
+  }
+};
+
+/**
+ * 标记问诊消息为已读
+ * PUT /api/consultations/:id/read
+ */
+export const markMessagesAsRead = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
+    const consultationId = getRouteParam(req.params.id);
+    const count = messageStore.markConsultationAsRead(consultationId, req.user.userId);
+
+    res.json({
+      code: 0,
+      data: { markedCount: count },
+      message: 'success',
+    });
+  } catch (error) {
+    logger.error('Mark messages as read error', error);
     throw error;
   }
 };

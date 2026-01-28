@@ -21,9 +21,15 @@ const Consultations = observer(function Consultations() {
   const navigate = useNavigate();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchConsultations();
+    fetchUnreadCounts();
+
+    // 每30秒轮询未读数
+    const interval = setInterval(fetchUnreadCounts, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchConsultations = async () => {
@@ -52,6 +58,21 @@ const Consultations = observer(function Consultations() {
       setLoading(false);
     }
   };
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/consultations/unread`, {
+        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        setUnreadCounts(data.data.byConsultation || {});
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread counts:', error);
+    }
+  };
+
 
   const handleJoinChat = (id: string) => {
     navigate(`/doctor-chat/${id}`);
@@ -126,8 +147,16 @@ const Consultations = observer(function Consultations() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm cursor-pointer active:opacity-80"
             >
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">person</span>
+                <div className="relative flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">person</span>
+                  </div>
+                  {/* 未读消息徽章 */}
+                  {unreadCounts[consultation.id] > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full">
+                      {unreadCounts[consultation.id] > 99 ? '99+' : unreadCounts[consultation.id]}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
