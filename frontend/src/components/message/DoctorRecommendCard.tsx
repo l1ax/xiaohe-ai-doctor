@@ -26,7 +26,14 @@ export const DoctorRecommendCard: React.FC<DoctorRecommendCardProps> = ({
   const navigate = useNavigate();
 
   const handleBooking = () => {
-    navigate(`/appointments/book?doctorId=${doctorId}`);
+    // 跳转到预约页面，携带医生信息参数
+    const params = new URLSearchParams({
+      doctorId,
+      doctorName,
+      hospital,
+      department,
+    });
+    navigate(`/appointments/schedule?${params.toString()}`);
   };
 
   return (
