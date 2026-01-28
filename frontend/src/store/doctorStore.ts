@@ -13,7 +13,7 @@ export interface Consultation {
   patientName: string;
   patientAvatar?: string;
   symptoms: string;
-  status: 'pending' | 'ongoing' | 'completed';
+  status: 'pending' | 'active' | 'ongoing' | 'completed' | 'closed' | 'cancelled';
   urgency: 'low' | 'medium' | 'high';
   createdAt: string;
   waitingTime?: number; // 等待时间（分钟）
@@ -184,8 +184,15 @@ class DoctorStore {
         }
       });
 
+      const data = await res.json();
+      
       if (!res.ok) {
-        throw new Error('接诊失败');
+        // 解析后端返回的具体错误信息
+        const errorMsg = data.message || data.error || '接诊失败';
+        this.error = errorMsg;
+        // 刷新列表以移除已关闭/取消的问诊
+        await this.fetchPendingConsultations();
+        throw new Error(errorMsg);
       }
 
       // 从待处理列表中移除
@@ -197,8 +204,7 @@ class DoctorStore {
       return true;
     } catch (error) {
       console.error('接诊失败', error);
-      this.error = '接诊失败';
-      return false;
+      throw error; // 重新抛出以便调用方处理
     }
   }
 

@@ -49,6 +49,53 @@ class MessageStore {
     }
   }
 
+  /**
+   * 标记某问诊中非自己发送的消息为已读
+   */
+  markConsultationAsRead(consultationId: string, userId: string): number {
+    const now = new Date().toISOString();
+    let count = 0;
+    for (const message of this.messages.values()) {
+      if (
+        message.consultationId === consultationId &&
+        message.senderId !== userId &&
+        !message.isRead
+      ) {
+        message.isRead = true;
+        message.readAt = now;
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * 获取用户未读消息数（按问诊分组）
+   */
+  getUnreadCounts(userId: string): Map<string, number> {
+    const counts = new Map<string, number>();
+    for (const message of this.messages.values()) {
+      if (message.senderId !== userId && !message.isRead) {
+        const current = counts.get(message.consultationId) || 0;
+        counts.set(message.consultationId, current + 1);
+      }
+    }
+    return counts;
+  }
+
+  /**
+   * 获取用户总未读消息数
+   */
+  getTotalUnreadCount(userId: string): number {
+    let count = 0;
+    for (const message of this.messages.values()) {
+      if (message.senderId !== userId && !message.isRead) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   clear(): void {
     this.messages.clear();
   }

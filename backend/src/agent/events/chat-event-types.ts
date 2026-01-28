@@ -27,6 +27,7 @@ export type ToolStatus =
 // ============ 基础事件接口 ============
 
 export interface BaseEvent {
+  eventId: string;      // 每个 SSE 事件的唯一 ID
   type: string;
   data: {
     conversationId: string;
@@ -106,6 +107,7 @@ export interface ToolCallEvent extends BaseEvent {
     output?: Record<string, any>;
     error?: string;
     duration?: number;
+    iteration?: number;
   };
 }
 
@@ -143,12 +145,17 @@ export type ChatEvent =
 
 // ============ 事件工厂函数 ============
 
+function generateEventId(): string {
+  return `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 export function createConversationStatusEvent(
   conversationId: string,
   status: ConversationStatus,
   options?: { previousStatus?: ConversationStatus; message?: string; reason?: string }
 ): ConversationStatusEvent {
   return {
+    eventId: generateEventId(),
     type: 'conversation:status',
     data: {
       conversationId,
@@ -166,6 +173,7 @@ export function createMessageStatusEvent(
   role: 'user' | 'assistant'
 ): MessageStatusEvent {
   return {
+    eventId: generateEventId(),
     type: 'message:status',
     data: {
       conversationId,
@@ -186,6 +194,7 @@ export function createMessageContentEvent(
   isLast: boolean
 ): MessageContentEvent {
   return {
+    eventId: generateEventId(),
     type: 'message:content',
     data: {
       conversationId,
@@ -217,6 +226,7 @@ export function createMessageMetadataEvent(
   toolsUsed?: string[]
 ): MessageMetadataEvent {
   return {
+    eventId: generateEventId(),
     type: 'message:metadata',
     data: {
       conversationId,
@@ -236,9 +246,10 @@ export function createToolCallEvent(
   toolName: string,
   messageId: string,
   status: ToolStatus,
-  options?: { input?: Record<string, any>; output?: Record<string, any>; error?: string; duration?: number }
+  options?: { input?: Record<string, any>; output?: Record<string, any>; error?: string; duration?: number; iteration?: number }
 ): ToolCallEvent {
   return {
+    eventId: generateEventId(),
     type: 'tool:call',
     data: {
       conversationId,
@@ -259,6 +270,7 @@ export function createErrorEvent(
   options?: { messageId?: string; recoverable?: boolean; suggestion?: string }
 ): ErrorEvent {
   return {
+    eventId: generateEventId(),
     type: 'error',
     data: {
       conversationId,
@@ -278,6 +290,7 @@ export function createConversationEndEvent(
   messageCount: number
 ): ConversationEndEvent {
   return {
+    eventId: generateEventId(),
     type: 'conversation:end',
     data: {
       conversationId,

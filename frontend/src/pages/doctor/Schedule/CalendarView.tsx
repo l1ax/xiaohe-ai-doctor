@@ -18,8 +18,9 @@ export const CalendarView = ({ selectedDate, onDateSelect, scheduledDates }: Cal
   const daysInMonth = lastDay.getDate();
   const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
 
-  // 获取今天日期
+  // 获取今天日期 (重置时间为 00:00:00 以进行正确的日期比较)
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   // 生成日历数据

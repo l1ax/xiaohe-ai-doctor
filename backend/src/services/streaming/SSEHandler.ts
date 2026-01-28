@@ -27,6 +27,18 @@ export class SSEHandler {
   }
 
   handleConnection(req: IncomingMessage, res: ServerResponse, conversationId: string): void {
+    // 关闭该 conversationId 的所有旧连接，避免重复发送
+    const oldConnections: string[] = [];
+    for (const [connId, conn] of this.connections) {
+      if (conn.conversationId === conversationId) {
+        oldConnections.push(connId);
+      }
+    }
+    for (const connId of oldConnections) {
+      console.log(`[SSE] Closing old connection for conversation: ${conversationId}`);
+      this.closeConnection(connId);
+    }
+
     const connectionId = `conn_${this.connectionIdCounter++}_${Date.now()}`;
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -86,11 +98,21 @@ export class SSEHandler {
     }
   }
 
-  broadcastEvent(eventData: SSEEventData): void {
+  broadcastEvent(eventData: any): void {
     const deadConnections: string[] = [];
 
     for (const [connectionId, connection] of this.connections) {
-      const success = this.sendSSEEvent(connection.res, eventData.type, eventData.data);
+      let success: boolean;
+      // 如果 eventData 有 eventId，将完整数据发送到 data 字段
+      if (eventData.eventId) {
+        success = this.sendSSEEvent(connection.res, eventData.type, {
+          eventId: eventData.eventId,
+          ...eventData.data,
+        });
+      } else {
+        success = this.sendSSEEvent(connection.res, eventData.type, eventData.data);
+      }
+
       if (!success) {
         deadConnections.push(connectionId);
       }
@@ -103,8 +125,7 @@ export class SSEHandler {
   }
 
   private sendAgentEvent(agentEvent: any): void {
-    // 事件类型映射 - 后端发送的事件类型需要与前端 parseServerEvent 匹配
-    // 前端 EventSource 监听使用下划线格式的事件类型
+    // 事件类型映射：后端冒号格式 → 前端下划线格式
     const eventTypeMap: Record<string, string> = {
       'conversation:status': 'conversation_status',
       'message:status': 'message_status',
@@ -113,14 +134,6 @@ export class SSEHandler {
       'tool:call': 'tool_call',
       'conversation:end': 'conversation_end',
       'error': 'error',
-      // 旧事件类型向后兼容
-      'agent:thinking': 'thinking',
-      'agent:intent': 'intent',
-      'agent:tool_call': 'tool_call',
-      'agent:content': 'content',
-      'agent:metadata': 'metadata',
-      'agent:done': 'done',
-      'agent:error': 'error',
     };
 
     const sseType = eventTypeMap[agentEvent.type];
@@ -131,15 +144,21 @@ export class SSEHandler {
       data: agentEvent.data,
     };
 
+    // 添加 eventId 到发送数据中
+    const ssePayload = {
+      eventId: agentEvent.eventId,
+      ...eventData,
+    };
+
     // Extract conversationId from event data
     const conversationId = (agentEvent.data as any).conversationId as string | undefined;
 
     if (conversationId) {
       // Send only to connections for this conversation
-      this.sendToConversation(conversationId, eventData);
+      this.sendToConversation(conversationId, ssePayload);
     } else {
       // Fallback to broadcast if no conversationId
-      this.broadcastEvent(eventData);
+      this.broadcastEvent(ssePayload);
     }
   }
 
@@ -148,8 +167,7 @@ export class SSEHandler {
       const dataStr = JSON.stringify(data);
       res.write(`event: ${event}\n`);
       res.write(`data: ${dataStr}\n\n`);
-      // 立即刷新缓冲区，确保数据发送到客户端
-      res.flush();
+      // Note: res.write() automatically flushes in Node.js, no need for explicit flush()
       return true;
     } catch (error) {
       console.error('[SSE] Error sending event:', error);
@@ -216,10 +234,18 @@ export class SSEHandler {
     return this.connections.size;
   }
 
-  sendToConversation(conversationId: string, eventData: SSEEventData): void {
+  sendToConversation(conversationId: string, eventData: any): void {
     for (const [, connection] of this.connections) {
       if (connection.conversationId === conversationId) {
-        this.sendSSEEvent(connection.res, eventData.type, eventData.data);
+        // 如果 eventData 有 eventId，将完整数据发送到 data 字段
+        if (eventData.eventId) {
+          this.sendSSEEvent(connection.res, eventData.type, {
+            eventId: eventData.eventId,
+            ...eventData.data,
+          });
+        } else {
+          this.sendSSEEvent(connection.res, eventData.type, eventData.data);
+        }
       }
     }
   }

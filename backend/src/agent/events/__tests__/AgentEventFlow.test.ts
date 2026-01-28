@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AgentEventEmitter } from '../AgentEventEmitter';
 import { AgentEvent, ThinkingEvent, IntentEvent, ToolCallEvent, ContentEvent, MetadataEvent, DoneEvent } from '../types';
-import { classifyIntent } from '../../nodes/classifyIntent';
-import { symptomAnalysis } from '../../nodes/symptomAnalysis';
-import { consultation } from '../../nodes/consultation';
-import { hospitalRecommend } from '../../nodes/hospitalRecommend';
-import { medicineInfo } from '../../nodes/medicineInfo';
-import { synthesizeResponse } from '../../nodes/synthesizeResponse';
 import { AgentState } from '../../state';
 
 describe('Agent Event Flow Integration Tests', () => {
@@ -30,11 +24,24 @@ describe('Agent Event Flow Integration Tests', () => {
 
       const mockState: typeof AgentState.State = {
         messages: [{ role: 'user', content: 'I have a headache' }],
-        userIntent: null,
-        extractedInfo: {},
-        branchResult: null,
         conversationId: 'test-conv-1',
         messageId: 'msg_123',
+        userId: '',
+        userIntent: [],
+        primaryIntent: null,
+        intentConfidence: {},
+        extractedInfo: {},
+        riskIndicators: {
+          hasEmergencyKeywords: false,
+          severity: 'mild',
+        },
+        scratchpad: '',
+        agentIteration: 0,
+        maxIterations: 10,
+        isFinished: false,
+        fallbackResponse: null,
+        toolsUsed: [],
+        branchResult: null,
         startTime: Date.now(),
         eventEmitter: emitter,
       };

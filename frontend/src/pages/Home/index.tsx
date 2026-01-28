@@ -4,6 +4,7 @@ import FeatureCard from './components/FeatureCard';
 import DepartmentGrid from './components/DepartmentGrid';
 import NewsCard from './components/NewsCard';
 import { mockDepartments, mockNews } from '../../mock/data';
+import { Bot, Stethoscope, Calendar, ChevronRight } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -18,7 +19,7 @@ export default function Home() {
           <FeatureCard
             title="AI 智能问诊"
             subtitle="全天候极速响应"
-            icon="smart_toy"
+            icon={Bot}
             gradientFrom="primary"
             gradientTo="primary-dark"
             to="/chat"
@@ -30,7 +31,7 @@ export default function Home() {
             <FeatureCard
               title="专家问诊"
               subtitle="三甲名医在线"
-              icon="medical_services"
+              icon={Stethoscope}
               color="teal"
               to="/consultations"
               className="flex-1"
@@ -39,7 +40,7 @@ export default function Home() {
             <FeatureCard
               title="预约挂号"
               subtitle="省时免排队"
-              icon="calendar_month"
+              icon={Calendar}
               color="indigo"
               to="/appointments"
               className="flex-1"
@@ -51,8 +52,8 @@ export default function Home() {
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-text-main-light dark:text-text-main-dark">热门科室</h2>
-            <button className="text-primary text-sm font-semibold flex items-center">
-              全部 <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+            <button className="text-primary text-sm font-semibold flex items-center hover:opacity-80 transition-opacity">
+              全部 <ChevronRight className="w-4 h-4" />
             </button>
           </div>
           <DepartmentGrid departments={mockDepartments} />

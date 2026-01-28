@@ -87,6 +87,39 @@ export const TimeSlotEditor = ({ selectedDate, schedules, onSave, isLoading }: T
     return `${year}年${month}月${day}日 ${weekDay}`;
   };
 
+  // 检查时段是否已过期
+  const isSlotExpired = (timeRange: string) => {
+    // 1. 安全解析选中日期 (YYYY-MM-DD -> Local Date)
+    const [sYear, sMonth, sDay] = selectedDate.split('-').map(Number);
+    const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
+    selectedDateObj.setHours(0, 0, 0, 0);
+
+    // 2. 获取今天的 00:00:00
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 3. 比较日期
+    if (selectedDateObj.getTime() < today.getTime()) return true; // 过去的日期
+    if (selectedDateObj.getTime() > today.getTime()) return false; // 未来的日期
+
+    // 4. 如果是今天，比较时间
+    const endStr = timeRange.split('-')[1]; // "12:00"
+    const endHour = parseInt(endStr.split(':')[0], 10);
+    const currentHour = new Date().getHours();
+    
+    // Debug log
+    console.log('[TimeSlotEditor] Check Expired:', {
+      timeRange,
+      endHour,
+      currentHour,
+      isExpired: endHour <= currentHour,
+      selectedDate,
+      todayStr: today.toLocaleDateString()
+    });
+
+    return endHour <= currentHour;
+  };
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm" data-time-slot-editor>
       <div className="flex items-center justify-between mb-4">
@@ -121,14 +154,17 @@ export const TimeSlotEditor = ({ selectedDate, schedules, onSave, isLoading }: T
       <div className="space-y-3">
         {TIME_SLOTS.map((slot) => {
           const state = tempStates[slot.key];
+          const isDisabled = isSlotExpired(slot.timeRange);
+          
           return (
             <TimeSlotItem
               key={slot.key}
               config={slot}
               isAvailable={state.isAvailable}
               maxPatients={state.maxPatients}
-              onToggle={() => handleToggle(slot.key)}
-              onMaxPatientsChange={(value) => handleMaxPatientsChange(slot.key, value)}
+              onToggle={() => !isDisabled && handleToggle(slot.key)}
+              onMaxPatientsChange={(value) => !isDisabled && handleMaxPatientsChange(slot.key, value)}
+              disabled={isDisabled}
             />
           );
         })}

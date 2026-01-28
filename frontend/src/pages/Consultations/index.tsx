@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { userStore } from '../../store';
+import { WebSocketService } from '../../services/websocket';
 
 interface Consultation {
   id: string;
@@ -16,15 +17,73 @@ interface Consultation {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// WebSocket URL: 在开发环境使用完整 URL，在生产环境使用相对路径
+const WS_URL = import.meta.env.VITE_WS_URL || 
+  (import.meta.env.DEV ? 'ws://localhost:3000/ws' : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
 
 const Consultations = observer(function Consultations() {
   const navigate = useNavigate();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchConsultations();
+    fetchUnreadCounts();
+    connectWebSocket();
+
+    // 每30秒轮询未读数 (作为备份)
+    const interval = setInterval(fetchUnreadCounts, 30000);
+    
+    return () => {
+      clearInterval(interval);
+      if (wsRef.current) {
+        wsRef.current.disconnect();
+        wsRef.current = null;
+      }
+    };
   }, []);
+
+  const wsRef = React.useRef<WebSocketService | null>(null);
+
+  const connectWebSocket = async () => {
+    if (!userStore.accessToken) return;
+
+    // 清理现有连接
+    if (wsRef.current) {
+      wsRef.current.disconnect();
+    }
+
+    const ws = new WebSocketService(WS_URL, userStore.accessToken);
+    wsRef.current = ws;
+
+    try {
+      await ws.connect();
+      console.log('[Consultations] ✅ WebSocket 连接成功');
+
+      // 监听新消息 -> 更新未读数
+      ws.onMessage(() => {
+        console.log('[Consultations] 📨 收到新消息，更新未读数');
+        fetchUnreadCounts();
+        fetchConsultations(); // 更新最后一条消息
+      });
+
+      // 监听问诊更新 -> 刷新列表
+      ws.onConsultationUpdate(() => {
+        console.log('[Consultations] 🔄 收到问诊更新，刷新列表');
+        fetchConsultations();
+      });
+
+      // 监听消息已读 -> 更新未读数
+      ws.onMessageRead(() => {
+        console.log('[Consultations] 📖 收到已读回执，更新未读数');
+        fetchUnreadCounts();
+      });
+
+    } catch (error) {
+      console.error('[Consultations] ❌ WebSocket 连接失败', error);
+    }
+  };
 
   const fetchConsultations = async () => {
     try {
@@ -52,6 +111,21 @@ const Consultations = observer(function Consultations() {
       setLoading(false);
     }
   };
+
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/consultations/unread`, {
+        headers: { Authorization: `Bearer ${userStore.accessToken}` },
+      });
+      const data = await res.json();
+      if (data.code === 0) {
+        setUnreadCounts(data.data.byConsultation || {});
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread counts:', error);
+    }
+  };
+
 
   const handleJoinChat = (id: string) => {
     navigate(`/doctor-chat/${id}`);
@@ -84,9 +158,9 @@ const Consultations = observer(function Consultations() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 shadow-sm">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 shadow-sm">
         <h1 className="text-xl font-bold">专家问诊</h1>
         <button
           onClick={() => navigate('/doctor-list')}
@@ -96,6 +170,9 @@ const Consultations = observer(function Consultations() {
           发问诊
         </button>
       </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
 
       {/* Consultation List */}
       <div className="p-4 space-y-3">
@@ -123,8 +200,16 @@ const Consultations = observer(function Consultations() {
               className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm cursor-pointer active:opacity-80"
             >
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">person</span>
+                <div className="relative flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">person</span>
+                  </div>
+                  {/* 未读消息徽章 */}
+                  {unreadCounts[consultation.id] > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full">
+                      {unreadCounts[consultation.id] > 99 ? '99+' : unreadCounts[consultation.id]}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
@@ -147,6 +232,7 @@ const Consultations = observer(function Consultations() {
             </div>
           ))
         )}
+      </div>
       </div>
     </div>
   );

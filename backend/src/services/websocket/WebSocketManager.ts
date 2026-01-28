@@ -340,12 +340,12 @@ export class WebSocketManager {
       },
     };
 
-    // 构建发送者消息（已读）
+    // 构建发送者消息（初始为未读）
     const messageForSender: ServerMessage = {
       ...messageForReceivers,
       message: {
         ...messageForReceivers.message!,
-        isRead: true,
+        isRead: false,
       },
     };
 
@@ -419,7 +419,27 @@ export class WebSocketManager {
     // 标记消息为已读
     messageStore.markMultipleAsRead(messageIds);
 
-    logger.info('[✅ MARK_READ] 消息已标记为已读', {
+    // 广播"消息已读"事件给其他用户（主要是消息发送者）
+    const readReceiptMessage: ServerMessage = {
+      type: WSMessageType.MARK_READ,
+      conversationId: clientMessage.conversationId,
+      data: {
+        messageIds,
+        readBy: userId,
+      },
+    };
+
+    logger.info('[📡 BROADCAST_DEBUG] 准备广播 MARK_READ', {
+      conversationId: clientMessage.conversationId,
+      readBy: userId,
+      activeUsersInConversation: Array.from(this.conversations.get(clientMessage.conversationId) || []),
+      allOnlineUsers: Array.from(this.connections.keys()),
+      excludeUserId: userId
+    });
+
+    this.broadcastToConversation(clientMessage.conversationId, readReceiptMessage, userId);
+
+    logger.info('[✅ MARK_READ] 消息已标记为已读并广播', {
       userId,
       messageCount: messageIds.length,
     });

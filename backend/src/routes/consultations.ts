@@ -15,6 +15,8 @@ import {
   getDoctorConsultations,
   acceptConsultation,
   closeConsultation,
+  getUnreadCount,
+  markMessagesAsRead,
 } from '../controllers/consultationController';
 import { authMiddleware } from '../middleware/auth';
 
@@ -57,6 +59,12 @@ router.get('/pending', authMiddleware, getPendingConsultations);
  * GET /api/consultations/doctor
  */
 router.get('/doctor', authMiddleware, getDoctorConsultations);
+
+/**
+ * 获取用户未读消息数
+ * GET /api/consultations/unread
+ */
+router.get('/unread', authMiddleware, getUnreadCount);
 
 /**
  * 创建问诊
@@ -111,5 +119,11 @@ router.put('/:id/accept', authMiddleware, acceptConsultation);
  * PUT /api/consultations/:id/close
  */
 router.put('/:id/close', authMiddleware, closeConsultation);
+
+/**
+ * 标记问诊消息为已读
+ * PUT /api/consultations/:id/read
+ */
+router.put('/:id/read', authMiddleware, markMessagesAsRead);
 
 export default router;

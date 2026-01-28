@@ -17,13 +17,18 @@ export async function runAgent(params: {
   const messageId = `msg_${uuidv4()}`;
   const startTime = Date.now();
 
-  const result = await graph.invoke({
-    messages,
-    conversationId,
-    messageId,
-    startTime,
-    eventEmitter: eventEmitter || new AgentEventEmitter(),
-  });
+  const result = await graph.invoke(
+    {
+      messages,
+      conversationId,
+      messageId,
+      startTime,
+      eventEmitter: eventEmitter || new AgentEventEmitter(),
+    },
+    {
+      configurable: { thread_id: conversationId },  // 多轮对话：使用 conversationId 作为 thread_id
+    }
+  );
 
   console.log(`✅ Agent completed\n`);
 

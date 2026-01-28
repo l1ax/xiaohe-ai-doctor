@@ -125,7 +125,7 @@ export class AIChatController {
         logger.agent('Agent execution completed', { conversationId: conversationIdStr });
 
         // 标准 SSE 流式传输模式：
-        // 1. Agent 执行完成，conversation:end 事件已由 synthesizeResponse 节点发送
+        // 1. Agent 执行完成，conversation:end 事件已由 finalResponse 节点发送
         // 2. 等待足够时间让前端接收并处理所有事件
         // 3. 后端关闭连接（前端收到 DONE 事件后也可以主动关闭）
 

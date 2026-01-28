@@ -6,12 +6,19 @@ import { KnowledgeQueryResult } from './types';
  */
 interface CozeWorkflowResponse {
   execute_id: string;
-  output: {
-    documents?: Array<{
-      document_id: string;
-      output: string;
-    }>;
-  };
+  data: string; // JSON 字符串
+  code: number;
+  msg: string;
+}
+
+/**
+ * Coze Workflow 数据结构（从 data 字段解析出来的）
+ */
+interface CozeWorkflowData {
+  output?: Array<{
+    documentId: string;
+    output: string;
+  }>;
 }
 
 /**
@@ -48,14 +55,20 @@ export async function queryKnowledgeBase(
       },
     })) as unknown as CozeWorkflowResponse;
 
-    // 解析返回的数据
-    const documents = response.output?.documents || [];
+    // 检查响应状态
+    if (response.code !== 0) {
+      throw new Error(`Coze API error: ${response.msg}`);
+    }
+
+    // 解析 data 字段（是 JSON 字符串）
+    const data: CozeWorkflowData = JSON.parse(response.data);
+    const documents = data.output || [];
     const hasResults = documents.length > 0;
 
     return {
       hasResults,
       documents: documents.map((doc) => ({
-        documentId: doc.document_id,
+        documentId: doc.documentId,
         output: doc.output,
       })),
       source: 'knowledge_base',
