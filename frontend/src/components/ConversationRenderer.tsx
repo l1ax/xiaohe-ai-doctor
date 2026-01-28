@@ -2,6 +2,8 @@ import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { Conversation } from '../models/Conversation';
 import { ConversationItemRenderer } from './ConversationItemRenderer';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface ConversationRendererProps {
   conversation: Conversation;
@@ -12,23 +14,27 @@ interface ConversationRendererProps {
  */
 export const ConversationRenderer: React.FC<ConversationRendererProps> = observer(({ conversation }) => {
   return (
-    <div className="conversation">
+    <div className="flex flex-col gap-4">
       {conversation.items.map((item) => (
         <ConversationItemRenderer key={item.id} item={item} />
       ))}
 
       {conversation.status === 'connecting' && (
-        <div className="conversation-status connecting">
-          <span className="status-icon">⏳</span>
-          <span className="status-text">连接中...</span>
+        <div className="flex justify-center py-4">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>连接中...</span>
+          </div>
         </div>
       )}
 
       {conversation.error && (
-        <div className="conversation-error">
-          <span className="error-icon">❌</span>
-          <span className="error-message">{conversation.error.message}</span>
-        </div>
+        <Alert variant="destructive" className="my-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {conversation.error.message}
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

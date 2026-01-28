@@ -15,6 +15,12 @@ import { MessageContentEvent } from '../models/events/MessageContentEvent';
 import { ThinkingEvent } from '../models/events/ThinkingEvent';
 import { ErrorEvent } from '../models/events/ErrorEvent';
 import { ConversationStatusEvent } from '../models/events/ConversationStatusEvent';
+import { Card } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface EventRendererProps {
   event: Event;
@@ -43,11 +49,11 @@ export const EventRenderer: React.FC<EventRendererProps> = observer(({ event }) 
 /**
  * 工具调用渲染器
  */
-const ToolCallRenderer: React.FC<{ event: ToolCallEvent }> = observer(({ event }) => {
+export const ToolCallRenderer: React.FC<{ event: ToolCallEvent }> = observer(({ event }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const statusIcon = {
-    running: <Loader2 className="w-4 h-4 animate-spin" />,
+    running: <Loader2 className="w-4 h-4 animate-spin text-blue-500" />,
     completed: <CheckCircle2 className="w-4 h-4 text-green-500" />,
     failed: <XCircle className="w-4 h-4 text-red-500" />,
   };
@@ -61,41 +67,53 @@ const ToolCallRenderer: React.FC<{ event: ToolCallEvent }> = observer(({ event }
   const hasOutput = event.output !== undefined;
 
   return (
-    <div className="tool-call-event">
-      <div 
-        className="tool-call-header" 
-        onClick={() => hasOutput && setIsOpen(!isOpen)}
-      >
-        <div className="tool-icon-wrapper">
-          {statusIcon[event.status]}
-        </div>
-        <div className="tool-name">使用工具: {event.name}</div>
-        <div className="tool-status">{statusText[event.status]}</div>
-        {hasOutput && (
-          <ChevronDown className={`tool-chevron w-4 h-4 ${isOpen ? 'open' : ''}`} />
-        )}
-      </div>
-
-      {isOpen && hasOutput && (
-        <div className="tool-details">
-          <div className="flex items-center gap-2 mb-2 text-xs text-slate-400">
-            <Terminal className="w-3 h-3" />
-            <span>工具输出内容</span>
+    <Card className="mb-3 border-none bg-muted/30 shadow-none">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="flex items-center gap-2 p-3 text-sm">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-background border shadow-sm text-primary">
+            {statusIcon[event.status]}
           </div>
-          <pre className="tool-output-box">
-            {typeof event.output === 'object' 
-              ? JSON.stringify(event.output, null, 2) 
-              : String(event.output)}
-          </pre>
-          {event.status === 'failed' && event.output?.error && (
-            <div className="tool-error">
-              <AlertCircle className="w-3 h-3 inline mr-1" />
-              {String(event.output.error)}
-            </div>
+          
+          <span className="font-medium text-foreground flex-1">
+            使用工具: {event.name}
+          </span>
+          
+          <Badge variant="outline" className="bg-background/50 font-normal">
+            {statusText[event.status]}
+          </Badge>
+          
+          {hasOutput && (
+            <CollapsibleTrigger asChild>
+              <button className="p-1 hover:bg-background rounded-md transition-colors">
+                <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
+              </button>
+            </CollapsibleTrigger>
           )}
         </div>
-      )}
-    </div>
+
+        <CollapsibleContent>
+          <div className="px-3 pb-3 pt-0">
+             <div className="bg-background rounded-md border p-3 text-xs font-mono overflow-auto max-h-[200px]">
+                <div className="flex items-center gap-2 mb-2 text-muted-foreground border-b pb-2">
+                  <Terminal className="w-3 h-3" />
+                  <span>工具输出内容</span>
+                </div>
+                <pre className="whitespace-pre-wrap break-all text-foreground/80">
+                  {typeof event.output === 'object' 
+                    ? JSON.stringify(event.output, null, 2) 
+                    : String(event.output)}
+                </pre>
+                {event.status === 'failed' && event.output?.error && (
+                  <div className="mt-2 text-destructive bg-destructive/10 p-2 rounded border border-destructive/20">
+                    <AlertCircle className="w-3 h-3 inline mr-1" />
+                    {String(event.output.error)}
+                  </div>
+                )}
+             </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 });
 
@@ -106,9 +124,9 @@ const MessageContentRenderer: React.FC<{ event: MessageContentEvent }> = observe
   if (!event.content) return null;
 
   return (
-    <div className="message-content-event">
+    <div className="prose prose-sm max-w-none dark:prose-invert leading-relaxed mb-4">
       <MarkdownRenderer content={event.content} />
-      {!event.isComplete && <span className="typing-cursor">▋</span>}
+      {!event.isComplete && <span className="inline-block w-2 h-4 bg-primary/50 ml-1 animate-pulse rounded-sm align-middle" />}
     </div>
   );
 });
@@ -116,15 +134,15 @@ const MessageContentRenderer: React.FC<{ event: MessageContentEvent }> = observe
 /**
  * 思考状态渲染器
  */
-const ThinkingRenderer: React.FC<{ event: ThinkingEvent }> = observer(() => {
+export const ThinkingRenderer: React.FC<{ event: ThinkingEvent }> = observer(() => {
   return (
-    <div className="thinking-event">
-      <div className="thinking-shimmer">
-        <span></span>
-        <span></span>
-        <span></span>
+    <div className="flex items-center gap-3 p-4 bg-muted/20 rounded-lg mb-4">
+      <div className="flex space-x-1">
+        <Skeleton className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.3s]" />
+        <Skeleton className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.15s]" />
+        <Skeleton className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" />
       </div>
-      <span className="thinking-text">小禾正在思考为您提供最准确的建议...</span>
+      <span className="text-sm text-muted-foreground italic">小禾正在思考为您提供最准确的建议...</span>
     </div>
   );
 });
@@ -134,13 +152,14 @@ const ThinkingRenderer: React.FC<{ event: ThinkingEvent }> = observer(() => {
  */
 const ErrorRenderer: React.FC<{ event: ErrorEvent }> = observer(({ event }) => {
   return (
-    <div className="error-event">
-      <AlertCircle className="w-5 h-5 text-red-500" />
-      <div className="flex-1">
-        <span className="error-message">{event.message}</span>
-        {event.code && <span className="error-code text-xs block opacity-70">错误代码: {event.code}</span>}
-      </div>
-    </div>
+    <Alert variant="destructive" className="mb-4 bg-destructive/5 border-destructive/20">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>出错啦</AlertTitle>
+      <AlertDescription className="mt-1 flex flex-col gap-1">
+        <span>{event.message}</span>
+        {event.code && <span className="text-xs opacity-70 font-mono">CODE: {event.code}</span>}
+      </AlertDescription>
+    </Alert>
   );
 });
 
@@ -153,8 +172,10 @@ const ConversationStatusRenderer: React.FC<{ event: ConversationStatusEvent }> =
   }
 
   return (
-    <div className="conversation-status-event">
-      <span className="status-text">{event.message || event.status}</span>
+    <div className="flex justify-center my-4">
+      <Badge variant="outline" className="text-xs text-muted-foreground font-normal border-dashed">
+        {event.message || event.status}
+      </Badge>
     </div>
   );
 });

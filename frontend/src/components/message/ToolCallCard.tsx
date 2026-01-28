@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, CheckCircle, XCircle, Image as ImageIcon, Database, Search } from 'lucide-react';
 import { ToolCall } from '../../machines/chatMachine';
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ToolCallCardProps {
   tools: ToolCall[];
@@ -9,15 +12,15 @@ interface ToolCallCardProps {
 const toolConfig: Record<string, { label: string; icon: React.ReactNode }> = {
   'image_recognition': {
     label: '识别图片',
-    icon: <ImageIcon className="w-4 h-4" />,
+    icon: <ImageIcon className="w-3.5 h-3.5" />,
   },
   'knowledge_base': {
     label: '查询知识库',
-    icon: <Database className="w-4 h-4" />,
+    icon: <Database className="w-3.5 h-3.5" />,
   },
   'web_search': {
     label: '网络搜索',
-    icon: <Search className="w-4 h-4" />,
+    icon: <Search className="w-3.5 h-3.5" />,
   },
 };
 
@@ -48,49 +51,51 @@ const ToolCallItem: React.FC<{ tool: ToolCall; index: number }> = ({ tool, index
 
   return (
     <div
-      className={`flex items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-lg text-sm border border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 ${
-        isVisible
-          ? 'opacity-100 translate-y-0'
-          : 'opacity-0 translate-y-2'
-      }`}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all duration-300 border",
+        "bg-slate-100/50 dark:bg-slate-800/50 border-transparent hover:border-border",
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+      )}
     >
-      <div className="text-slate-600 dark:text-slate-400">
+      <div className="text-muted-foreground flex items-center justify-center w-5 h-5 bg-background rounded-full shadow-sm">
         {toolInfo.icon}
       </div>
 
-      <span className="text-slate-700 dark:text-slate-300 font-medium">
+      <span className="text-foreground font-medium text-xs">
         {toolInfo.label}
       </span>
 
       <div className="flex items-center gap-1.5 ml-auto">
         {tool.status === 'pending' && (
-          <span className="text-xs text-slate-500">等待中</span>
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-muted-foreground font-normal">等待中</Badge>
         )}
 
         {tool.status === 'running' && (
-          <>
-            <span className="text-xs text-blue-600 dark:text-blue-400">进行中</span>
-            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-          </>
+          <Badge variant="secondary" className="text-[10px] h-5 px-1.5 gap-1 font-normal bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 hover:bg-blue-50">
+            <span>进行中</span>
+            <Loader2 className="w-3 h-3 animate-spin" />
+          </Badge>
         )}
 
         {tool.status === 'completed' && (
-          <>
-            <span className="text-xs text-green-600 dark:text-green-400">完成</span>
-            <CheckCircle className="w-4 h-4 text-green-500" />
+          <div className="flex items-center gap-1.5">
+             <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 font-normal border-green-200 text-green-600 dark:border-green-900 dark:text-green-400 bg-green-50/50 dark:bg-green-950/30">
+              <span>完成</span>
+              <CheckCircle className="w-3 h-3" />
+            </Badge>
             {tool.duration && (
-              <span className="text-xs text-slate-500 ml-1">
+              <span className="text-[10px] text-muted-foreground">
                 {formatDuration(tool.duration)}
               </span>
             )}
-          </>
+          </div>
         )}
 
         {tool.status === 'failed' && (
-          <>
-            <span className="text-xs text-red-600 dark:text-red-400">失败</span>
-            <XCircle className="w-4 h-4 text-red-500" />
-          </>
+           <Badge variant="destructive" className="text-[10px] h-5 px-1.5 gap-1 font-normal">
+            <span>失败</span>
+            <XCircle className="w-3 h-3" />
+          </Badge>
         )}
       </div>
     </div>
@@ -103,10 +108,12 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({ tools }) => {
   }
 
   return (
-    <div className="flex flex-col gap-2 mb-3 px-1">
-      {tools.map((tool, index) => (
-        <ToolCallItem key={tool.id} tool={tool} index={index} />
-      ))}
-    </div>
+    <Card className="border-none shadow-none bg-transparent p-0">
+      <div className="flex flex-col gap-1.5 mb-2">
+        {tools.map((tool, index) => (
+          <ToolCallItem key={tool.id} tool={tool} index={index} />
+        ))}
+      </div>
+    </Card>
   );
 };

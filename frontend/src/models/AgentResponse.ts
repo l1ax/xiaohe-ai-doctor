@@ -22,5 +22,6 @@ export class AgentResponse extends ConversationItem {
   @action
   markComplete(): void {
     this.isComplete = true;
+    this.view.finalizePendingTools();
   }
 }

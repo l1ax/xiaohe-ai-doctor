@@ -15,7 +15,7 @@ import { Conversation } from '../models/Conversation';
 import { ConversationRenderer } from '../components/ConversationRenderer';
 import { ImageUploader } from '../components/upload/ImageUploader';
 import toast from 'react-hot-toast';
-import '../styles/events.css';
+// import '../styles/events.css'; // Optimized with shadcn-ui components
 
 // Quick replies data
 const QUICK_REPLIES = [

@@ -4,6 +4,10 @@ import { Message, ToolCall } from '../../machines/chatMachine';
 import { ToolCallCard } from './ToolCallCard';
 import { ThinkingDots } from './ThinkingDots';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 // ============ 基础样式 ============
 
@@ -11,22 +15,19 @@ const messageStyles = {
   user: {
     container: 'flex justify-end items-start gap-3',
     wrapper: 'flex flex-col gap-1 items-end max-w-[85%]',
-    bubble: 'bg-primary text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-sm text-[16px] leading-relaxed',
-    avatarContainer: 'w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center border-2 border-white shadow-sm mt-1',
+    bubble: 'bg-primary text-primary-foreground rounded-2xl rounded-tr-none px-4 py-3 shadow-md text-[16px] leading-relaxed',
     name: 'hidden',
   },
   assistant: {
     container: 'flex justify-start items-start gap-3',
     wrapper: 'flex flex-col gap-1 items-start max-w-[85%]',
-    bubble: 'bg-white dark:bg-[#1e2e36] text-slate-800 dark:text-slate-100 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 text-[16px] leading-relaxed',
-    avatarContainer: 'w-10 h-10 shrink-0 rounded-full bg-white flex items-center justify-center border-2 border-white dark:border-slate-700 shadow-sm mt-1 overflow-hidden',
-    name: 'text-slate-500 dark:text-slate-400 text-xs font-medium ml-1',
+    bubble: 'bg-card text-card-foreground rounded-2xl rounded-tl-none px-4 py-3 shadow-sm border text-[16px] leading-relaxed',
+    name: 'text-muted-foreground text-xs font-medium ml-1 mb-0.5',
   },
   system: {
     container: 'flex justify-center my-4',
     wrapper: '',
-    bubble: 'bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-500 dark:text-slate-400 text-xs font-medium px-4 py-1.5 rounded-full text-center',
-    avatarContainer: 'hidden',
+    bubble: 'bg-muted/50 backdrop-blur-sm text-muted-foreground text-xs font-medium px-4 py-1.5 rounded-full text-center',
     name: 'hidden',
   },
 };
@@ -58,21 +59,15 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
   const isThinking = role === 'assistant' && !content && !imageUrls;
 
   return (
-    <div className={`${styles.container} mb-6`}>
+    <div className={cn(styles.container, "mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300")}>
       {/* Assistant Avatar */}
       {role === 'assistant' && (
-        <div className={styles.avatarContainer}>
-           <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-"
-            alt="AI Doctor"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement?.classList.add('bg-primary/10');
-            }}
-           />
-           <Bot className="w-6 h-6 text-primary absolute opacity-0" style={{ opacity: 0 }} />
-        </div>
+        <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+          <AvatarImage src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-" alt="AI Doctor" />
+          <AvatarFallback className="bg-primary/5 text-primary">
+            <Bot className="w-6 h-6" />
+          </AvatarFallback>
+        </Avatar>
       )}
 
       <div className={styles.wrapper}>
@@ -82,7 +77,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
 
         {/* 工具调用卡片（在名称和气泡之间） */}
         {role === 'assistant' && toolCalls && toolCalls.length > 0 && (
-          <div className="mb-2">
+          <div className="mb-1 w-full">
             <ToolCallCard tools={toolCalls} />
           </div>
         )}
@@ -95,11 +90,11 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
             <>
               {/* 图片（如果有） */}
               {imageUrls && imageUrls.length > 0 && (
-                <div className="mb-2">
+                <div className="mb-3">
                   <img
                     src={imageUrls[0]}
                     alt="用户上传的图片"
-                    className="max-w-full rounded-lg border border-slate-200 dark:border-slate-700"
+                    className="max-w-full rounded-lg border shadow-sm"
                     style={{ maxHeight: '200px', objectFit: 'contain' }}
                     onError={(e) => {
                       e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj7lm77niYflia3ovb3lpLHotKU8L3RleHQ+PC9zdmc+';
@@ -120,7 +115,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
                 )
               )}
               {isStreaming && (
-                <span className="inline-block w-2 h-4 bg-primary/50 ml-1 animate-pulse" />
+                <span className="inline-block w-2 h-4 bg-primary/50 ml-1 animate-pulse rounded-sm" />
               )}
             </>
           )}
@@ -129,9 +124,11 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
 
       {/* User Avatar */}
       {role === 'user' && (
-        <div className={styles.avatarContainer}>
-          <User className="w-6 h-6 text-primary" />
-        </div>
+        <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+          <AvatarFallback className="bg-primary/10 text-primary">
+            <User className="w-5 h-5" />
+          </AvatarFallback>
+        </Avatar>
       )}
     </div>
   );
@@ -150,18 +147,19 @@ export const ImageMessage: React.FC<ImageMessageProps> = ({ src, alt, caption, r
   const styles = messageStyles[role];
 
   return (
-    <div className={`${styles.container} mb-6`}>
+    <div className={cn(styles.container, "mb-6")}>
       {role === 'assistant' && (
-        <div className={styles.avatarContainer}>
-          <Bot className="w-6 h-6 text-primary" />
-        </div>
+        <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+           <AvatarImage src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-" alt="AI Doctor" />
+           <AvatarFallback><Bot className="w-6 h-6" /></AvatarFallback>
+        </Avatar>
       )}
 
       <div className={styles.wrapper}>
         {role === 'assistant' && (
             <span className={styles.name}>小禾AI医生</span>
         )}
-        <div className={`${styles.bubble} p-2`}>
+        <div className={cn(styles.bubble, "p-2")}>
           <img
             src={src}
             alt={alt || 'Image'}
@@ -175,9 +173,9 @@ export const ImageMessage: React.FC<ImageMessageProps> = ({ src, alt, caption, r
       </div>
 
       {role === 'user' && (
-        <div className={styles.avatarContainer}>
-           <User className="w-6 h-6 text-primary" />
-        </div>
+        <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+           <AvatarFallback><User className="w-6 h-6" /></AvatarFallback>
+        </Avatar>
       )}
     </div>
   );
@@ -191,14 +189,11 @@ interface SystemMessageProps {
 }
 
 export const SystemMessage: React.FC<SystemMessageProps> = ({ content, type: _type = 'info' }) => {
-  // Use the new simplified style for system messages
   return (
     <div className="flex justify-center w-full mt-2 mb-4">
-      <div className="bg-slate-200/50 dark:bg-slate-800/50 px-4 py-1.5 rounded-full backdrop-blur-sm">
-        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium text-center">
+      <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted px-4 py-1.5 rounded-full backdrop-blur-sm font-medium">
           {content}
-        </p>
-      </div>
+      </Badge>
     </div>
   );
 };
@@ -216,9 +211,15 @@ interface MedicalAdviceCardProps {
 
 export const MedicalAdviceCard: React.FC<MedicalAdviceCardProps> = ({ advice }) => {
   const urgencyColors = {
-    low: 'bg-green-50 border-green-200 text-green-800',
-    medium: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    high: 'bg-red-50 border-red-200 text-red-800',
+    low: 'bg-green-50/50 border-green-200 dark:bg-green-950/20 dark:border-green-900',
+    medium: 'bg-yellow-50/50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900',
+    high: 'bg-red-50/50 border-red-200 dark:bg-red-950/20 dark:border-red-900',
+  };
+
+  const urgencyTextColors = {
+    low: 'text-green-700 dark:text-green-400',
+    medium: 'text-yellow-700 dark:text-yellow-400',
+    high: 'text-red-700 dark:text-red-400',
   };
 
   const urgencyLabels = {
@@ -228,51 +229,52 @@ export const MedicalAdviceCard: React.FC<MedicalAdviceCardProps> = ({ advice }) 
   };
 
   return (
-    <div className={`rounded-lg border p-4 mt-3 ${urgencyColors[advice.urgencyLevel]}`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="font-medium">健康建议</span>
-        <span className="text-xs px-2 py-1 rounded bg-white/50">
+    <Card className={cn("mt-4 border shadow-sm overflow-hidden", urgencyColors[advice.urgencyLevel])}>
+      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base font-semibold">健康建议</CardTitle>
+        <Badge variant="outline" className={cn("bg-background/80 backdrop-blur-sm border-transparent shadow-sm", urgencyTextColors[advice.urgencyLevel])}>
           {urgencyLabels[advice.urgencyLevel]}
-        </span>
-      </div>
-
-      {advice.symptoms.length > 0 && (
-        <div className="mb-2">
-          <p className="text-xs opacity-75 mb-1">可能症状</p>
-          <div className="flex flex-wrap gap-1">
-            {advice.symptoms.map((s, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 rounded bg-white/50">
-                {s}
-              </span>
-            ))}
+        </Badge>
+      </CardHeader>
+      <CardContent className="p-4 pt-2 grid gap-4">
+        {advice.symptoms.length > 0 && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-2 font-medium">可能症状</p>
+            <div className="flex flex-wrap gap-1.5">
+              {advice.symptoms.map((s, i) => (
+                <Badge key={i} variant="secondary" className="bg-background/60 hover:bg-background/80 text-foreground font-normal">
+                  {s}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {advice.possibleConditions.length > 0 && (
-        <div className="mb-2">
-          <p className="text-xs opacity-75 mb-1">可能情况</p>
-          <div className="flex flex-wrap gap-1">
-            {advice.possibleConditions.map((c, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 rounded bg-white/50">
-                {c}
-              </span>
-            ))}
+        {advice.possibleConditions.length > 0 && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-2 font-medium">可能情况</p>
+            <div className="flex flex-wrap gap-1.5">
+              {advice.possibleConditions.map((c, i) => (
+                <Badge key={i} variant="secondary" className="bg-background/60 hover:bg-background/80 text-foreground font-normal">
+                  {c}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {advice.suggestions.length > 0 && (
-        <div>
-          <p className="text-xs opacity-75 mb-1">建议</p>
-          <ul className="text-xs list-disc list-inside">
-            {advice.suggestions.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+        {advice.suggestions.length > 0 && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-2 font-medium">建议</p>
+            <ul className="text-sm list-disc list-inside space-y-1 text-foreground/90">
+              {advice.suggestions.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

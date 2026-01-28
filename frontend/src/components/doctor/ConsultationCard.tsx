@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Consultation } from '../../store/doctorStore';
+import { Clock } from 'lucide-react';
 
 interface ConsultationCardProps {
   consultation: Consultation;
@@ -62,7 +63,7 @@ export const ConsultationCard = ({ consultation, onAccept }: ConsultationCardPro
 
   const handleAccept = async () => {
     // 如果已经是进行中的问诊，直接进入聊天
-    if (consultation.status === 'active' || consultation.status === 'ongoing') {
+    if (consultation.status === 'ongoing') {
       navigate(`/doctor/chat/${consultation.id}`);
       return;
     }
@@ -111,7 +112,7 @@ export const ConsultationCard = ({ consultation, onAccept }: ConsultationCardPro
       {/* 底部：等待时间和操作按钮 */}
       <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
         <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-          <span className="material-symbols-outlined text-[18px]">schedule</span>
+          <Clock className="w-4 h-4" />
           <span>等待 {formatWaitingTime(consultation.waitingTime)}</span>
         </div>
 
@@ -119,7 +120,7 @@ export const ConsultationCard = ({ consultation, onAccept }: ConsultationCardPro
           onClick={handleAccept}
           className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition-colors duration-200"
         >
-          {consultation.status === 'active' || consultation.status === 'ongoing' ? '继续问诊' : '立即接诊'}
+          {consultation.status === 'ongoing' ? '继续问诊' : '立即接诊'}
         </button>
       </div>
     </div>

@@ -128,4 +128,29 @@ export class AgentView {
   hasRunningTools(): boolean {
     return this.events.some((e) => e.type === 'tool_call' && (e as any).status === 'running');
   }
+
+  /**
+   * 结束所有挂起的工具调用（当对话意外结束时调用）
+   */
+  @action
+  finalizePendingTools(): void {
+    this.events.forEach((event, index) => {
+      if (event.type === 'tool_call' && (event as ToolCallEvent).status === 'running') {
+        const existing = event as ToolCallEvent;
+        console.log('[AgentView] Finalizing pending tool:', existing.id);
+        
+        const updated = new ToolCallEvent({
+          id: existing.id,
+          toolId: existing.toolId,
+          name: existing.name,
+          status: 'failed', // 标记为失败/中断
+          input: existing.input,
+          output: { message: 'Conversation ended unexpectedly' },
+          duration: existing.duration,
+        });
+
+        this.events[index] = updated;
+      }
+    });
+  }
 }

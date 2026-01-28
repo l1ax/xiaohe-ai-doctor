@@ -5,6 +5,7 @@ import { ConversationItem } from '../models/ConversationItem';
 import { UserMessage } from '../models/UserMessage';
 import { AgentResponse } from '../models/AgentResponse';
 import { AgentViewRenderer } from './AgentViewRenderer';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ConversationItemRendererProps {
   item: ConversationItem;
@@ -26,18 +27,21 @@ export const ConversationItemRenderer: React.FC<ConversationItemRendererProps> =
  */
 const UserMessageRenderer: React.FC<{ message: UserMessage }> = observer(({ message }) => {
   return (
-    <div className="conversation-item user-message">
-      <div className="message-content">
-        <div className="message-text">{message.content}</div>
+    <div className="flex justify-end items-start gap-3 mb-6">
+      <div className="flex flex-col gap-1 items-end max-w-[85%]">
+        <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-none px-4 py-3 shadow-md text-[16px] leading-relaxed">
+          <div className="whitespace-pre-wrap">{message.content}</div>
+        </div>
+        
         {message.attachments && message.attachments.length > 0 && (
-          <div className="message-attachments">
+          <div className="flex flex-wrap gap-2 justify-end mt-1">
             {message.attachments.map((attachment, index) => (
-              <div key={index} className="attachment">
+              <div key={index} className="relative group">
                 {attachment.type === 'image' ? (
-                  <img src={attachment.url} alt={attachment.name} className="attachment-image shadow-sm" />
+                  <img src={attachment.url} alt={attachment.name} className="h-24 w-auto rounded-lg shadow-sm border" />
                 ) : (
-                  <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-white underline text-sm opacity-90">
-                    {attachment.name}
+                  <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-xs bg-muted px-2 py-1 rounded-full flex items-center gap-1 hover:bg-muted/80">
+                    <span className="truncate max-w-[100px]">{attachment.name}</span>
                   </a>
                 )}
               </div>
@@ -45,9 +49,12 @@ const UserMessageRenderer: React.FC<{ message: UserMessage }> = observer(({ mess
           </div>
         )}
       </div>
-      <div className="message-avatar bg-primary text-white shadow-sm">
-        <User className="w-5 h-5" />
-      </div>
+      
+      <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+        <AvatarFallback className="bg-primary/10 text-primary">
+          <User className="w-5 h-5" />
+        </AvatarFallback>
+      </Avatar>
     </div>
   );
 });
@@ -57,20 +64,22 @@ const UserMessageRenderer: React.FC<{ message: UserMessage }> = observer(({ mess
  */
 const AgentResponseRenderer: React.FC<{ response: AgentResponse }> = observer(({ response }) => {
   return (
-    <div className="conversation-item agent-response">
-      <div className="message-avatar bg-white dark:bg-slate-700 border-2 border-primary/20 shadow-sm overflow-hidden">
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-"
-          alt="AI Doctor"
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
+    <div className="flex justify-start items-start gap-3 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <Avatar className="w-10 h-10 border-2 border-background shadow-sm mt-1 shrink-0">
+        <AvatarImage 
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF1kVXFyF37q3nrI02oGmsRVTY32V4_XBRDIbhjwotETvXN2SYYSvbHK1-QKsrjtU3IFzODgzEz4wCNcZ88VrNw4gmwGKNwCz7ULW1EeppZuX5FWqZrkxsDvxodVjnkMQKZAi8QaQP7iu1oG_T8cwbWYvfQ7tCJ8HAXLP_3fvgB_ZCpCkbJ8yIW0s1Q8bv2Poeg0A98RIJXErD3OLPQFuV3-hOijxEtf-DN9zpxVPf1vwMMmBEB26_cgxXZZrMFn-6hwZfpzNkHMc-" 
+          alt="AI Doctor" 
         />
-        <Bot className="w-5 h-5 text-primary" />
-      </div>
-      <div className="message-content">
-        <AgentViewRenderer view={response.view} />
+        <AvatarFallback className="bg-primary/5 text-primary">
+          <Bot className="w-6 h-6" />
+        </AvatarFallback>
+      </Avatar>
+
+      <div className="flex flex-col gap-1 items-start max-w-[95%] w-full min-w-0">
+        <span className="text-muted-foreground text-xs font-medium ml-1">小禾AI医生</span>
+        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm text-sm w-full">
+          <AgentViewRenderer view={response.view} />
+        </div>
       </div>
     </div>
   );

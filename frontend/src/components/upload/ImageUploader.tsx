@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { userStore } from '../../store/userStore';
+import { Button } from "@/components/ui/button";
 
 interface ImageUploaderProps {
   onImageUploaded: (url: string) => void;
@@ -104,18 +105,20 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         aria-label="上传图片"
       />
       
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={handleClick}
         disabled={disabled || uploading}
         aria-label="选择图片"
-        className="flex items-center justify-center shrink-0 w-11 h-11 rounded-full text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
+        className="rounded-full text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 w-11 h-11 shrink-0"
       >
         {uploading ? (
           <Loader2 className="w-6 h-6 animate-spin" />
         ) : (
           <ImageIcon className="w-6 h-6" />
         )}
-      </button>
+      </Button>
     </>
   );
 };
