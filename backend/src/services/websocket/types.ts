@@ -94,6 +94,8 @@ export interface ServerMessage {
     text?: string;
     senderId?: string;
     consultation?: ConsultationUpdateData | NewConsultationData;
+    messageIds?: string[];
+    readBy?: string;
   };
   consultation?: ConsultationUpdateData | NewConsultationData;
 }

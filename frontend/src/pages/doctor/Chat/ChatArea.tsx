@@ -107,11 +107,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ messages, currentUserId }) =
                 <span className="text-[11px] text-slate-400">
                   {formatTime(message.createdAt)}
                 </span>
-                {isOwnMessage && (
-                  <span className="text-[11px] text-slate-400">
-                    {message.isRead ? '已读' : '未读'}
-                  </span>
-                )}
               </div>
             </div>
           </div>

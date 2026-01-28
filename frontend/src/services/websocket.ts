@@ -1,6 +1,4 @@
-/**
- * WebSocket 服务封装
- */
+
 
 export interface ChatMessage {
   id: string;
@@ -28,6 +26,7 @@ export interface ConsultationUpdate {
 }
 
 export type ConsultationUpdateHandler = (consultation: ConsultationUpdate) => void;
+export type MessageReadHandler = (messageIds: string[]) => void;
 
 export class WebSocketService {
   private ws: WebSocket | null = null;
@@ -37,6 +36,7 @@ export class WebSocketService {
   private systemHandlers: Set<SystemHandler> = new Set();
   private typingHandlers: Set<TypingHandler> = new Set();
   private consultationUpdateHandlers: Set<ConsultationUpdateHandler> = new Set();
+  private messageReadHandlers: Set<MessageReadHandler> = new Set();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -135,6 +135,11 @@ export class WebSocketService {
     return () => this.consultationUpdateHandlers.delete(handler);
   }
 
+  onMessageRead(handler: MessageReadHandler): () => void {
+    this.messageReadHandlers.add(handler);
+    return () => this.messageReadHandlers.delete(handler);
+  }
+
   disconnect(): void {
     this.intentionalDisconnect = true;
     if (this.ws) {
@@ -181,6 +186,13 @@ export class WebSocketService {
       case 'consultation_update':
         console.log('[WebSocketService] 📨 处理问诊更新', data.consultation);
         this.consultationUpdateHandlers.forEach((h) => h(data.consultation as ConsultationUpdate));
+        break;
+      case 'mark_read':
+        console.log('[WebSocketService] 📨 处理消息已读', data.data);
+        const messageIds = (data.data as { messageIds: string[] })?.messageIds || [];
+        if (messageIds.length > 0) {
+          this.messageReadHandlers.forEach((h) => h(messageIds));
+        }
         break;
       default:
         console.warn('[WebSocketService] ⚠️ 未知消息类型', data);

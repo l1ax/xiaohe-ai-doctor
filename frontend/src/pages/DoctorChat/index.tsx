@@ -28,6 +28,7 @@ interface Message {
   senderType: 'patient' | 'doctor';
   content: string;
   createdAt: string;
+  isRead?: boolean;
 }
 
 const DoctorChat = observer(function DoctorChat() {
@@ -144,11 +145,24 @@ const DoctorChat = observer(function DoctorChat() {
           // 其他人的消息，直接添加
           const exists = prev.some((m) => m.id === message.id);
           if (exists) return prev;
+
+          // 如果是对方发送的消息且页面可见，自动标记为已读
+          if (message.senderId !== userStore.user?.id && document.visibilityState === 'visible') {
+            setTimeout(() => {
+              if (wsRef.current && id) {
+                console.log('[DoctorChat] 自动标记已读:', message.id);
+                wsRef.current.markAsRead(id, [message.id]);
+              }
+            }, 1000);
+          }
+
           return [...prev, message];
         });
       });
 
       ws.onTyping(() => setIsTyping(true));
+
+
     } catch (error) {
       console.warn('[DoctorChat] ❌ WebSocket 连接失败', error);
       setIsConnected(false);
@@ -210,6 +224,33 @@ const DoctorChat = observer(function DoctorChat() {
       alert('结束问诊失败，请重试');
     }
   };
+
+  // 页面可见性变化时，标记未读消息为已读
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && id && wsRef.current) {
+        // 找出所有未读的对方消息
+        const unreadMessages = messages.filter(
+          (msg) => !msg.isRead && msg.senderId !== userStore.user?.id
+        );
+        
+        if (unreadMessages.length > 0) {
+          const messageIds = unreadMessages.map((msg) => msg.id);
+          wsRef.current.markAsRead(id, messageIds);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // 首次加载如果页面可见，也触发一次
+    if (document.visibilityState === 'visible' && messages.length > 0) {
+      handleVisibilityChange();
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [id, messages]);
 
   if (!consultation) {
     return <div className="p-4 text-center">加载中...</div>;

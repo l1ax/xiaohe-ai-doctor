@@ -152,6 +152,7 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
         if (message.senderId !== userStore.user?.id && document.visibilityState === 'visible') {
           setTimeout(() => {
             if (wsRef.current && consultationId) {
+              console.log('[DoctorChat] 自动标记已读:', message.id);
               wsRef.current.markAsRead(consultationId, [message.id]);
             }
           }, 1000);
@@ -172,6 +173,8 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
       console.log('用户输入中:', senderId);
       // 可以在这里显示"对方正在输入..."
     });
+
+
 
     return () => {
       ws.disconnect();

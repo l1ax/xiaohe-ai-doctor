@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { userStore } from '../../store';
+import { WebSocketService } from '../../services/websocket';
 
 interface Consultation {
   id: string;
@@ -16,6 +17,9 @@ interface Consultation {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+// WebSocket URL: 在开发环境使用完整 URL，在生产环境使用相对路径
+const WS_URL = import.meta.env.VITE_WS_URL || 
+  (import.meta.env.DEV ? 'ws://localhost:3000/ws' : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`);
 
 const Consultations = observer(function Consultations() {
   const navigate = useNavigate();
@@ -26,11 +30,60 @@ const Consultations = observer(function Consultations() {
   useEffect(() => {
     fetchConsultations();
     fetchUnreadCounts();
+    connectWebSocket();
 
-    // 每30秒轮询未读数
+    // 每30秒轮询未读数 (作为备份)
     const interval = setInterval(fetchUnreadCounts, 30000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      if (wsRef.current) {
+        wsRef.current.disconnect();
+        wsRef.current = null;
+      }
+    };
   }, []);
+
+  const wsRef = React.useRef<WebSocketService | null>(null);
+
+  const connectWebSocket = async () => {
+    if (!userStore.accessToken) return;
+
+    // 清理现有连接
+    if (wsRef.current) {
+      wsRef.current.disconnect();
+    }
+
+    const ws = new WebSocketService(WS_URL, userStore.accessToken);
+    wsRef.current = ws;
+
+    try {
+      await ws.connect();
+      console.log('[Consultations] ✅ WebSocket 连接成功');
+
+      // 监听新消息 -> 更新未读数
+      ws.onMessage(() => {
+        console.log('[Consultations] 📨 收到新消息，更新未读数');
+        fetchUnreadCounts();
+        fetchConsultations(); // 更新最后一条消息
+      });
+
+      // 监听问诊更新 -> 刷新列表
+      ws.onConsultationUpdate(() => {
+        console.log('[Consultations] 🔄 收到问诊更新，刷新列表');
+        fetchConsultations();
+      });
+
+      // 监听消息已读 -> 更新未读数
+      ws.onMessageRead(() => {
+        console.log('[Consultations] 📖 收到已读回执，更新未读数');
+        fetchUnreadCounts();
+      });
+
+    } catch (error) {
+      console.error('[Consultations] ❌ WebSocket 连接失败', error);
+    }
+  };
 
   const fetchConsultations = async () => {
     try {
