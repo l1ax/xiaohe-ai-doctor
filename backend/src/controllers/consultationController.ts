@@ -493,7 +493,12 @@ export const acceptConsultation = async (req: Request, res: Response): Promise<v
     }
 
     if (consultation.status !== 'pending') {
-      throw new ValidationError('Consultation is not pending');
+      const statusMessages: Record<string, string> = {
+        active: '该问诊已被接诊',
+        closed: '患者已结束该问诊',
+        cancelled: '患者已取消该问诊',
+      };
+      throw new ValidationError(statusMessages[consultation.status] || `问诊状态异常: ${consultation.status}`);
     }
 
     consultationStore.updateStatus(consultationId, 'active');

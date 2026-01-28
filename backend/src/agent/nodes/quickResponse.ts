@@ -58,12 +58,20 @@ function formatConversationHistory(messages: Message[]): string {
 /**
  * 构建直接响应 Prompt（不依赖工具结果）
  */
-function buildDirectResponsePrompt(messages: Message[], userQuery: string, intent?: UserIntent | null): string {
+function buildDirectResponsePrompt(
+  messages: Message[],
+  userQuery: string,
+  intent?: UserIntent | null,
+  imageDescription?: string
+): string {
   const history = formatConversationHistory(messages);
+  const imageContext = imageDescription
+    ? `\n\n用户上传的图片内容：${imageDescription}`
+    : '';
 
   return `你是小禾AI医生助手，一个专业、耐心的医疗咨询助手。
 
-${history}用户问题：${userQuery}
+${history}用户问题：${userQuery}${imageContext}
 
 请基于以上对话历史，直接回答用户的问题。回复要求：
 1. 简洁明了，直接回答问题
@@ -107,6 +115,7 @@ export async function quickResponse(
     startTime,
     primaryIntent,
     extractedInfo,
+    imageDescription,
   } = state;
 
   const userQuery = messages[messages.length - 1].content;
@@ -121,7 +130,7 @@ export async function quickResponse(
     if (strategy === 'llm_only') {
       console.log('[QuickResponse] llm_only 策略，直接调用 LLM');
       const llm = createDeepSeekLLM(0.7);
-      const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent);
+      const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent, imageDescription);
       await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
 
       const duration = startTime ? Date.now() - startTime : 0;
@@ -182,7 +191,7 @@ export async function quickResponse(
     if (!selectedResult?.success || !selectedResult?.result?.hasResults) {
       console.log('[QuickResponse] 工具无结果，使用 LLM 兌底回复');
       const llm = createDeepSeekLLM(0.7);
-      const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent);
+      const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent, imageDescription);
       await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
 
       const duration = startTime ? Date.now() - startTime : 0;

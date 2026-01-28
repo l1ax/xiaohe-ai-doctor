@@ -1,6 +1,7 @@
 import type { AgentStateType } from '../state';
 import type { UserIntent } from '../types';
 import { createDeepSeekLLM } from '../../utils/llm';
+import { recognizeImage } from '../../services/tools/imageRecognition';
 
 /**
  * 意图识别节点 - 升级支持多意图和风险指标
@@ -12,7 +13,25 @@ export async function classifyIntent(
   const latestMessage = messages[messages.length - 1];
 
   try {
+    // === 图片识别：如果有图片，先获取描述 ===
+    let imageDescription = '';
+    if (latestMessage.imageUrls?.length) {
+      console.log('[ClassifyIntent] 检测到图片，调用 recognizeImage...');
+      try {
+        const result = await recognizeImage(latestMessage.imageUrls[0], { intent: 'general_qa' });
+        imageDescription = result.description;
+        console.log(`[ClassifyIntent] 图片描述: ${imageDescription.slice(0, 100)}...`);
+      } catch (imgError) {
+        console.error('[ClassifyIntent] 图片识别失败:', imgError);
+      }
+    }
+
     const llm = createDeepSeekLLM(0.3);
+
+    // 构建 prompt，包含图片描述（如果有）
+    const imageContext = imageDescription
+      ? `\n\n用户上传了一张图片，图片内容描述：${imageDescription}`
+      : '';
 
     const prompt = `你是医疗意图识别助手。分析用户消息，识别所有意图并提取信息。
 
@@ -24,7 +43,7 @@ export async function classifyIntent(
 - general_qa: 通用问答
 - emergency: 紧急情况
 
-用户消息: ${latestMessage.content}
+用户消息: ${latestMessage.content}${imageContext}
 
 请以 JSON 格式返回：
 {
@@ -97,6 +116,7 @@ export async function classifyIntent(
         severity: 'mild',
       },
       routeDecision,
+      imageDescription,  // 保存图片描述供后续节点使用
     };
   } catch (error) {
     console.error('[ClassifyIntent] Error:', error);

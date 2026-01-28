@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { observer } from 'mobx-react-lite';
 import {
   Send,
-  Mic,
   ChevronLeft,
   History,
   Thermometer,
@@ -221,14 +220,11 @@ export const ChatPage: React.FC = observer(() => {
 
         {/* Input Row */}
         <div className="flex items-end gap-2 p-3 pb-3">
-          {/* Voice Input Button */}
-          <button
-            aria-label="Voice Input"
-            className="flex items-center justify-center shrink-0 w-11 h-11 rounded-full text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 transition-all active:scale-95"
+          {/* Image Upload Button (左侧) */}
+          <ImageUploader
+            onImageUploaded={setUploadedImageUrl}
             disabled={conversation.isProcessing}
-          >
-            <Mic className="w-6 h-6" />
-          </button>
+          />
 
           {/* Text Input */}
           <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-[20px] min-h-[44px] flex items-center px-4 py-2 border border-transparent focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
@@ -243,22 +239,15 @@ export const ChatPage: React.FC = observer(() => {
             />
           </div>
 
-          {/* 动态按钮：上传或发送 */}
-          {!uploadedImageUrl && !inputValue ? (
-            <ImageUploader
-              onImageUploaded={setUploadedImageUrl}
-              disabled={conversation.isProcessing}
-            />
-          ) : (
-            <button
-              aria-label="发送消息"
-              onClick={() => handleSendMessage()}
-              disabled={conversation.isProcessing}
-              className="flex items-center justify-center shrink-0 w-11 h-11 rounded-full text-white bg-primary hover:bg-primary-dark shadow-md transition-all active:scale-95 disabled:opacity-50"
-            >
-              <Send className="w-5 h-5 ml-0.5" />
-            </button>
-          )}
+          {/* Send Button (右侧) */}
+          <button
+            aria-label="发送消息"
+            onClick={() => handleSendMessage()}
+            disabled={conversation.isProcessing || (!inputValue.trim() && !uploadedImageUrl)}
+            className="flex items-center justify-center shrink-0 w-11 h-11 rounded-full text-white bg-primary hover:bg-primary-dark shadow-md transition-all active:scale-95 disabled:opacity-50"
+          >
+            <Send className="w-5 h-5 ml-0.5" />
+          </button>
         </div>
       </div>
     </div>

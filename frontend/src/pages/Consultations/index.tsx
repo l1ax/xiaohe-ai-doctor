@@ -84,9 +84,9 @@ const Consultations = observer(function Consultations() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 shadow-sm">
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 shadow-sm">
         <h1 className="text-xl font-bold">专家问诊</h1>
         <button
           onClick={() => navigate('/doctor-list')}
@@ -96,6 +96,9 @@ const Consultations = observer(function Consultations() {
           发问诊
         </button>
       </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto">
 
       {/* Consultation List */}
       <div className="p-4 space-y-3">
@@ -147,6 +150,7 @@ const Consultations = observer(function Consultations() {
             </div>
           ))
         )}
+      </div>
       </div>
     </div>
   );

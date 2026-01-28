@@ -83,11 +83,11 @@ const DoctorList = observer(function DoctorList() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm p-4">
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-10 bg-white shadow-sm p-4">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-gray-100 active:scale-95 transition-all">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <h1 className="text-xl font-bold">选择医生</h1>

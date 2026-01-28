@@ -68,6 +68,12 @@ export const AgentState = Annotation.Root({
     default: () => 'react',
   }),
 
+  // 图片描述（通过 recognizeImage 获取）
+  imageDescription: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => '',
+  }),
+
   // ========== ReAct 循环 ==========
   // 思考过程记录
   scratchpad: Annotation<string>({

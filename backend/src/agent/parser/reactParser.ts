@@ -2,6 +2,7 @@
  * ReAct 输出解析器
  * 用于解析 LLM 的 ReAct 格式输出
  */
+import { jsonrepair } from 'jsonrepair';
 
 /**
  * ReAct 解析结果接口
@@ -63,36 +64,28 @@ export function parseReActOutput(output: string): ReActParseResult {
     }
   }
 
-  // 提取 Action Input - 使用更健壮的解析逻辑
-  let actionInputMatch = output.match(/Action Input:\s*(\{[\s\S]*?\})\s*(?:\n|$)/);
-
-  // 回退方案：尝试匹配到行尾的 JSON
-  if (!actionInputMatch) {
-    actionInputMatch = output.match(/Action Input:\s*(\{[^\n]*\})/);
-  }
-
-  // 再次回退：尝试提取 { 到最后一个 }
-  if (!actionInputMatch) {
-    const actionInputStart = output.indexOf('Action Input:');
-    if (actionInputStart !== -1) {
-      const jsonStart = output.indexOf('{', actionInputStart);
-      const jsonEnd = output.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd > jsonStart) {
-        const potentialJson = output.slice(jsonStart, jsonEnd + 1);
-        try {
-          result.actionInput = JSON.parse(potentialJson);
-        } catch {
-          result.parseError = `无法解析 Action Input: ${potentialJson.slice(0, 100)}...`;
-        }
+  // 提取 Action Input - 使用 jsonrepair 进行容错解析
+  const actionInputStart = output.indexOf('Action Input:');
+  if (actionInputStart !== -1) {
+    const afterActionInput = output.slice(actionInputStart + 'Action Input:'.length).trim();
+    
+    // 找到 JSON 开始位置
+    const jsonStart = afterActionInput.indexOf('{');
+    if (jsonStart !== -1) {
+      // 提取从 { 开始到字符串末尾的内容（或到下一个关键字）
+      const nextKeyword = afterActionInput.search(/\n(Thought|Action|Observation):/);
+      const jsonContent = nextKeyword !== -1
+        ? afterActionInput.slice(jsonStart, nextKeyword)
+        : afterActionInput.slice(jsonStart);
+      
+      try {
+        // 使用 jsonrepair 修复并解析 JSON
+        const repaired = jsonrepair(jsonContent);
+        result.actionInput = JSON.parse(repaired);
+      } catch (error) {
+        console.error('[ReactParser] jsonrepair failed:', jsonContent.slice(0, 200));
+        result.parseError = `JSON 解析失败: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
-    }
-  }
-
-  if (actionInputMatch && !result.actionInput) {
-    try {
-      result.actionInput = JSON.parse(actionInputMatch[1]);
-    } catch (error) {
-      result.parseError = formatParseError(error);
     }
   }
 

@@ -27,6 +27,7 @@ export async function reactLoop(
     scratchpad,
     isFinished,
     toolsUsed,
+    imageDescription,
   } = state;
 
   // 检查是否已完成
@@ -78,6 +79,11 @@ ${scratchpad}
     const intentGuidance = buildIntentGuidance(userIntent, riskIndicators);
     const priorityReminder = buildPriorityReminder();
 
+    // 图片上下文（如果有）
+    const imageContext = imageDescription
+      ? `\n\n用户上传的图片内容：${imageDescription}`
+      : '';
+
     // 2. 构建完整输入
     const fullPrompt = `${systemPrompt}
 
@@ -89,7 +95,7 @@ ${priorityReminder}
 
 ${scratchpad}
 
-用户最新消息: ${messages[messages.length - 1].content}
+用户最新消息: ${messages[messages.length - 1].content}${imageContext}
 
 现在，按照 ReAct 格式开始你的思考和行动：`;
 
