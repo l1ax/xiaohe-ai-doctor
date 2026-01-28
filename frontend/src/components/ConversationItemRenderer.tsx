@@ -78,7 +78,7 @@ const AgentResponseRenderer: React.FC<{ response: AgentResponse }> = observer(({
       <div className="flex flex-col gap-1 items-start max-w-[95%] w-full min-w-0">
         <span className="text-muted-foreground text-xs font-medium ml-1">小禾AI医生</span>
         <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm text-sm w-full">
-          <AgentViewRenderer view={response.view} />
+          <AgentViewRenderer view={response.view} isComplete={response.isComplete} />
         </div>
       </div>
     </div>

@@ -10,13 +10,14 @@ import { cn } from '@/lib/utils';
 
 interface AgentViewRendererProps {
   view: AgentView;
+  isComplete?: boolean;
 }
 
 /**
  * Agent 视图渲染器：聚合渲染 AgentView 中的所有事件
  * 分组逻辑已移至数据层 (AgentView.groups)
  */
-export const AgentViewRenderer: React.FC<AgentViewRendererProps> = observer(({ view }) => {
+export const AgentViewRenderer: React.FC<AgentViewRendererProps> = observer(({ view, isComplete = false }) => {
   // 直接使用数据层的分组计算结果
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -39,6 +40,14 @@ export const AgentViewRenderer: React.FC<AgentViewRendererProps> = observer(({ v
         
         return null;
       })}
+
+      {!isComplete && (
+        <div className="flex items-center gap-1.5 ml-1 mt-1">
+          <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+          <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+          <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
+        </div>
+      )}
     </div>
   );
 });

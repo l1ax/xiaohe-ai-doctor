@@ -98,7 +98,7 @@ export const ChatPage: React.FC = observer(() => {
             </div>
           </div>
         );
-      case 'processing':
+      /* case 'processing':
         return (
           <div className="flex justify-center w-full mb-4">
             <div className="flex items-center gap-2 bg-slate-200/50 dark:bg-slate-800/50 px-4 py-2 rounded-full backdrop-blur-sm">
@@ -106,7 +106,7 @@ export const ChatPage: React.FC = observer(() => {
               <span className="text-slate-500 dark:text-slate-400 text-sm">AI 正在分析您的问题...</span>
             </div>
           </div>
-        );
+        ); */
       case 'error':
         return (
           <div className="flex justify-center w-full mb-4">
