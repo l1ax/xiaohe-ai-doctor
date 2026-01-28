@@ -1,10 +1,13 @@
 import 'dotenv/config';
-import { StateGraph, END } from '@langchain/langgraph';
+import { StateGraph, END, MemorySaver } from '@langchain/langgraph';
 import { AgentState } from './state';
 import { classifyIntent } from './nodes/classifyIntent';
 import { quickResponse } from './nodes/quickResponse';
 import { reactLoop } from './nodes/reactLoop';
 import { finalResponse } from './nodes/finalResponse';
+
+// 创建内存检查点，用于多轮对话
+const checkpointer = new MemorySaver();
 
 /**
  * 决定 ReAct 循环是否继续
@@ -79,5 +82,5 @@ export function createAgentGraph() {
     // 最终响应后结束
     .addEdge('finalResponse', END);
 
-  return workflow.compile();
+  return workflow.compile({ checkpointer });
 }

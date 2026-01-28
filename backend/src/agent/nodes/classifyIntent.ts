@@ -1,6 +1,6 @@
 import type { AgentStateType } from '../state';
 import type { UserIntent } from '../types';
-import { createZhipuLLM } from '../../utils/llm';
+import { createDeepSeekLLM } from '../../utils/llm';
 
 /**
  * 意图识别节点 - 升级支持多意图和风险指标
@@ -12,7 +12,7 @@ export async function classifyIntent(
   const latestMessage = messages[messages.length - 1];
 
   try {
-    const llm = createZhipuLLM(0.3);
+    const llm = createDeepSeekLLM(0.3);
 
     const prompt = `你是医疗意图识别助手。分析用户消息，识别所有意图并提取信息。
 
@@ -59,6 +59,8 @@ export async function classifyIntent(
     const intents: UserIntent[] = parsed.intents || [];
     const primaryIntent = intents[0] || 'general_qa';
 
+    console.log(`[ClassifyIntent] 识别意图: ${intents.join(', ')} | 主要意图: ${primaryIntent}`);
+
     // 计算置信度（简化版）
     const intentConfidence: Partial<Record<UserIntent, number>> = {};
     intents.forEach((intent: UserIntent, index: number) => {
@@ -78,7 +80,11 @@ export async function classifyIntent(
     });
 
     // ========== 路由决策 ==========
-    const routeDecision = determineRoute(primaryIntent);
+    const routeDecision = determineRoute(
+      intents,
+      primaryIntent,
+      parsed.riskIndicators || { hasEmergencyKeywords: false, severity: 'mild' }
+    );
     console.log(`[ClassifyIntent] 路由决策: ${routeDecision}`);
 
     return {
@@ -111,41 +117,44 @@ export async function classifyIntent(
 }
 
 /**
- * 路由决策常量
- */
-const QUICK_INTENTS: UserIntent[] = [
-  'symptom_consult',
-  'medicine_info',
-  'health_advice',
-];
-
-const REACT_INTENTS: UserIntent[] = [
-  'emergency',
-  'general_qa',
-];
-
-/**
  * 决定使用哪个路由
+ * 基于意图数量和风险指标进行路由决策
+ * 
+ * @param intents 识别到的所有意图
  * @param primaryIntent 主要意图
+ * @param riskIndicators 风险指标
  * @returns 'quick' 或 'react'
  */
-function determineRoute(primaryIntent: UserIntent | null): 'quick' | 'react' {
-  if (!primaryIntent) {
-    console.log('[RouteDecision] 无主要意图，默认走 ReAct');
+function determineRoute(
+  intents: UserIntent[],
+  primaryIntent: UserIntent | null,
+  riskIndicators: { hasEmergencyKeywords: boolean; severity: string }
+): 'quick' | 'react' {
+  // 1. 紧急情况 → reactLoop
+  if (primaryIntent === 'emergency' || riskIndicators.hasEmergencyKeywords) {
+    console.log('[RouteDecision] 紧急情况，走 ReAct 循环');
     return 'react';
   }
 
-  if (QUICK_INTENTS.includes(primaryIntent)) {
-    console.log(`[RouteDecision] 意图 ${primaryIntent} 走快速通道`);
-    return 'quick';
-  }
-
-  if (REACT_INTENTS.includes(primaryIntent)) {
-    console.log(`[RouteDecision] 意图 ${primaryIntent} 走 ReAct 循环`);
+  // 2. 高风险 → reactLoop
+  if (riskIndicators.severity === 'severe') {
+    console.log('[RouteDecision] 高风险场景，走 ReAct 循环');
     return 'react';
   }
 
-  // 默认走 ReAct（保守策略）
-  console.log(`[RouteDecision] 意图 ${primaryIntent} 未明确分类，默认走 ReAct`);
-  return 'react';
+  // 3. 混合意图（多意图）→ reactLoop
+  if (intents.length > 1) {
+    console.log(`[RouteDecision] 多意图(${intents.length}个)，走 ReAct 循环`);
+    return 'react';
+  }
+
+  // 4. 无意图 → reactLoop（保守策略）
+  if (!primaryIntent || intents.length === 0) {
+    console.log('[RouteDecision] 无法识别意图，走 ReAct 循环');
+    return 'react';
+  }
+
+  // 5. 单一意图 + 非紧急 + 非高风险 → quickResponse
+  console.log(`[RouteDecision] 单一意图 ${primaryIntent}，走快速通道`);
+  return 'quick';
 }

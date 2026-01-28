@@ -61,12 +61,16 @@ export const ChatPage: React.FC = observer(() => {
     if (conversation.isProcessing) return;
 
     try {
-      await conversation.sendMessage(messageContent, imageUrls);
+      // 立即清空输入，提供即时反馈
       setInputValue('');
       setUploadedImageUrl(null);
+      
+      await conversation.sendMessage(messageContent, imageUrls);
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('发送失败，请重试');
+      // 如果发送失败且内容还存在，可以考虑恢复输入（可选）
+      // setInputValue(messageContent);
     }
   }, [inputValue, uploadedImageUrl, conversation]);
 

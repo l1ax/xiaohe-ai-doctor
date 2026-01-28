@@ -5,7 +5,8 @@ import { formatToolDescriptions, getP0Tools } from '../tools/index';
 import { parseReActOutput, isValidReActOutput, formatParseError } from '../parser/reactParser';
 import { formatScratchpadEntry, appendToScratchpad } from '../utils/scratchpad';
 import { getToolByName } from '../tools/index';
-import { createZhipuLLM } from '../../utils/llm';
+import { createDeepSeekLLM, streamLLMResponse } from '../../utils/llm';
+import { createConversationEndEvent } from '../events/chat-event-types';
 
 /**
  * ReAct Loop 节点 - 执行一次 Think → Act → Observe 循环
@@ -33,12 +34,37 @@ export async function reactLoop(
     return { isFinished: true };
   }
 
-  // 检查是否达到最大迭代次数
+  // 检查是否达到最大迭代次数 - 强制 LLM 生成回复
   if (agentIteration >= maxIterations) {
-    return {
-      isFinished: true,
-      fallbackResponse: '抱歉，我遇到了一些困难。请您换个方式描述问题，或者联系人工客服。',
-    };
+    console.log('[ReactLoop] 达到最大迭代次数，强制 LLM 生成回复');
+
+    const forceFinishPrompt = `你是小禾AI医生助手。
+
+用户问题：${messages[messages.length - 1].content}
+
+以上是你的分析过程：
+${scratchpad}
+
+现在请基于以上分析，给用户一个简洁的回复。如果信息不足，请说明并建议用户提供更多信息。`;
+
+    try {
+      const llm = createDeepSeekLLM(0.7);
+      await streamLLMResponse(llm, forceFinishPrompt, conversationId, messageId, eventEmitter);
+
+      const duration = state.startTime ? Date.now() - state.startTime : 0;
+      eventEmitter.emit(
+        'conversation:end',
+        createConversationEndEvent(conversationId, messageId, duration, messages.length)
+      );
+
+      return { isFinished: true };
+    } catch (error) {
+      console.error('[ReactLoop] Force finish error:', error);
+      return {
+        isFinished: true,
+        fallbackResponse: '抱歉，我遇到了一些困难。请您换个方式描述问题，或者联系人工客服。',
+      };
+    }
   }
 
   try {
@@ -68,7 +94,7 @@ ${scratchpad}
 现在，按照 ReAct 格式开始你的思考和行动：`;
 
     // 3. 调用 LLM
-    const llm = createZhipuLLM(0.7);
+    const llm = createDeepSeekLLM(0.7);
 
     const response = await llm.invoke(fullPrompt);
     const llmOutput = typeof response.content === 'string'

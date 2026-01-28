@@ -1,6 +1,6 @@
 import type { Tool, ToolContext, ToolResult, FinishParams } from './types';
 import { createMessageContentEvent, createMessageMetadataEvent } from '../events/chat-event-types';
-import { createZhipuLLM, streamLLMResponse } from '../../utils/llm';
+import { createDeepSeekLLM, streamLLMResponse } from '../../utils/llm';
 
 /**
  * 构建最终响应的 Prompt
@@ -76,7 +76,7 @@ export async function finish(
 
     // 2. 流式调用 LLM 生成最终响应
     console.log('[Finish] 流式调用 LLM 生成最终响应...');
-    const llm = createZhipuLLM(0.7);
+    const llm = createDeepSeekLLM(0.7);
     await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
 
     // 3. 发送元数据（操作按钮、信息来源等）

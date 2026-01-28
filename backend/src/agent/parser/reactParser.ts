@@ -63,9 +63,32 @@ export function parseReActOutput(output: string): ReActParseResult {
     }
   }
 
-  // 提取 Action Input (使用贪婪匹配以支持嵌套 JSON)
-  const actionInputMatch = output.match(/Action Input:\s*(\{[\s\S]*\})(?=\s*(?:\n(?:Thought|Action|Observation):|$))/);
-  if (actionInputMatch) {
+  // 提取 Action Input - 使用更健壮的解析逻辑
+  let actionInputMatch = output.match(/Action Input:\s*(\{[\s\S]*?\})\s*(?:\n|$)/);
+
+  // 回退方案：尝试匹配到行尾的 JSON
+  if (!actionInputMatch) {
+    actionInputMatch = output.match(/Action Input:\s*(\{[^\n]*\})/);
+  }
+
+  // 再次回退：尝试提取 { 到最后一个 }
+  if (!actionInputMatch) {
+    const actionInputStart = output.indexOf('Action Input:');
+    if (actionInputStart !== -1) {
+      const jsonStart = output.indexOf('{', actionInputStart);
+      const jsonEnd = output.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        const potentialJson = output.slice(jsonStart, jsonEnd + 1);
+        try {
+          result.actionInput = JSON.parse(potentialJson);
+        } catch {
+          result.parseError = `无法解析 Action Input: ${potentialJson.slice(0, 100)}...`;
+        }
+      }
+    }
+  }
+
+  if (actionInputMatch && !result.actionInput) {
     try {
       result.actionInput = JSON.parse(actionInputMatch[1]);
     } catch (error) {
@@ -105,6 +128,13 @@ export function isValidReActOutput(parseResult: ReActParseResult): boolean {
 export function formatParseError(error: unknown): string {
   if (error instanceof Error) {
     return `JSON 解析失败: ${error.message}`;
+  }
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return `JSON 解析失败: ${JSON.stringify(error)}`;
+    } catch {
+      return `JSON 解析失败: 无法序列化错误对象`;
+    }
   }
   return `JSON 解析失败: ${String(error)}`;
 }

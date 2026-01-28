@@ -1,18 +1,18 @@
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatDeepSeek } from "@langchain/deepseek";
 import { AgentEventEmitter } from '../agent/events/AgentEventEmitter';
 import { createMessageContentEvent } from '../agent/events/chat-event-types';
 
-export function createZhipuLLM(temperature: number = 0.7) {
-  if (!process.env.ZHIPU_API_KEY) {
-    throw new Error('ZHIPU_API_KEY is not set in environment variables');
+export function createDeepSeekLLM(temperature: number = 0.7) {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    throw new Error('DEEPSEEK_API_KEY is not set in environment variables');
   }
-  
-  return new ChatOpenAI({
-    model: "glm-4.5-airx",
-    apiKey: process.env.ZHIPU_API_KEY,
+
+  return new ChatDeepSeek({
+    model: 'deepseek-chat',
     temperature,
     configuration: {
-      baseURL: process.env.ZHIPU_BASE_URL || "https://open.bigmodel.cn/api/paas/v4",
+      baseURL: process.env.DEEPSEEK_BASE_URL,
+      apiKey: process.env.DEEPSEEK_API_KEY,
     },
   });
 }
@@ -29,7 +29,7 @@ export function createZhipuLLM(temperature: number = 0.7) {
  * @returns 完整的响应内容
  */
 export async function streamLLMResponse(
-  llm: ChatOpenAI,
+  llm: ChatDeepSeek,
   prompt: string,
   conversationId: string,
   messageId: string,

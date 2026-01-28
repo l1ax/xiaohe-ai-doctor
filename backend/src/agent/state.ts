@@ -84,7 +84,7 @@ export const AgentState = Annotation.Root({
   // 最大迭代次数
   maxIterations: Annotation<number>({
     reducer: (_, update) => update,
-    default: () => 10,
+    default: () => 5,  // 减少默认迭代次数，防止无限循环
   }),
 
   // 是否已完成
