@@ -132,6 +132,8 @@ const MetadataRenderer: React.FC<{ events: MessageMetadataEvent[] }> = observer(
       {events.map((event) => (
         <div key={event.id} className="w-full">
           {event.actions.map((action, index) => {
+            console.log('[MetadataRenderer] Rendering action:', action.type, action.label);
+
             // 渲染医生推荐卡片
             if (action.type === 'recommend_doctor' && action.data) {
               return (
@@ -146,8 +148,38 @@ const MetadataRenderer: React.FC<{ events: MessageMetadataEvent[] }> = observer(
               );
             }
 
-            // 其他 action 类型暂不处理
-            return null;
+            // 其他已知的 action 类型渲染为通用按钮
+            const knownTypes = ['view_more', 'book_appointment', 'transfer_to_doctor', 'retry', 'cancel'];
+            if (knownTypes.includes(action.type)) {
+              return (
+                <div key={`${event.id}-action-${index}`} className="mt-2">
+                  <button
+                    onClick={() => {
+                      console.log('[MetadataRenderer] Button clicked:', action);
+                      // TODO: 根据 action.type 执行相应操作
+                    }}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                  >
+                    {action.label}
+                  </button>
+                </div>
+              );
+            }
+
+            // 未知类型：防御性渲染（不应该发生）
+            console.warn('[MetadataRenderer] Unknown action type:', action.type);
+            return (
+              <div key={`${event.id}-action-${index}`} className="mt-2">
+                <button
+                  onClick={() => {
+                    console.log('[MetadataRenderer] Unknown action clicked:', action);
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+                >
+                  {action.label}
+                </button>
+              </div>
+            );
           })}
         </div>
       ))}
