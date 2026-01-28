@@ -113,6 +113,11 @@ export async function classifyIntent(
       },
       routeDecision,
       imageDescription,  // 保存图片描述供后续节点使用
+      // 重置状态字段，确保新一轮对话从头开始
+      isFinished: false,
+      agentIteration: 0,
+      scratchpad: '',
+      toolsUsed: [],
     };
   } catch (error) {
     console.error('[ClassifyIntent] Error:', error);
@@ -128,6 +133,11 @@ export async function classifyIntent(
         severity: 'mild',
       },
       routeDecision: 'react', // 默认走 ReAct
+      // 重置状态字段
+      isFinished: false,
+      agentIteration: 0,
+      scratchpad: '',
+      toolsUsed: [],
     };
   }
 }
