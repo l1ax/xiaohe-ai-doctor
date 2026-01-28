@@ -59,7 +59,7 @@ export interface FinishParams {
   summary: string;  // 问诊总结，用于指导 LLM 生成最终响应
   keyFindings: string[];  // 关键发现列表
   actions?: Array<{
-    type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel';
+    type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel' | 'recommend_doctor';
     label: string;
     data?: Record<string, any>;
   }>;

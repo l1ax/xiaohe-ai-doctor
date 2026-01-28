@@ -4,6 +4,8 @@ import { AgentView } from '../models/AgentView';
 import { EventRenderer, ToolCallRenderer, ThinkingRenderer } from './EventRenderer';
 import { ThinkingEvent } from '../models/events/ThinkingEvent';
 import { ToolCallEvent } from '../models/events/ToolCallEvent';
+import { MessageMetadataEvent } from '../models/events/MessageMetadataEvent';
+import { DoctorRecommendCard } from './message/DoctorRecommendCard';
 import { ChevronDown, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
@@ -31,13 +33,17 @@ export const AgentViewRenderer: React.FC<AgentViewRendererProps> = observer(({ v
         }
 
         if (group.type === 'content') {
-           return group.events.map(e => <EventRenderer key={e.id} event={e} />); 
+           return group.events.map(e => <EventRenderer key={e.id} event={e} />);
+        }
+
+        if (group.type === 'metadata') {
+           return <MetadataRenderer key={`metadata-${groupIndex}`} events={group.events as MessageMetadataEvent[]} />;
         }
 
         if (group.type === 'error') {
            return group.events.map(e => <EventRenderer key={e.id} event={e} />);
         }
-        
+
         return null;
       })}
 
@@ -114,5 +120,37 @@ const ToolGroup: React.FC<{ events: ToolCallEvent[] }> = observer(({ events }) =
          ))}
       </CollapsibleContent>
     </Collapsible>
+  );
+});
+
+/**
+ * 元数据渲染器：渲染 actions（医生推荐卡片等）
+ */
+const MetadataRenderer: React.FC<{ events: MessageMetadataEvent[] }> = observer(({ events }) => {
+  return (
+    <div className="w-full">
+      {events.map((event) => (
+        <div key={event.id} className="w-full">
+          {event.actions.map((action, index) => {
+            // 渲染医生推荐卡片
+            if (action.type === 'recommend_doctor' && action.data) {
+              return (
+                <DoctorRecommendCard
+                  key={`${event.id}-action-${index}`}
+                  doctorId={action.data.doctorId || ''}
+                  doctorName={action.data.doctorName || '未知医生'}
+                  hospital={action.data.hospital || '未知医院'}
+                  department={action.data.department || '未知科室'}
+                  label={action.label}
+                />
+              );
+            }
+
+            // 其他 action 类型暂不处理
+            return null;
+          })}
+        </div>
+      ))}
+    </div>
   );
 });

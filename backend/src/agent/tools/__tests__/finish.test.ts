@@ -21,8 +21,8 @@ describe('finish tool', () => {
 
     const result = await finish(
       {
-        finalResponse: '根据您的症状，建议...',
         summary: '头疼咨询',
+        keyFindings: ['用户反映头疼症状', '建议就医检查'],
         actions: [
           { type: 'transfer_to_doctor', label: '咨询人工医生' },
         ],
@@ -53,8 +53,8 @@ describe('finish tool', () => {
 
     await finish(
       {
-        finalResponse: '建议您...',
         summary: '症状分析',
+        keyFindings: ['症状描述完整', '需要专业诊断'],
         actions: [{ type: 'book_appointment', label: '预约挂号' }],
         informationSources: ['web_search'],
         reliabilityNote: '以上信息来自网络搜索，建议咨询专业医生',
@@ -71,7 +71,7 @@ describe('finish tool', () => {
   it('should have correct tool definition', () => {
     expect(finishTool.name).toBe('finish');
     expect(finishTool.description).toContain('结束对话');
-    expect(finishTool.parameters.required).toContain('finalResponse');
     expect(finishTool.parameters.required).toContain('summary');
+    expect(finishTool.parameters.required).toContain('keyFindings');
   });
 });

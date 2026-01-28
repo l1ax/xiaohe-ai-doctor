@@ -81,7 +81,7 @@ export interface MessageMetadataEvent extends BaseEvent {
       snippet: string;
     }>;
     actions?: Array<{
-      type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel';
+      type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel' | 'recommend_doctor';
       label: string;
       data?: Record<string, any>;
     }>;
@@ -213,7 +213,7 @@ export function createMessageMetadataEvent(
   messageId: string,
   sources?: Array<{ title: string; url: string; snippet: string }>,
   actions?: Array<{
-    type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel';
+    type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel' | 'recommend_doctor';
     label: string;
     data?: Record<string, any>;
   }>,
