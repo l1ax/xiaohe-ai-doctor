@@ -84,6 +84,18 @@ ${scratchpad}
       ? `\n\n用户上传的图片内容：${imageDescription}`
       : '';
 
+    // 构建历史对话上下文
+    const conversationHistory = messages.length > 1
+      ? messages.slice(0, -1).map(msg => {
+          const role = msg.role === 'user' ? '用户' : 'AI医生';
+          return `${role}: ${msg.content}`;
+        }).join('\n')
+      : '';
+
+    const historySection = conversationHistory
+      ? `# 历史对话\n\n${conversationHistory}\n\n`
+      : '';
+
     // 2. 构建完整输入
     const fullPrompt = `${systemPrompt}
 
@@ -91,7 +103,7 @@ ${intentGuidance}
 
 ${priorityReminder}
 
-# 当前对话历史
+${historySection}# 当前对话历史
 
 ${scratchpad}
 
@@ -109,6 +121,8 @@ ${scratchpad}
 
     // 4. 解析输出
     const parsed = parseReActOutput(llmOutput);
+
+    console.log(`[ReactLoop] Iteration ${agentIteration + 1}: Thought=${parsed.thought?.substring(0, 50)}... Action=${parsed.action} isFinished=${parsed.isFinished}`);
 
     // 5. 验证解析结果
     if (!isValidReActOutput(parsed)) {
