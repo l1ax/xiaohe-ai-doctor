@@ -9,8 +9,9 @@ export async function runAgent(params: {
   messages: Message[];
   conversationId: string;
   eventEmitter?: AgentEventEmitter;
+  userId?: string;
 }) {
-  const { messages, conversationId, eventEmitter } = params;
+  const { messages, conversationId, eventEmitter, userId } = params;
 
   console.log(`\n🤖 Agent started for conversation: ${conversationId}`);
 
@@ -22,6 +23,7 @@ export async function runAgent(params: {
       messages,
       conversationId,
       messageId,
+      userId: userId || '',
       startTime,
       eventEmitter: eventEmitter || new AgentEventEmitter(),
     },

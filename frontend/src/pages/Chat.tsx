@@ -1,18 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import {
   Send,
-  ChevronLeft,
   History,
   Thermometer,
   Brain,
   Stethoscope,
   Activity,
-  X
+  X,
+  ChevronLeft
 } from 'lucide-react';
 import { Conversation } from '../models/Conversation';
 import { ConversationRenderer } from '../components/ConversationRenderer';
 import { ImageUploader } from '../components/upload/ImageUploader';
+import { ConversationSidebar } from '../components/chat/ConversationSidebar';
 import toast from 'react-hot-toast';
 // import '../styles/events.css'; // Optimized with shadcn-ui components
 
@@ -25,9 +26,10 @@ const QUICK_REPLIES = [
 ];
 
 export const ChatPage: React.FC = observer(() => {
-  const conversation = useMemo(() => new Conversation(), []);
+  const [conversation, setConversation] = useState(() => new Conversation());
   const [inputValue, setInputValue] = useState('');
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom
@@ -84,9 +86,31 @@ export const ChatPage: React.FC = observer(() => {
     [handleSendMessage]
   );
 
-  // Reset conversation
-  const handleReset = useCallback(() => {
-    conversation.clear();
+  // New conversation
+  const handleNewConversation = useCallback(() => {
+    conversation.close();
+    setConversation(new Conversation());
+    setInputValue('');
+    setUploadedImageUrl(null);
+    toast.success('已开始新对话');
+  }, [conversation]);
+
+  // Select conversation from history
+  const handleSelectConversation = useCallback(async (conversationId: string) => {
+    try {
+      // Close current conversation
+      conversation.close();
+      
+      // Create new conversation with history load
+      const newConversation = new Conversation(conversationId);
+      await newConversation.loadFromHistory(conversationId);
+      
+      setConversation(newConversation);
+      toast.success('已加载历史对话');
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+      toast.error('加载对话失败');
+    }
   }, [conversation]);
 
   // Render status
@@ -124,24 +148,34 @@ export const ChatPage: React.FC = observer(() => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background-light dark:bg-background-dark font-sans text-slate-900 dark:text-slate-100">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background-light dark:bg-background-dark font-sans text-slate-900 dark:text-slate-100">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-white dark:bg-[#1a2c35] border-b border-slate-100 dark:border-slate-800 shrink-0 z-20 shadow-sm">
         <button
           className="flex items-center justify-center p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
           onClick={() => window.history.back()}
+          title="返回"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
         <h1 className="text-lg font-bold text-slate-800 dark:text-white flex-1 text-center">AI 健康助手</h1>
         <button
           className="flex items-center justify-center p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
-          onClick={handleReset}
-          title="重新开始"
+          onClick={() => setIsSidebarOpen(true)}
+          title="对话历史"
         >
           <History className="w-6 h-6" />
         </button>
       </header>
+
+      {/* Conversation Sidebar */}
+      <ConversationSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onNewConversation={handleNewConversation}
+        onSelectConversation={handleSelectConversation}
+        currentConversationId={conversation.conversationId}
+      />
 
       {/* Main Messages Area */}
       <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-background-light dark:bg-background-dark pb-4 scroll-smooth" id="chat-container">

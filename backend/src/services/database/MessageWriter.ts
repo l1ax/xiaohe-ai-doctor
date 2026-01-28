@@ -11,6 +11,9 @@ import {
   UserIntent,
 } from './types';
 import type { AgentEvent } from '../../agent/events/types';
+import { messageRepository, MessageRepository } from './MessageRepository';
+import { conversationRepository, ConversationRepository } from './ConversationRepository';
+import { isSupabaseConfigured } from './supabaseClient';
 
 export class MessageWriter {
   private eventEmitter: AgentEventEmitter;
@@ -191,42 +194,106 @@ export class MessageWriter {
     }
   }
 
-  private flushConversation(conversationId: string): void {
-    // Avoid duplicate flushes
-    if (this.flushedConversations.has(conversationId)) {
+  /**
+   * 确保对话存在，如果不存在则创建
+   */
+  private knownConversations: Set<string> = new Set();
+  
+  private async ensureConversationExists(conversationId: string, patientId: string): Promise<void> {
+    // Skip if we already know this conversation exists
+    if (this.knownConversations.has(conversationId)) {
       return;
     }
 
-    // Get user message
-    const userMessage = this.userMessages.get(conversationId);
-    if (userMessage) {
-      console.log(`[MessageWriter MVP] Would save user message:`, JSON.stringify(userMessage, null, 2));
-      // TODO: Implement actual database write
+    // Check if conversation exists in storage
+    const existing = await conversationRepository.findById(conversationId);
+    if (existing) {
+      this.knownConversations.add(conversationId);
+      return;
     }
 
+    // Create new conversation with the specified ID
+    await conversationRepository.create({
+      id: conversationId,
+      type: 'ai',
+      patientId: patientId,
+    });
+    console.log(`[MessageWriter] Created conversation ${conversationId} for patient ${patientId}`);
+    this.knownConversations.add(conversationId);
+  }
+
+  private flushConversation(conversationId: string): void {
+    // Avoid duplicate flushes
+    if (this.flushedConversations.has(conversationId)) {
+      console.log(`[MessageWriter] Skipping duplicate flush for ${conversationId}`);
+      return;
+    }
+
+    // Mark as flushed early to prevent concurrent flushes
+    this.flushedConversations.add(conversationId);
+
+    // Get user message
+    const userMessage = this.userMessages.get(conversationId);
+    
     // Get assistant messages
     const messages = this.messageBuffer.get(conversationId) || [];
     const metadata = this.conversationMetadata.get(conversationId);
 
-    messages.forEach((msg) => {
-      const completeMessage: Message = {
-        id: msg.id!,
-        conversation_id: msg.conversation_id!,
-        sender_id: msg.sender_id!,
-        content_type: msg.content_type!,
-        content: msg.content || '',
-        created_at: msg.created_at!,
-        metadata: metadata || undefined,
-      };
-      console.log(`[MessageWriter MVP] Would save assistant message:`, JSON.stringify(completeMessage, null, 2));
-      // TODO: Implement actual database write
-    });
+    console.log(`[MessageWriter] Flushing conversation ${conversationId}: ${messages.length} assistant message(s), userMessage: ${!!userMessage}`);
+    if (messages.length > 0) {
+      console.log(`[MessageWriter] First assistant message content length: ${messages[0]?.content?.length || 0} chars`);
+    }
 
-    // Mark as flushed and clear buffers for this conversation
-    this.flushedConversations.add(conversationId);
+    // Clear buffers immediately
     this.userMessages.delete(conversationId);
     this.messageBuffer.delete(conversationId);
     this.conversationMetadata.delete(conversationId);
+
+    // Save to database asynchronously (fire and forget with error logging)
+    this.saveMessagesToDatabase(conversationId, userMessage, messages, metadata).catch((error) => {
+      console.error(`[MessageWriter] Failed to save messages for conversation ${conversationId}:`, error);
+    });
+  }
+
+  /**
+   * 异步保存消息到数据库
+   */
+  private async saveMessagesToDatabase(
+    conversationId: string,
+    userMessage: Partial<Message> | undefined,
+    assistantMessages: Partial<Message>[],
+    metadata: MessageMetadata | undefined
+  ): Promise<void> {
+    // Note: Repository internally handles memory storage vs Supabase based on configuration
+    // Note: User message is already saved in aiChatController.streamChat, so we only save assistant messages here
+
+    try {
+      // No need to ensure conversation exists - it's created in aiChatController.streamChat
+      // No need to save user message - it's saved in aiChatController.streamChat
+
+      // Save assistant messages
+      for (const msg of assistantMessages) {
+        if (msg.content) {
+          await messageRepository.create({
+            conversationId: msg.conversation_id!,
+            senderId: msg.sender_id || 'assistant',
+            contentType: msg.content_type || 'text',
+            content: msg.content,
+            metadata: metadata,
+          });
+        }
+      }
+
+      if (assistantMessages.length > 0) {
+        console.log(`[MessageWriter] Saved ${assistantMessages.length} assistant message(s) for conversation ${conversationId}`);
+      }
+
+      // Update conversation updated_at
+      await conversationRepository.updateUpdatedAt(conversationId);
+    } catch (error) {
+      console.error(`[MessageWriter] Database write error:`, error);
+      throw error;
+    }
   }
 
   private flushAllConversations(): void {

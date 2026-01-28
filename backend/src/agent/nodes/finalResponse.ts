@@ -26,6 +26,10 @@ export async function finalResponse(
 
   // 发送会话结束事件
   if (eventEmitter) {
+    // 先发送 agent:done 事件，触发 MessageWriter 保存助手消息
+    eventEmitter.emitDone(conversationId, messageId);
+
+    // 再发送会话结束事件（用于 SSE 通知前端）
     eventEmitter.emit(
       'conversation:end',
       createConversationEndEvent(

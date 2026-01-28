@@ -4,9 +4,11 @@ import { runAgent } from '../agent';
 import { AgentEventEmitter, globalAgentEventEmitter } from '../agent/events/AgentEventEmitter';
 import { SSEHandler } from '../services/streaming/SSEHandler';
 import { MessageWriter } from '../services/database/MessageWriter';
+import { conversationRepository } from '../services/database/ConversationRepository';
+import { messageRepository } from '../services/database/MessageRepository';
 import { Message } from '../agent/types';
 import { logger } from '../utils/logger';
-import { ValidationError, LLMError } from '../utils/errorHandler';
+import { ValidationError, LLMError, NotFoundError } from '../utils/errorHandler';
 
 export class AIChatController {
   private sseHandler: SSEHandler;
@@ -71,12 +73,41 @@ export class AIChatController {
     }
 
     const conversationIdStr = conversationId || `conv_${Date.now()}`;
+    const userId = (req as any).user?.userId || 'anonymous';
 
     logger.info('Stream chat request received', { 
       conversationId: conversationIdStr, 
       messageLength: message.length,
       imageCount: imageUrls?.length || 0,
     });
+
+    // 立即创建对话和保存用户消息（在 Agent 执行之前）
+    // 这样用户切换会话时也能看到历史记录
+    try {
+      // 检查对话是否已存在
+      const existingConversation = await conversationRepository.findById(conversationIdStr);
+      if (!existingConversation) {
+        // 创建新对话
+        await conversationRepository.create({
+          id: conversationIdStr,
+          type: 'ai',
+          patientId: userId,
+        });
+        logger.info('Conversation created', { conversationId: conversationIdStr, userId });
+      }
+
+      // 保存用户消息
+      await messageRepository.create({
+        conversationId: conversationIdStr,
+        senderId: userId,
+        contentType: 'text',
+        content: message,
+      });
+      logger.info('User message saved', { conversationId: conversationIdStr });
+    } catch (error) {
+      logger.error('Failed to save conversation/message', error);
+      // 不阻塞 Agent 执行，继续处理
+    }
 
     const sessionEmitter = new AgentEventEmitter();
 
@@ -120,6 +151,7 @@ export class AIChatController {
           messages,
           conversationId: conversationIdStr,
           eventEmitter: sessionEmitter,
+          userId: (req as any).user?.userId || 'anonymous',
         });
 
         logger.agent('Agent execution completed', { conversationId: conversationIdStr });
@@ -216,6 +248,108 @@ export class AIChatController {
       code: 'SUCCESS',
       message: 'Messages retrieved successfully',
       data: messages,
+    });
+  }
+
+  /**
+   * List conversations for the current user
+   */
+  async listConversations(req: Request, res: Response): Promise<void> {
+    // Get user ID from auth middleware
+    const userId = (req as any).user?.userId;
+    
+    if (!userId) {
+      throw new ValidationError('User not authenticated');
+    }
+
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const conversations = await conversationRepository.findByPatientId(userId, limit, offset);
+
+    logger.info('Conversations listed', { userId, count: conversations.length });
+
+    res.status(200).json({
+      code: 'SUCCESS',
+      message: 'Conversations retrieved successfully',
+      data: conversations,
+    });
+  }
+
+  /**
+   * Get conversation with messages
+   */
+  async getConversationWithMessages(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const userId = (req as any).user?.userId;
+
+    if (!id) {
+      throw new ValidationError('Conversation ID is required');
+    }
+
+    const conversationId = Array.isArray(id) ? id[0] : id;
+    
+    // Get conversation
+    const conversation = await conversationRepository.findById(conversationId);
+    
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found');
+    }
+
+    // Verify ownership
+    if (conversation.patient_id !== userId) {
+      throw new ValidationError('Access denied');
+    }
+
+    // Get messages
+    const messages = await messageRepository.findByConversationId(conversationId, 100);
+
+    logger.info('Conversation retrieved', { conversationId, messageCount: messages.length });
+
+    res.status(200).json({
+      code: 'SUCCESS',
+      message: 'Conversation retrieved successfully',
+      data: {
+        conversation,
+        messages,
+      },
+    });
+  }
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    const userId = (req as any).user?.userId;
+
+    if (!id) {
+      throw new ValidationError('Conversation ID is required');
+    }
+
+    const conversationId = Array.isArray(id) ? id[0] : id;
+    
+    // Get conversation to verify ownership
+    const conversation = await conversationRepository.findById(conversationId);
+    
+    if (!conversation) {
+      throw new NotFoundError('Conversation not found');
+    }
+
+    // Verify ownership
+    if (conversation.patient_id !== userId) {
+      throw new ValidationError('Access denied');
+    }
+
+    // Delete conversation (messages will be deleted via CASCADE)
+    await conversationRepository.deleteById(conversationId);
+
+    logger.info('Conversation deleted', { conversationId, userId });
+
+    res.status(200).json({
+      code: 'SUCCESS',
+      message: 'Conversation deleted successfully',
+      data: null,
     });
   }
 

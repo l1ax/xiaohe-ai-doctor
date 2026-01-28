@@ -29,10 +29,67 @@ router.post('/stream', authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/ai-chat/conversations
+ * List conversations for the current user
+ */
+router.get('/conversations', authMiddleware, async (req, res) => {
+  try {
+    await aiChatController.listConversations(req, res);
+  } catch (error: any) {
+    console.error('[Route] List conversations error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to list conversations',
+        data: { error: error.message }
+      });
+    }
+  }
+});
+
+/**
+ * GET /api/ai-chat/conversations/:id
+ * Get conversation with messages
+ */
+router.get('/conversations/:id', authMiddleware, async (req, res) => {
+  try {
+    await aiChatController.getConversationWithMessages(req, res);
+  } catch (error: any) {
+    console.error('[Route] Get conversation error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to get conversation',
+        data: { error: error.message }
+      });
+    }
+  }
+});
+
+/**
+ * DELETE /api/ai-chat/conversations/:id
+ * Delete a conversation
+ */
+router.delete('/conversations/:id', authMiddleware, async (req, res) => {
+  try {
+    await aiChatController.deleteConversation(req, res);
+  } catch (error: any) {
+    console.error('[Route] Delete conversation error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to delete conversation',
+        data: { error: error.message }
+      });
+    }
+  }
+});
+
+/**
  * POST /api/ai-chat/conversations
  * Create a new conversation
  */
-router.post('/conversations', (req, res) => {
+router.post('/conversations', authMiddleware, (req, res) => {
   aiChatController.createConversation(req, res);
 });
 
@@ -40,10 +97,9 @@ router.post('/conversations', (req, res) => {
  * GET /api/ai-chat/conversations/:id/messages
  * Get messages for a conversation
  */
-router.get('/conversations/:id/messages', (req, res) => {
+router.get('/conversations/:id/messages', authMiddleware, (req, res) => {
   aiChatController.getMessages(req, res);
 });
 
 export default router;
 export { aiChatController };
-

@@ -86,16 +86,12 @@ export async function classifyIntent(
       intentConfidence[intent] = 1.0 - (index * 0.2);
     });
 
-    // 发送意图识别事件
-    eventEmitter.emit('agent:intent', {
+    // 发送意图识别事件（包含 MessageWriter 所需的信息）
+    eventEmitter.emitIntent(primaryIntent, {
+      ...parsed.entities,
       conversationId,
-      intents,
-      primaryIntent,
-      entities: parsed.entities || {},
-      riskIndicators: parsed.riskIndicators || {
-        hasEmergencyKeywords: false,
-        severity: 'mild',
-      },
+      userMessage: latestMessage.content,
+      userId: state.userId || 'patient',  // 使用 state 中的 userId
     });
 
     // ========== 路由决策 ==========

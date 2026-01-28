@@ -212,4 +212,84 @@ export class Conversation {
     this.items = [];
     this.error = null;
   }
+
+  /**
+   * 从历史记录加载对话
+   */
+  @action
+  async loadFromHistory(conversationId: string): Promise<void> {
+    try {
+      // Import userStore dynamically to avoid circular dependency
+      const { userStore } = await import('../store/userStore');
+      const token = userStore.accessToken;
+      
+      if (!token) {
+        throw new Error('未登录');
+      }
+
+      const response = await fetch(`/api/ai-chat/conversations/${conversationId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.code !== 'SUCCESS') {
+        throw new Error(result.message || '加载对话失败');
+      }
+
+      // Update conversation ID
+      this.conversationId = conversationId;
+      
+      // Clear existing items
+      this.items = [];
+
+      // Reconstruct messages from history
+      const messages = result.data.messages || [];
+      
+      for (const msg of messages) {
+        if (msg.senderId === 'assistant') {
+          // Create agent response with content
+          const agentResponse = new AgentResponse(`agent-${msg.id}`);
+          // Add message content via SSE event simulation
+          agentResponse.view.handleSSEEvent({
+            type: 'message_content',
+            data: {
+              messageId: `msg-${msg.id}`,
+              delta: msg.content,
+              isLast: true,
+            },
+          });
+          agentResponse.markComplete();
+          this.items.push(agentResponse);
+        } else {
+          // Create user message
+          const userMessage = new UserMessage({
+            id: `user-${msg.id}`,
+            content: msg.content,
+            attachments: msg.metadata?.imageUrl 
+              ? [{ type: 'image', url: msg.metadata.imageUrl, name: 'image' }]
+              : undefined,
+          });
+          this.items.push(userMessage);
+        }
+      }
+
+      console.log(`[Conversation] Loaded ${messages.length} messages from history`);
+    } catch (error) {
+      console.error('[Conversation] Failed to load from history:', error);
+      this.error = {
+        code: 'LOAD_ERROR',
+        message: error instanceof Error ? error.message : '加载对话失败',
+      };
+      throw error;
+    }
+  }
 }
