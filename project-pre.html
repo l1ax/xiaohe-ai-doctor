@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小和 AI 医生项目演示大纲</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: var(--secondary-color);
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        h3 {
+            color: var(--text-primary);
+            margin-top: 25px;
+            font-size: 1.4rem;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        .badge-patient {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-doctor {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        li::before {
+            content: "•";
+            color: var(--primary-color);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        .tech-stack {
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9rem;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>小和 AI 医生项目演示</h1>
+        <p>基于 AI Agent 与实时通信的全流程医疗健康平台</p>
+    </header>
+    <section>
+        <h2>01. 项目概览</h2>
+        <div class="card">
+            <p><strong>项目愿景：</strong> 通过人工智能技术赋能医疗咨询，结合真人医生专家服务，构建“AI 初诊 + 专家复诊 + 线下预约”的闭环医疗服务体系。</p>
+            <p><strong>核心架构：</strong> 前后端分离架构，后端集成 LangGraph 智能体编排与 Supabase 数据库服务。</p>
+        </div>
+    </section>
+    <section>
+        <h2>02. 核心功能模块</h2>
+        <div class="card">
+            <h3>🤖 AI 对话模块 (AI Consultation)</h3>
+            <p><strong>功能描述：</strong> 7x24小时智能问诊助手，能够理解患者自然语言描述，进行病情初步评估、分诊建议和健康科普。</p>
+            <div class="tech-stack">
+                <strong>技术实现：</strong>
+                <ul>
+                    <li>Agent 编排：LangGraph.js StateGraph</li>
+                    <li>决策流程：意图分类 (Classify Intent) -> 快速响应 (Quick Response) / ReAct 推理循环 (React Loop)</li>
+                    <li>记忆机制：MemorySaver (Checkpointer) 实现多轮对话上下文保持</li>
+                    <li>流式输出：支持 Token 级别的流式响应，提升用户体验</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <h3>👨‍⚕️ 专家问诊模块 (Expert Consultation)</h3>
+            <p><strong>功能描述：</strong> 针对复杂病例，提供与真人医生的在线图文/视频咨询服务，支持实时消息推送。</p>
+            <div class="tech-stack">
+                <strong>技术实现：</strong>
+                <ul>
+                    <li>实时通信：WebSocket 实现双向即时通讯</li>
+                    <li>前端实现：DoctorChat (医生端) / DoctorChatPage (患者端) 组件</li>
+                    <li>消息存储：Supabase 实时数据库 + 历史记录持久化</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card">
+            <h3>📅 预约挂号模块 (Appointment System)</h3>
+            <p><strong>功能描述：</strong> 线上查看医生排班，选择时段进行线下门診预约，支持预约状态管理（待确认、已完成、已取消）。</p>
+            <div class="tech-stack">
+                <strong>技术实现：</strong>
+                <ul>
+                    <li>数据模型：PostgreSQL (Supabase) 关系型数据存储</li>
+                    <li>后台管理：医生端 ScheduleManagement (排班管理) + AppointmentManagement (预约审批)</li>
+                    <li>流程控制：完整的 CRUD 业务逻辑与状态机流转</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <section>
+        <h2>03. 角色与权限体系</h2>
+        
+        <div class="grid">
+            <div class="card">
+                <h3><span class="role-badge badge-patient">患者端 (Patient)</span></h3>
+                <p>面向普通C端用户，提供便捷的就医体验。</p>
+                <ul>
+                    <li><strong>核心路径：</strong> 首页 -> AI问诊 -> 专家咨询 -> 预约挂号</li>
+                    <li><strong>专属功能：</strong> 个人健康档案、家庭成员管理、处方记录查看</li>
+                    <li><strong>路由保护：</strong> PatientRoute 组件确保登录鉴权</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3><span class="role-badge badge-doctor">医生端 (Doctor)</span></h3>
+                <p>面向B端医生用户，提供高效的工作台。</p>
+                <ul>
+                    <li><strong>核心路径：</strong> 控制台 -> 待办任务 -> 排班管理 -> 问诊室</li>
+                    <li><strong>专属功能：</strong> 患者资料查看、预约审核、排班设置</li>
+                    <li><strong>路由保护：</strong> ProtectedRoute (role="doctor") 确保权限隔离</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <section>
+        <h2>04. 演示流程建议</h2>
+        <div class="card">
+            <ol style="list-style-type: decimal; padding-left: 20px;">
+                <li><strong>开场：</strong> 展示患者端首页，模拟用户身体不适场景。</li>
+                <li><strong>AI 互动：</strong> 进入 AI 对话，描述症状，展示 Agent 的多轮推理与分诊建议。</li>
+                <li><strong>转接人工：</strong> AI 建议后，无缝跳转至专家咨询列表，发起真人咨询。</li>
+                <li><strong>医生视角：</strong> 切换至医生端控制台，接收咨询消息并回复，处理预约申请。</li>
+                <li><strong>闭环：</strong> 回到患者端查看预约确认信息，完成整个就医流程。</li>
+            </ol>
+        </div>
+    </section>
+    <div class="footer">
+        <p>Xiaohe AI Doctor Project Presentation Outline</p>
+    </div>
+</body>
+</html>
+
+Comment
+⌥⌘M
