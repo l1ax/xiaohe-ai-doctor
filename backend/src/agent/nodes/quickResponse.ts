@@ -1,9 +1,9 @@
 import type { AgentStateType } from '../state';
 import { queryKnowledgeBase } from '../tools/queryKnowledgeBase';
 import { searchWeb } from '../tools/searchWeb';
-import { createZhipuLLM } from '../../utils/llm';
+import { createZhipuLLM, streamLLMResponse } from '../../utils/llm';
 import { buildQuickResponsePrompt } from '../prompts/quickResponsePrompt';
-import { createMessageContentEvent, createConversationEndEvent } from '../events/chat-event-types';
+import { createConversationEndEvent } from '../events/chat-event-types';
 
 /**
  * Quick Response 节点 - 快速响应通道
@@ -82,18 +82,10 @@ export async function quickResponse(
 
     const prompt = buildQuickResponsePrompt(userQuery, resultContent, informationSource);
 
-    // 4. 单次 LLM 调用生成最终回复
-    console.log('[QuickResponse] 调用 LLM 生成最终回复...');
+    // 4. 流式 LLM 调用并实时发送给用户
+    console.log('[QuickResponse] 流式调用 LLM...');
     const llm = createZhipuLLM(0.7);
-    const response = await llm.invoke(prompt);
-
-    const finalResponse = typeof response.content === 'string'
-      ? response.content
-      : JSON.stringify(response.content);
-
-    // 5. 流式发送给用户
-    console.log('[QuickResponse] 流式发送响应...');
-    await streamResponse(finalResponse, conversationId, messageId, eventEmitter);
+    await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
 
     // 6. 发送对话结束事件
     const duration = startTime ? Date.now() - startTime : 0;
@@ -150,39 +142,4 @@ function formatWebSearchResult(result: any): string {
   });
 
   return formatted;
-}
-
-/**
- * 流式发送响应
- */
-async function streamResponse(
-  content: string,
-  conversationId: string,
-  messageId: string,
-  eventEmitter: any
-): Promise<void> {
-  // 按句子分割
-  const sentences = content.split(/([。？！.?!])/g).filter(Boolean);
-  let chunkIndex = 0;
-
-  for (let i = 0; i < sentences.length; i += 2) {
-    const sentence = sentences[i] + (sentences[i + 1] || '');
-
-    if (sentence.trim()) {
-      eventEmitter.emit(
-        'message:content',
-        createMessageContentEvent(
-          conversationId,
-          messageId,
-          sentence,
-          chunkIndex++,
-          chunkIndex === 1,
-          i >= sentences.length - 2
-        )
-      );
-
-      // 小延迟，模拟流式输出
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-  }
 }

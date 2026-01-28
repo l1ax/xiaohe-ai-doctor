@@ -53,10 +53,11 @@ export interface AskFollowupParams {
 
 /**
  * finish 工具参数
+ * 注意：不再接收 finalResponse，而是由工具内部调用 LLM 流式生成
  */
 export interface FinishParams {
-  finalResponse: string;
-  summary: string;
+  summary: string;  // 问诊总结，用于指导 LLM 生成最终响应
+  keyFindings: string[];  // 关键发现列表
   actions?: Array<{
     type: 'transfer_to_doctor' | 'view_more' | 'book_appointment' | 'retry' | 'cancel';
     label: string;

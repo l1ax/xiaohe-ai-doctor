@@ -1,17 +1,84 @@
-import { makeObservable, observable, action } from 'mobx';
+import { makeObservable, observable, action, computed } from 'mobx';
 import { Event } from './events/Event';
 import { MessageContentEvent } from './events/MessageContentEvent';
 import { ToolCallEvent } from './events/ToolCallEvent';
-import { EventFactory, SSEEvent } from './events/EventFactory';
+import { EventFactory, SSEEvent } from './events/EventFactory'
+
+/**
+ * 事件分组类型
+ */
+export type EventGroupType = 'thinking' | 'tool_group' | 'content' | 'error';
+
+/**
+ * 事件分组接口
+ */
+export interface EventGroup {
+  type: EventGroupType;
+  events: Event[];
+}
 
 /**
  * Agent 输出视图：包含一系列事件的可观察数组
+ * 实现 Symbol.iterator 支持 for...of 遍历分组
  */
 export class AgentView {
   @observable.deep events: Event[] = [];
 
   constructor() {
     makeObservable(this);
+  }
+
+  /**
+   * 计算属性：获取分组后的事件
+   * 分组逻辑：思考 -> 工具组(s) -> 内容 -> 错误
+   */
+  @computed
+  get groups(): EventGroup[] {
+    const grouped: EventGroup[] = [];
+    let currentToolGroup: ToolCallEvent[] = [];
+
+    this.events.forEach((event) => {
+      // 如果不是工具调用，且有累积的工具组，先推送工具组
+      if (event.type !== 'tool_call' && currentToolGroup.length > 0) {
+        grouped.push({ type: 'tool_group', events: [...currentToolGroup] });
+        currentToolGroup = [];
+      }
+
+      if (event.type === 'tool_call') {
+        currentToolGroup.push(event as ToolCallEvent);
+      } else if (event.type === 'thinking') {
+        grouped.push({ type: 'thinking', events: [event] });
+      } else if (event.type === 'message_content') {
+        // 合并多个 message_content
+        const lastGroup = grouped[grouped.length - 1];
+        if (lastGroup?.type === 'content') {
+          lastGroup.events.push(event);
+        } else {
+          grouped.push({ type: 'content', events: [event] });
+        }
+      } else if (event.type === 'error') {
+        grouped.push({ type: 'error', events: [event] });
+      } else {
+        // 其他类型作为 fallback
+        grouped.push({ type: 'error', events: [event] });
+      }
+    });
+
+    // 处理结尾残留的工具组
+    if (currentToolGroup.length > 0) {
+      grouped.push({ type: 'tool_group', events: [...currentToolGroup] });
+    }
+
+    return grouped;
+  }
+
+  /**
+   * 实现 Symbol.iterator，支持 for...of 遍历分组
+   */
+  *[Symbol.iterator](): Iterator<EventGroup> {
+    for (const group of this.groups) {
+      yield group;
+    }
   }
 
   /**

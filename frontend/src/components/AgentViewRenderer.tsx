@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AgentView } from '../models/AgentView';
 import { EventRenderer, ToolCallRenderer, ThinkingRenderer } from './EventRenderer';
@@ -14,53 +14,13 @@ interface AgentViewRendererProps {
 
 /**
  * Agent 视图渲染器：聚合渲染 AgentView 中的所有事件
+ * 分组逻辑已移至数据层 (AgentView.groups)
  */
 export const AgentViewRenderer: React.FC<AgentViewRendererProps> = observer(({ view }) => {
-  // 1. 将事件分组：思考 -> 工具组(s) -> 内容 -> 错误
-  const groups = useMemo(() => {
-    const grouped: Array<{ type: 'thinking' | 'tool_group' | 'content' | 'error'; events: any[] }> = [];
-    let currentToolGroup: ToolCallEvent[] = [];
-
-    view.events.forEach((event) => {
-      // 如果不是工具调用，且有累积的工具组，先推送工具组
-      if (event.type !== 'tool_call' && currentToolGroup.length > 0) {
-        grouped.push({ type: 'tool_group', events: [...currentToolGroup] });
-        currentToolGroup = [];
-      }
-
-      if (event.type === 'tool_call') {
-        currentToolGroup.push(event as ToolCallEvent);
-      } else if (event.type === 'thinking') {
-        grouped.push({ type: 'thinking', events: [event] });
-      } else if (event.type === 'message_content') {
-        // 合并多个 message_content（虽然目前的逻辑通常只有一个流式的）
-        const lastGroup = grouped[grouped.length - 1];
-        if (lastGroup?.type === 'content') {
-          lastGroup.events.push(event);
-        } else {
-          grouped.push({ type: 'content', events: [event] });
-        }
-      } else if (event.type === 'error') {
-        grouped.push({ type: 'error', events: [event] });
-      } else {
-         // 其他类型直接渲染（比如状态），暂不特殊处理或者单独成组
-         // 目前 EventRenderer 处理了 conversation_status，这里可以保留
-         grouped.push({ type:  'error', events: [event] }); // Fallback treatment for now if needed, or ignore
-      }
-    });
-
-    // 处理结尾残留的工具组
-    if (currentToolGroup.length > 0) {
-      grouped.push({ type: 'tool_group', events: [...currentToolGroup] });
-    }
-
-    return grouped;
-  }, [view.events, view.events.length]); // depend on length to trigger re-calc on updates
-  
-  // 3. 渲染
+  // 直接使用数据层的分组计算结果
   return (
     <div className="flex flex-col gap-2 w-full">
-      {groups.map((group, groupIndex) => {
+      {view.groups.map((group, groupIndex) => {
         if (group.type === 'thinking') {
           return group.events.map(e => <ThinkingRenderer key={e.id} event={e as ThinkingEvent} />);
         }
@@ -90,9 +50,15 @@ const ToolGroup: React.FC<{ events: ToolCallEvent[] }> = observer(({ events }) =
   // 默认展开条件：有正在运行的工具，或者有失败的工具
   const hasRunning = events.some(e => e.status === 'running');
   const hasFailed = events.some(e => e.status === 'failed');
-  const isOpenDefault = hasRunning; 
   
-  const [isOpen, setIsOpen] = useState(isOpenDefault);
+  const [isOpen, setIsOpen] = useState(hasRunning);
+
+  // 当有工具正在运行时自动展开
+  useEffect(() => {
+    if (hasRunning) {
+      setIsOpen(true);
+    }
+  }, [hasRunning]);
 
   // 状态显示逻辑
   const runningCount = events.filter(e => e.status === 'running').length;
