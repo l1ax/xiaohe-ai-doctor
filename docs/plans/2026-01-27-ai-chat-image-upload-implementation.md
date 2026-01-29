@@ -1979,7 +1979,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({
 
       <div className={styles.wrapper}>
         {role === 'assistant' && (
-          <span className={styles.name}>小禾AI医生</span>
+          <span className={styles.name}>小荷AI医生</span>
         )}
         
         <div className={styles.bubble}>

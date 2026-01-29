@@ -1,4 +1,4 @@
-# 小禾AI医生 - Backend API
+# 小荷AI医生 - Backend API
 
 ## 技术栈
 

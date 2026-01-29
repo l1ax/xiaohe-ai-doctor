@@ -16,7 +16,7 @@ function App() {
       />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<div className="p-4">Welcome to 小禾AI医生</div>} />
+          <Route path="/" element={<div className="p-4">Welcome to 小荷AI医生</div>} />
         </Routes>
       </BrowserRouter>
     </>

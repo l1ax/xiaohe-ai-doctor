@@ -95,7 +95,7 @@ pnpm test reactSystem.test.ts
  * ReAct System Prompt - 指导 Agent 进行推理和行动
  */
 export function buildReActSystemPrompt(): string {
-  return `你是小禾AI医生助手，一个专业、耐心的医疗咨询 Agent。
+  return `你是小荷AI医生助手，一个专业、耐心的医疗咨询 Agent。
 
 # 你的能力
 

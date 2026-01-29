@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**目标**: 为小禾AI医生 Agent 增加多模态图片识别、知识库查询和网络搜索能力，并实现工具编排和降级机制。
+**目标**: 为小荷AI医生 Agent 增加多模态图片识别、知识库查询和网络搜索能力，并实现工具编排和降级机制。
 
 **架构**: 创建统一的工具服务层（`services/tools/`），通过工具编排器统一管理图片识别、知识库查询和网络搜索。各节点保持原有逻辑，工具调用作为可选增强，失败时降级到纯 LLM 回答。
 

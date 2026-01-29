@@ -39,7 +39,7 @@ test.describe('Profile 页面', () => {
   });
 
   test('VIP 横幅显示', async ({ page }) => {
-    await expect(page.locator('text=小禾健康VIP季卡').first()).toBeVisible();
+    await expect(page.locator('text=小荷健康VIP季卡').first()).toBeVisible();
     await expect(page.locator('text=无限次AI咨询').first()).toBeVisible();
     await expect(page.locator('button:has-text("立即查看")').first()).toBeVisible();
   });

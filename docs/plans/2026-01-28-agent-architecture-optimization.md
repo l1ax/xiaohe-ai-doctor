@@ -270,7 +270,7 @@ export function buildQuickResponsePrompt(
     ? '\n\n⚠️ 注意：以下信息来自网络搜索，请在回复中提醒用户这仅供参考，不能替代专业医生诊断。'
     : '';
 
-  return `你是小禾AI医生助手，一个专业、耐心的医疗咨询助手。
+  return `你是小荷AI医生助手，一个专业、耐心的医疗咨询助手。
 
 # 用户问题
 

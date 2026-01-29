@@ -39,7 +39,7 @@ export async function reactLoop(
   if (agentIteration >= maxIterations) {
     console.log('[ReactLoop] 达到最大迭代次数，强制 LLM 生成回复');
 
-    const forceFinishPrompt = `你是小禾AI医生助手。
+    const forceFinishPrompt = `你是小荷AI医生助手。
 
 用户问题：${messages[messages.length - 1].content}
 

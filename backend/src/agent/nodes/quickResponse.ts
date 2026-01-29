@@ -69,7 +69,7 @@ function buildDirectResponsePrompt(
     ? `\n\n用户上传的图片内容：${imageDescription}`
     : '';
 
-  return `你是小禾AI医生助手，一个专业、耐心的医疗咨询助手。
+  return `你是小荷AI医生助手，一个专业、耐心的医疗咨询助手。
 
 ${history}用户问题：${userQuery}${imageContext}
 

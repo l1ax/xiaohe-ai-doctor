@@ -298,7 +298,7 @@ const VIPBanner = observer(function VIPBanner() {
       <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-600"></div>
       <div className="relative z-10 flex items-center justify-between h-full px-5">
         <div className="flex flex-col gap-1">
-          <h3 className="text-white font-bold text-base">小禾健康VIP季卡</h3>
+          <h3 className="text-white font-bold text-base">小荷健康VIP季卡</h3>
           <p className="text-white/90 text-xs">无限次AI咨询 · 专家号优先约</p>
         </div>
         <button className="bg-white text-teal-600 text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm">
@@ -710,7 +710,7 @@ test.describe('登录流程', () => {
 
     // 6. 登录成功后跳转到首页
     await expect(page).toHaveURL('/');
-    await expect(page.locator('text=小禾AI医生')).toBeVisible();
+    await expect(page.locator('text=小荷AI医生')).toBeVisible();
   });
 
   test('登录后访问 Profile 页面显示用户信息', async ({ page }) => {
@@ -802,7 +802,7 @@ test.describe('Profile 页面', () => {
   });
 
   test('VIP 横幅显示', async ({ page }) => {
-    await expect(page.locator('text=小禾健康VIP季卡')).toBeVisible();
+    await expect(page.locator('text=小荷健康VIP季卡')).toBeVisible();
     await expect(page.locator('text=无限次AI咨询 · 专家号优先约')).toBeVisible();
     await expect(page.locator('button:has-text("立即查看")')).toBeVisible();
   });

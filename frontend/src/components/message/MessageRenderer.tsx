@@ -72,7 +72,7 @@ export const TextMessage: React.FC<TextMessageProps> = ({ content, role, isStrea
 
       <div className={styles.wrapper}>
         {role === 'assistant' && (
-          <span className={styles.name}>小禾AI医生</span>
+          <span className={styles.name}>小荷AI医生</span>
         )}
 
         {/* 工具调用卡片（在名称和气泡之间） */}
@@ -157,7 +157,7 @@ export const ImageMessage: React.FC<ImageMessageProps> = ({ src, alt, caption, r
 
       <div className={styles.wrapper}>
         {role === 'assistant' && (
-            <span className={styles.name}>小禾AI医生</span>
+            <span className={styles.name}>小荷AI医生</span>
         )}
         <div className={cn(styles.bubble, "p-2")}>
           <img

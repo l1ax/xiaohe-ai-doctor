@@ -142,7 +142,7 @@ export const ThinkingRenderer: React.FC<{ event: ThinkingEvent }> = observer(() 
         <Skeleton className="h-2 w-2 rounded-full bg-primary/40 animate-bounce [animation-delay:-0.15s]" />
         <Skeleton className="h-2 w-2 rounded-full bg-primary/40 animate-bounce" />
       </div>
-      <span className="text-sm text-muted-foreground italic">小禾正在思考为您提供最准确的建议...</span>
+      <span className="text-sm text-muted-foreground italic">小荷正在思考为您提供最准确的建议...</span>
     </div>
   );
 });

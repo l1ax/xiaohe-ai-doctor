@@ -1,4 +1,4 @@
-# 小禾AI医生 - 前端
+# 小荷AI医生 - 前端
 
 基于 React + TypeScript + Vite 的 H5 医疗咨询应用。
 

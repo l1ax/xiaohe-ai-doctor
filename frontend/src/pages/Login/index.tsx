@@ -59,7 +59,7 @@ const Login = observer(function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
             <span className="material-symbols-outlined text-primary text-[48px] filled">medical_services</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">小禾AI医生</h1>
+          <h1 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">小荷AI医生</h1>
           <p className="text-text-sec-light dark:text-text-sec-dark mt-2">智能健康助手</p>
         </div>
 

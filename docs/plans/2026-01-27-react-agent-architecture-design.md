@@ -1,4 +1,4 @@
-# 小禾AI医生 - ReAct Agent 架构设计
+# 小荷AI医生 - ReAct Agent 架构设计
 
 **日期**: 2026-01-27
 **作者**: AI Assistant with User
@@ -352,7 +352,7 @@ async function loadConversationHistory(conversationId: string) {
 
 ```typescript
 const REACT_SYSTEM_PROMPT = `
-你是小禾AI医生，一位专业的医疗健康顾问助手。
+你是小荷AI医生，一位专业的医疗健康顾问助手。
 
 ## 你的职责
 - 通过多轮对话收集症状信息

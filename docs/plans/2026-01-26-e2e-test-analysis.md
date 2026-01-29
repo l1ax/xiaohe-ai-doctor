@@ -114,9 +114,9 @@ await expect(page.locator('text=白银会员').first()).toBeVisible();
 | 测试内容 | 测试期望 | 实际实现 | 状态 |
 |---------|---------|---------|------|
 | 输入框类型 | `textarea` | `input` | ❌ 不匹配 |
-| 欢迎消息 | "您好，我是小禾AI医生" | "请描述您的症状..." | ❌ 不匹配 |
+| 欢迎消息 | "您好，我是小荷AI医生" | "请描述您的症状..." | ❌ 不匹配 |
 | 快捷问题 | ✅ 存在 | ✅ 存在 | 正确 |
-| 页面标题 | "小禾AI医生" | "AI 健康助手" | ❌ 不匹配 |
+| 页面标题 | "小荷AI医生" | "AI 健康助手" | ❌ 不匹配 |
 | 在线状态 | `.w-2.h-2.bg-gray-400` | 无此样式 | ❌ 不匹配 |
 
 **需要修改的内容：**
@@ -133,7 +133,7 @@ const input = page.locator('input[placeholder="请描述您的症状..."]');
 2. **欢迎消息**
 ```typescript
 // 当前测试
-await expect(page.locator('text=您好，我是小禾AI医生')).toBeVisible();
+await expect(page.locator('text=您好，我是小荷AI医生')).toBeVisible();
 await expect(page.locator('text=有什么健康问题我可以帮您解答？')).toBeVisible();
 
 // 修改为
@@ -157,7 +157,7 @@ await expect(page.locator('text=儿童发热')).toBeVisible();
 4. **页面标题**
 ```typescript
 // 当前测试
-await expect(page.locator('text=小禾AI医生')).toBeVisible();
+await expect(page.locator('text=小荷AI医生')).toBeVisible();
 
 // 修改为
 await expect(page.locator('text=AI 健康助手')).toBeVisible();

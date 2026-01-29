@@ -33,7 +33,7 @@ export function buildQuickResponsePrompt(
     : '';
   const intentGuidance = getIntentGuidance(primaryIntent);
 
-  return `你是小禾AI医生助手，一个专业、耐心的医疗咨询助手。
+  return `你是小荷AI医生助手，一个专业、耐心的医疗咨询助手。
 
 # 用户问题
 

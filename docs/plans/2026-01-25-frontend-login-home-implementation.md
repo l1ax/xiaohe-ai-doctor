@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 完成小禾AI医生前端项目初始化，实现登录页面和首页还原，严格遵循 frontendDesign/ 设计稿风格。
+**Goal:** 完成小荷AI医生前端项目初始化，实现登录页面和首页还原，严格遵循 frontendDesign/ 设计稿风格。
 
 **Architecture:** React 18 + TypeScript + Vite + Tailwind CSS + MobX，前端独立目录 frontend/，对接后端已实现的 /api/auth/* API。
 
@@ -129,7 +129,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>小禾AI医生</title>
+    <title>小荷AI医生</title>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -733,7 +733,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
             <span className="material-symbols-outlined text-primary text-[48px] filled">medical_services</span>
           </div>
-          <h1 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">小禾AI医生</h1>
+          <h1 className="text-2xl font-bold text-text-main-light dark:text-text-main-dark">小荷AI医生</h1>
           <p className="text-text-sec-light dark:text-text-sec-dark mt-2">智能健康助手</p>
         </div>
 

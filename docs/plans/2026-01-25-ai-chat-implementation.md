@@ -1455,7 +1455,7 @@ const Chat = observer(function Chat() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
               <span className="material-symbols-outlined text-primary text-[32px] filled">smart_toy</span>
             </div>
-            <h2 className="text-lg font-bold mb-2">您好，我是小禾 AI 医生</h2>
+            <h2 className="text-lg font-bold mb-2">您好，我是小荷 AI 医生</h2>
             <p className="text-gray-500 text-sm max-w-md mx-auto">
               我可以帮您分析症状、推荐医院、查询药品信息。请描述您的不适或健康问题。
             </p>
