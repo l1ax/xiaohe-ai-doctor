@@ -224,7 +224,7 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
       }
 
       // 返回问诊列表
-      navigate('/doctor/tasks');
+      navigate('/doctor/console');
     } catch (err: any) {
       console.error('结束问诊失败:', err);
       setError(err.message || '结束问诊失败');
@@ -313,7 +313,7 @@ export const DoctorChatPage = observer(function DoctorChatPage() {
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
           <button
-            onClick={() => navigate('/doctor/tasks')}
+            onClick={() => navigate('/doctor/console')}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
             返回问诊列表

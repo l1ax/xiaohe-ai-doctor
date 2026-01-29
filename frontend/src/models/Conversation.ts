@@ -16,6 +16,7 @@ export class Conversation {
 
   private sseClient: SSEClient | null = null;
   private currentAgentResponse: AgentResponse | null = null;
+  private historyLoaded = false; // Prevent duplicate loading
 
   constructor(conversationId?: string) {
     makeObservable(this);
@@ -218,6 +219,12 @@ export class Conversation {
    */
   @action
   async loadFromHistory(conversationId: string): Promise<void> {
+    // Prevent duplicate loading
+    if (this.historyLoaded) {
+      console.log('[Conversation] History already loaded, skipping');
+      return;
+    }
+
     try {
       // Import userStore dynamically to avoid circular dependency
       const { userStore } = await import('../store/userStore');
@@ -255,9 +262,27 @@ export class Conversation {
       const messages = result.data.messages || [];
       
       for (const msg of messages) {
+        console.log(`[Conversation] Processing message: senderId=${msg.senderId}, hasMetadata=${!!msg.metadata}, toolCallsCount=${msg.metadata?.toolCalls?.length || 0}`);
         if (msg.senderId === 'assistant') {
           // Create agent response with content
           const agentResponse = new AgentResponse(`agent-${msg.id}`);
+          
+          // Reconstruct tool_call events from metadata
+          if (msg.metadata?.toolCalls && Array.isArray(msg.metadata.toolCalls)) {
+            for (const toolCall of msg.metadata.toolCalls) {
+              agentResponse.view.handleSSEEvent({
+                type: 'tool_call',
+                data: {
+                  toolId: `tool-${toolCall.tool}-${msg.id}`,
+                  name: toolCall.tool,
+                  status: toolCall.status,
+                  input: toolCall.input,
+                  output: toolCall.output,
+                },
+              });
+            }
+          }
+          
           // Add message content via SSE event simulation
           agentResponse.view.handleSSEEvent({
             type: 'message_content',
@@ -267,6 +292,20 @@ export class Conversation {
               isLast: true,
             },
           });
+          
+          // Reconstruct message_metadata event from metadata
+          if (msg.metadata?.sources || msg.metadata?.medicalAdvice || msg.metadata?.actions) {
+            agentResponse.view.handleSSEEvent({
+              type: 'message_metadata',
+              data: {
+                messageId: `msg-${msg.id}`,
+                sources: msg.metadata.sources,
+                medicalAdvice: msg.metadata.medicalAdvice,
+                actions: msg.metadata.actions,
+              },
+            });
+          }
+          
           agentResponse.markComplete();
           this.items.push(agentResponse);
         } else {
@@ -282,6 +321,7 @@ export class Conversation {
         }
       }
 
+      this.historyLoaded = true;
       console.log(`[Conversation] Loaded ${messages.length} messages from history`);
     } catch (error) {
       console.error('[Conversation] Failed to load from history:', error);

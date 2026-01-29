@@ -4,7 +4,7 @@
  * 对话历史侧边栏，类似 ChatGPT 的对话列表
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import {
   X,
@@ -37,11 +37,17 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = observer(
     currentConversationId,
   }) => {
     const { conversations, isLoading, error } = conversationHistoryStore;
+    const hasFetchedRef = useRef(false);
 
     // Fetch conversations on open
     useEffect(() => {
-      if (isOpen) {
+      if (isOpen && !hasFetchedRef.current) {
+        hasFetchedRef.current = true;
         conversationHistoryStore.fetchConversations();
+      }
+      // Reset when closed so next open will fetch fresh data
+      if (!isOpen) {
+        hasFetchedRef.current = false;
       }
     }, [isOpen]);
 

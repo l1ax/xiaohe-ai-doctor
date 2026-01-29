@@ -91,6 +91,27 @@ export function addMessages(messages: Message[]): void {
 }
 
 /**
+ * 更新消息内容和元数据
+ */
+export function updateMessage(id: string, updates: Partial<Pick<Message, 'content' | 'metadata'>>): boolean {
+  for (const [convId, messages] of store.messages) {
+    const msgIndex = messages.findIndex(m => m.id === id);
+    if (msgIndex >= 0) {
+      const msg = messages[msgIndex];
+      if (updates.content !== undefined) {
+        msg.content = updates.content;
+      }
+      if (updates.metadata !== undefined) {
+        msg.metadata = { ...msg.metadata, ...updates.metadata };
+      }
+      touchConversation(convId);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * 清空所有数据（用于测试）
  */
 export function clearAll(): void {

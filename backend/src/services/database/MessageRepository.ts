@@ -219,6 +219,97 @@ export class MessageRepository {
 
     return true;
   }
+
+  /**
+   * 使用指定 ID 创建消息
+   */
+  async createWithId(id: string, input: CreateMessageInput): Promise<MessageRecord> {
+    const now = new Date().toISOString();
+    const message: MessageRecord = {
+      id,
+      conversationId: input.conversationId,
+      senderId: input.senderId,
+      contentType: input.contentType,
+      content: input.content,
+      metadata: input.metadata,
+      createdAt: now,
+    };
+
+    if (!isSupabaseConfigured()) {
+      console.log('[MessageRepository] Using memory storage (createWithId)');
+      const storageMessage: Message = {
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_id: message.senderId,
+        content_type: message.contentType,
+        content: message.content,
+        metadata: message.metadata,
+        created_at: message.createdAt,
+      };
+      memoryStorage.addMessage(storageMessage);
+      return message;
+    }
+
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from('messages')
+      .insert({
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_id: message.senderId,
+        content_type: message.contentType,
+        content: message.content,
+        metadata: message.metadata || {},
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[MessageRepository] Failed to create message with id:', error);
+      throw new Error(`Failed to create message: ${error.message}`);
+    }
+
+    return {
+      id: data.id,
+      conversationId: data.conversation_id,
+      senderId: data.sender_id,
+      contentType: data.content_type,
+      content: data.content,
+      metadata: data.metadata,
+      createdAt: data.created_at,
+    };
+  }
+
+  /**
+   * 更新消息内容和元数据
+   */
+  async update(id: string, updates: { content?: string; metadata?: MessageMetadata }): Promise<boolean> {
+    if (!isSupabaseConfigured()) {
+      console.log('[MessageRepository] Using memory storage (update)');
+      return memoryStorage.updateMessage(id, updates);
+    }
+
+    const client = getSupabaseClient();
+    const updateData: Record<string, any> = {};
+    if (updates.content !== undefined) {
+      updateData.content = updates.content;
+    }
+    if (updates.metadata !== undefined) {
+      updateData.metadata = updates.metadata;
+    }
+
+    const { error } = await client
+      .from('messages')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('[MessageRepository] Failed to update message:', error);
+      return false;
+    }
+
+    return true;
+  }
 }
 
 // 导出单例

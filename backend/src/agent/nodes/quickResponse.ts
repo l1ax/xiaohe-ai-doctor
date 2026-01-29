@@ -5,7 +5,6 @@ import { searchWeb } from '../tools/searchWeb';
 import { createDeepSeekLLM, streamLLMResponse } from '../../utils/llm';
 import { buildQuickResponsePrompt } from '../prompts/quickResponsePrompt';
 import { createConversationEndEvent } from '../events/chat-event-types';
-import { messageRepository } from '../../services/database/MessageRepository';
 
 /**
  * Quick Response 节点 - 快速响应通道
@@ -133,15 +132,8 @@ export async function quickResponse(
       const llm = createDeepSeekLLM(0.7);
       const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent, imageDescription);
       const aiResponse = await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
-
-      // 直接保存 AI 回复到数据库
-      await messageRepository.create({
-        conversationId,
-        senderId: 'assistant',
-        contentType: 'text',
-        content: aiResponse,
-      });
-      console.log(`[QuickResponse] Saved AI response to database, length: ${aiResponse.length}`);
+      // Note: MessageWriter handles saving the response via event listeners
+      console.log(`[QuickResponse] AI response complete, length: ${aiResponse.length}`);
 
       const duration = startTime ? Date.now() - startTime : 0;
       eventEmitter.emit(
@@ -203,15 +195,8 @@ export async function quickResponse(
       const llm = createDeepSeekLLM(0.7);
       const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent, imageDescription);
       const aiResponse = await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
-
-      // 直接保存 AI 回复到数据库
-      await messageRepository.create({
-        conversationId,
-        senderId: 'assistant',
-        contentType: 'text',
-        content: aiResponse,
-      });
-      console.log(`[QuickResponse] Saved AI response to database, length: ${aiResponse.length}`);
+      // Note: MessageWriter handles saving the response via event listeners
+      console.log(`[QuickResponse] AI response complete, length: ${aiResponse.length}`);
 
       const duration = startTime ? Date.now() - startTime : 0;
       eventEmitter.emit(
@@ -234,15 +219,8 @@ export async function quickResponse(
     console.log('[QuickResponse] 流式调用 LLM...');
     const llm = createDeepSeekLLM(0.7);
     const aiResponse = await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
-
-    // 直接保存 AI 回复到数据库
-    await messageRepository.create({
-      conversationId,
-      senderId: 'assistant',
-      contentType: 'text',
-      content: aiResponse,
-    });
-    console.log(`[QuickResponse] Saved AI response to database, length: ${aiResponse.length}`);
+    // Note: MessageWriter handles saving the response via event listeners
+    console.log(`[QuickResponse] AI response complete, length: ${aiResponse.length}`);
 
     // 6. 发送对话结束事件
     const duration = startTime ? Date.now() - startTime : 0;

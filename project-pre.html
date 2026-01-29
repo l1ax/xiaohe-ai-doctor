@@ -123,86 +123,89 @@
         <p>基于 AI Agent 与实时通信的全流程医疗健康平台</p>
     </header>
     <section>
-        <h2>01. 项目概览</h2>
+        <h2>01. 项目概览 (Project Overview)</h2>
         <div class="card">
-            <p><strong>项目愿景：</strong> 通过人工智能技术赋能医疗咨询，结合真人医生专家服务，构建“AI 初诊 + 专家复诊 + 线下预约”的闭环医疗服务体系。</p>
-            <p><strong>核心架构：</strong> 前后端分离架构，后端集成 LangGraph 智能体编排与 Supabase 数据库服务。</p>
-        </div>
-    </section>
-    <section>
-        <h2>02. 核心功能模块</h2>
-        <div class="card">
-            <h3>🤖 AI 对话模块 (AI Consultation)</h3>
-            <p><strong>功能描述：</strong> 7x24小时智能问诊助手，能够理解患者自然语言描述，进行病情初步评估、分诊建议和健康科普。</p>
-            <div class="tech-stack">
-                <strong>技术实现：</strong>
-                <ul>
-                    <li>Agent 编排：LangGraph.js StateGraph</li>
-                    <li>决策流程：意图分类 (Classify Intent) -> 快速响应 (Quick Response) / ReAct 推理循环 (React Loop)</li>
-                    <li>记忆机制：MemorySaver (Checkpointer) 实现多轮对话上下文保持</li>
-                    <li>流式输出：支持 Token 级别的流式响应，提升用户体验</li>
-                </ul>
-            </div>
-        </div>
-        <div class="card">
-            <h3>👨‍⚕️ 专家问诊模块 (Expert Consultation)</h3>
-            <p><strong>功能描述：</strong> 针对复杂病例，提供与真人医生的在线图文/视频咨询服务，支持实时消息推送。</p>
-            <div class="tech-stack">
-                <strong>技术实现：</strong>
-                <ul>
-                    <li>实时通信：WebSocket 实现双向即时通讯</li>
-                    <li>前端实现：DoctorChat (医生端) / DoctorChatPage (患者端) 组件</li>
-                    <li>消息存储：Supabase 实时数据库 + 历史记录持久化</li>
-                </ul>
-            </div>
-        </div>
-        <div class="card">
-            <h3>📅 预约挂号模块 (Appointment System)</h3>
-            <p><strong>功能描述：</strong> 线上查看医生排班，选择时段进行线下门診预约，支持预约状态管理（待确认、已完成、已取消）。</p>
-            <div class="tech-stack">
-                <strong>技术实现：</strong>
-                <ul>
-                    <li>数据模型：PostgreSQL (Supabase) 关系型数据存储</li>
-                    <li>后台管理：医生端 ScheduleManagement (排班管理) + AppointmentManagement (预约审批)</li>
-                    <li>流程控制：完整的 CRUD 业务逻辑与状态机流转</li>
-                </ul>
-            </div>
-        </div>
-    </section>
-    <section>
-        <h2>03. 角色与权限体系</h2>
-        
-        <div class="grid">
-            <div class="card">
-                <h3><span class="role-badge badge-patient">患者端 (Patient)</span></h3>
-                <p>面向普通C端用户，提供便捷的就医体验。</p>
-                <ul>
-                    <li><strong>核心路径：</strong> 首页 -> AI问诊 -> 专家咨询 -> 预约挂号</li>
-                    <li><strong>专属功能：</strong> 个人健康档案、家庭成员管理、处方记录查看</li>
-                    <li><strong>路由保护：</strong> PatientRoute 组件确保登录鉴权</li>
-                </ul>
-            </div>
-            <div class="card">
-                <h3><span class="role-badge badge-doctor">医生端 (Doctor)</span></h3>
-                <p>面向B端医生用户，提供高效的工作台。</p>
-                <ul>
-                    <li><strong>核心路径：</strong> 控制台 -> 待办任务 -> 排班管理 -> 问诊室</li>
-                    <li><strong>专属功能：</strong> 患者资料查看、预约审核、排班设置</li>
-                    <li><strong>路由保护：</strong> ProtectedRoute (role="doctor") 确保权限隔离</li>
-                </ul>
-            </div>
-        </div>
-    </section>
-    <section>
-        <h2>04. 演示流程建议</h2>
-        <div class="card">
+            <p><strong>项目简介：</strong> 小和 AI 医生是一个集成了人工智能与传统医疗服务的综合平台。</p>
+            <p><strong>核心三大模块：</strong></p>
             <ol style="list-style-type: decimal; padding-left: 20px;">
-                <li><strong>开场：</strong> 展示患者端首页，模拟用户身体不适场景。</li>
-                <li><strong>AI 互动：</strong> 进入 AI 对话，描述症状，展示 Agent 的多轮推理与分诊建议。</li>
-                <li><strong>转接人工：</strong> AI 建议后，无缝跳转至专家咨询列表，发起真人咨询。</li>
-                <li><strong>医生视角：</strong> 切换至医生端控制台，接收咨询消息并回复，处理预约申请。</li>
-                <li><strong>闭环：</strong> 回到患者端查看预约确认信息，完成整个就医流程。</li>
+                <li><strong>AI 医生对话：</strong> 7x24小时智能初诊与咨询。</li>
+                <li><strong>专家问诊：</strong> 复杂病例的真人医生在线咨询。</li>
+                <li><strong>预约挂号：</strong> 线上预约线下门诊服务。</li>
             </ol>
+        </div>
+    </section>
+
+    <section>
+        <h2>02. 演示模块一：AI 医生对话 (AI Consultation)</h2>
+        <div class="card">
+            <h3>演示场景 (Demo Cases)</h3>
+            <ul>
+                <li>
+                    <strong>Case 1: 常见病咨询 / 药品建议</strong>
+                    <br>
+                    <em>用户提问：</em> “感冒吃这个药可以吗”
+                    <br>
+                    <em>演示重点：</em> Agent 识别“用药咨询”意图，分析药物适用性，给出安全建议。
+                </li>
+                <li>
+                    <strong>Case 2: 就医导诊 / 医生推荐</strong>
+                    <br>
+                    <em>用户提问：</em> “北京协和医院看心脏病推荐哪个医生”
+                    <br>
+                    <em>演示重点：</em> Agent 调用联网搜索或内部数据库工具，检索特定医院科室信息，推荐合适专家。
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>03. 演示模块二：预约挂号 (Appointment System)</h2>
+        <div class="card">
+            <h3>演示流程</h3>
+            <p>用户从推荐医生或直接浏览排班进入预约流程：</p>
+            <ol>
+                <li><strong>查看排班：</strong> 展示医生可预约的时间段。</li>
+                <li><strong>提交预约：</strong> 用户选择时间，确认信息。</li>
+                <li><strong>状态流转：</strong> 演示“待确认” -> “预约成功”的状态变化（医生端/后台审核）。</li>
+            </ol>
+        </div>
+    </section>
+
+    <section>
+        <h2>04. 演示模块三：专家问诊 (Expert Consultation)</h2>
+        <div class="card">
+            <h3>演示流程</h3>
+            <p>对于 AI 无法完全解决的复杂问题，无缝转接专家：</p>
+            <ul>
+                <li><strong>即时通讯：</strong> 患者与医生进行实时图文对话。</li>
+                <li><strong>信息同步：</strong> 医生端查看患者之前的 AI 问诊摘要（上下文）。</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>05. 核心技术实现 (Technical Implementation)</h2>
+        <div class="card">
+            <h3>🤖 AI Agent 技术详解</h3>
+            <p><strong>技术重心：</strong> 构建基于 LangGraph 的可控智能体。</p>
+            <div class="tech-stack">
+                <ul>
+                    <li><strong>Agent 编排 (Orchestration)：</strong> 使用 StateGraph 定义工作流，管理对话状态与状态转换。</li>
+                    <li><strong>意图分类 (Intent Classification)：</strong>
+                        <ul>
+                            <li>轻量级分类器：区分“闲聊”、“普通问诊”、“复杂病例”、“需要工具支持”等意图。</li>
+                            <li>动态路由：根据分类结果决定走 QuickResponse（快速回复）还是 ReAct Loop（推理循环）。</li>
+                        </ul>
+                    </li>
+                    <li><strong>工具调用 (Tool Usage)：</strong>
+                        <ul>
+                            <li>Search Tools：联网搜索医院/医生信息。</li>
+                            <li>Database Tools：查询排班、药品库存等内部数据。</li>
+                        </ul>
+                    </li>
+                    <li><strong>多 Agent 协作 (扩展)：</strong> 规划中的分诊 Agent 与 问诊 Agent 的协作模式。</li>
+                </ul>
+            </div>
         </div>
     </section>
     <div class="footer">

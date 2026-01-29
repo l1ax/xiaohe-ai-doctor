@@ -31,7 +31,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div className="flex items-center justify-between px-4 py-3">
         {/* 左侧：返回按钮 */}
         <button
-          onClick={() => navigateBack('/doctor/tasks')}
+          onClick={() => navigateBack('/doctor/console')}
           className="flex items-center justify-center p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors text-white"
           aria-label="返回"
         >
