@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小和 AI 医生项目演示大纲</title>
+    <title>小荷AI 医生项目演示大纲</title>
+    <!-- Mermaid.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -12,13 +17,17 @@
             --card-bg: #ffffff;
             --text-primary: #1e293b;
             --text-secondary: #64748b;
+            --code-bg: #1e293b;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
             color: var(--text-primary);
             background-color: var(--bg-color);
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
             padding: 40px 20px;
         }
@@ -37,7 +46,7 @@
             color: var(--secondary-color);
             border-left: 5px solid var(--primary-color);
             padding-left: 15px;
-            margin-top: 40px;
+            margin-top: 50px;
             margin-bottom: 20px;
             font-size: 1.8rem;
         }
@@ -46,21 +55,10 @@
             margin-top: 25px;
             font-size: 1.4rem;
         }
-        .role-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-right: 10px;
-        }
-        .badge-patient {
-            background-color: #dbeafe;
-            color: #1e40af;
-        }
-        .badge-doctor {
-            background-color: #dcfce7;
-            color: #166534;
+        h4 {
+            color: var(--secondary-color);
+            margin-top: 20px;
+            font-size: 1.1rem;
         }
         .card {
             background: var(--card-bg);
@@ -105,27 +103,143 @@
             color: var(--text-secondary);
             font-size: 0.9rem;
         }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+        /* Mermaid diagram container */
+        .mermaid-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow-x: auto;
         }
-        @media (min-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr 1fr;
-            }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+        /* Code blocks */
+        pre {
+            border-radius: 8px;
+            padding: 0;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        pre code {
+            display: block;
+            padding: 16px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+            font-size: 0.9em;
+        }
+        :not(pre) > code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #1e40af;
+        }
+        /* Intent badges */
+        .intent-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin: 4px;
+        }
+        .intent-symptom { background: #dbeafe; color: #1e40af; }
+        .intent-medicine { background: #fef3c7; color: #92400e; }
+        .intent-hospital { background: #dcfce7; color: #166534; }
+        .intent-health { background: #f3e8ff; color: #7c3aed; }
+        .intent-general { background: #e2e8f0; color: #475569; }
+        .intent-emergency { background: #fee2e2; color: #dc2626; }
+        /* Event type indicators */
+        .event-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .event-status { background: #dbeafe; color: #1e40af; }
+        .event-content { background: #dcfce7; color: #166534; }
+        .event-tool { background: #fef3c7; color: #92400e; }
+        .event-error { background: #fee2e2; color: #dc2626; }
+        .event-metadata { background: #f3e8ff; color: #7c3aed; }
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        /* Section divider */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+            margin: 40px 0;
+        }
+        /* Tabs for code examples */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 0;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            color: var(--primary-color);
+        }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>小和 AI 医生项目演示</h1>
+        <h1>🏥 小荷AI 医生项目演示</h1>
         <p>基于 AI Agent 与实时通信的全流程医疗健康平台</p>
     </header>
+
+    <!-- 01. 项目概览 -->
     <section>
         <h2>01. 项目概览 (Project Overview)</h2>
         <div class="card">
-            <p><strong>项目简介：</strong> 小和 AI 医生是一个集成了人工智能与传统医疗服务的综合平台。</p>
+            <p><strong>项目简介：</strong> 小荷AI 医生是一个集成了人工智能与传统医疗服务的综合平台。</p>
             <p><strong>核心三大模块：</strong></p>
             <ol style="list-style-type: decimal; padding-left: 20px;">
                 <li><strong>AI 医生对话：</strong> 7x24小时智能初诊与咨询。</li>
@@ -135,6 +249,7 @@
         </div>
     </section>
 
+    <!-- 02. AI 医生对话演示 -->
     <section>
         <h2>02. 演示模块一：AI 医生对话 (AI Consultation)</h2>
         <div class="card">
@@ -143,14 +258,14 @@
                 <li>
                     <strong>Case 1: 常见病咨询 / 药品建议</strong>
                     <br>
-                    <em>用户提问：</em> “感冒吃这个药可以吗”
+                    <em>用户提问：</em> "感冒吃这个药可以吗"
                     <br>
-                    <em>演示重点：</em> Agent 识别“用药咨询”意图，分析药物适用性，给出安全建议。
+                    <em>演示重点：</em> Agent 识别"用药咨询"意图，分析药物适用性，给出安全建议。
                 </li>
                 <li>
                     <strong>Case 2: 就医导诊 / 医生推荐</strong>
                     <br>
-                    <em>用户提问：</em> “北京协和医院看心脏病推荐哪个医生”
+                    <em>用户提问：</em> "北京协和医院看心脏病推荐哪个医生"
                     <br>
                     <em>演示重点：</em> Agent 调用联网搜索或内部数据库工具，检索特定医院科室信息，推荐合适专家。
                 </li>
@@ -158,19 +273,21 @@
         </div>
     </section>
 
+    <!-- 03. 预约挂号 -->
     <section>
         <h2>03. 演示模块二：预约挂号 (Appointment System)</h2>
         <div class="card">
             <h3>演示流程</h3>
             <p>用户从推荐医生或直接浏览排班进入预约流程：</p>
-            <ol>
+            <ol style="list-style-type: decimal; padding-left: 20px;">
                 <li><strong>查看排班：</strong> 展示医生可预约的时间段。</li>
                 <li><strong>提交预约：</strong> 用户选择时间，确认信息。</li>
-                <li><strong>状态流转：</strong> 演示“待确认” -> “预约成功”的状态变化（医生端/后台审核）。</li>
+                <li><strong>状态流转：</strong> 演示"待确认" → "预约成功"的状态变化。</li>
             </ol>
         </div>
     </section>
 
+    <!-- 04. 专家问诊 -->
     <section>
         <h2>04. 演示模块三：专家问诊 (Expert Consultation)</h2>
         <div class="card">
@@ -183,36 +300,746 @@
         </div>
     </section>
 
+    <div class="section-divider"></div>
+
+    <!-- 05. 核心技术实现 - AI Agent 详解 -->
     <section>
-        <h2>05. 核心技术实现 (Technical Implementation)</h2>
+        <h2>05. AI Agent 核心架构 (Agent Architecture)</h2>
+
+        <!-- 5.1 整体工作流程 -->
         <div class="card">
-            <h3>🤖 AI Agent 技术详解</h3>
-            <p><strong>技术重心：</strong> 构建基于 LangGraph 的可控智能体。</p>
-            <div class="tech-stack">
-                <ul>
-                    <li><strong>Agent 编排 (Orchestration)：</strong> 使用 StateGraph 定义工作流，管理对话状态与状态转换。</li>
-                    <li><strong>意图分类 (Intent Classification)：</strong>
-                        <ul>
-                            <li>轻量级分类器：区分“闲聊”、“普通问诊”、“复杂病例”、“需要工具支持”等意图。</li>
-                            <li>动态路由：根据分类结果决定走 QuickResponse（快速回复）还是 ReAct Loop（推理循环）。</li>
-                        </ul>
-                    </li>
-                    <li><strong>工具调用 (Tool Usage)：</strong>
-                        <ul>
-                            <li>Search Tools：联网搜索医院/医生信息。</li>
-                            <li>Database Tools：查询排班、药品库存等内部数据。</li>
-                        </ul>
-                    </li>
-                    <li><strong>多 Agent 协作 (扩展)：</strong> 规划中的分诊 Agent 与 问诊 Agent 的协作模式。</li>
-                </ul>
+            <h3>5.1 LangGraph 状态图工作流</h3>
+            <p>AI Agent 基于 <strong>LangGraph</strong> 构建，使用 <code>StateGraph</code> 定义可控的对话工作流。</p>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph "Agent StateGraph"
+        START((开始)) --> CI[classifyIntent<br/>意图分类]
+
+        CI --> |routeDecision| ROUTE{路由决策}
+
+        ROUTE -->|quick| QR[quickResponse<br/>快速响应通道]
+        ROUTE -->|react| RL[reactLoop<br/>ReAct 循环]
+
+        QR --> END1((结束))
+
+        RL --> CHECK{isFinished?}
+        CHECK -->|false| RL
+        CHECK -->|true| FR[finalResponse<br/>最终响应]
+
+        FR --> END2((结束))
+    end
+
+    style CI fill:#dbeafe,stroke:#2563eb
+    style QR fill:#dcfce7,stroke:#10b981
+    style RL fill:#fef3c7,stroke:#f59e0b
+    style FR fill:#f3e8ff,stroke:#7c3aed
+                </pre>
+            </div>
+
+            <h4>节点说明</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>节点</th>
+                        <th>职责</th>
+                        <th>关键逻辑</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>classifyIntent</code></td>
+                        <td>意图识别 + 路由决策</td>
+                        <td>调用 LLM 分析用户消息，提取意图、实体、风险指标</td>
+                    </tr>
+                    <tr>
+                        <td><code>quickResponse</code></td>
+                        <td>快速响应通道</td>
+                        <td>单意图简单场景，一次查询 + 一次 LLM 生成</td>
+                    </tr>
+                    <tr>
+                        <td><code>reactLoop</code></td>
+                        <td>ReAct 推理循环</td>
+                        <td>多轮 Think → Act → Observe，最多 5 次迭代</td>
+                    </tr>
+                    <tr>
+                        <td><code>finalResponse</code></td>
+                        <td>收尾处理</td>
+                        <td>发送会话结束事件，处理降级响应</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 5.2 意图分类系统 -->
+        <div class="card">
+            <h3>5.2 意图分类系统 (Intent Classification)</h3>
+            <p>系统支持 <strong>6 种核心意图</strong>，每种意图对应不同的处理策略：</p>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0;">
+                <span class="intent-badge intent-symptom">🩺 symptom_consult</span>
+                <span class="intent-badge intent-medicine">💊 medicine_info</span>
+                <span class="intent-badge intent-hospital">🏥 hospital_recommend</span>
+                <span class="intent-badge intent-health">❤️ health_advice</span>
+                <span class="intent-badge intent-general">💬 general_qa</span>
+                <span class="intent-badge intent-emergency">🚨 emergency</span>
+            </div>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+flowchart LR
+    subgraph "意图分类器"
+        INPUT[用户消息] --> LLM[DeepSeek LLM]
+        LLM --> PARSE[JSON 解析]
+    end
+
+    PARSE --> INTENTS[意图列表]
+    PARSE --> ENTITIES[实体提取]
+    PARSE --> RISK[风险指标]
+
+    INTENTS --> ROUTE{路由决策}
+    RISK --> ROUTE
+
+    ROUTE -->|"单意图 + 低风险"| QUICK[Quick 通道]
+    ROUTE -->|"多意图 / 高风险 / 紧急"| REACT[ReAct 循环]
+
+    style LLM fill:#dbeafe,stroke:#2563eb
+    style QUICK fill:#dcfce7,stroke:#10b981
+    style REACT fill:#fef3c7,stroke:#f59e0b
+                </pre>
+            </div>
+
+            <h4>意图详细说明</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>意图类型</th>
+                        <th>中文名称</th>
+                        <th>示例</th>
+                        <th>默认通道</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>symptom_consult</code></td>
+                        <td>症状咨询</td>
+                        <td>"头疼、发烧怎么办"</td>
+                        <td>Quick (知识库优先)</td>
+                    </tr>
+                    <tr>
+                        <td><code>medicine_info</code></td>
+                        <td>药品信息</td>
+                        <td>"布洛芬的用法"</td>
+                        <td>Quick (知识库优先)</td>
+                    </tr>
+                    <tr>
+                        <td><code>hospital_recommend</code></td>
+                        <td>医院推荐</td>
+                        <td>"北京看心内科哪家好"</td>
+                        <td>Quick (Web 搜索)</td>
+                    </tr>
+                    <tr>
+                        <td><code>health_advice</code></td>
+                        <td>健康建议</td>
+                        <td>"如何改善睡眠"</td>
+                        <td>Quick (知识库优先)</td>
+                    </tr>
+                    <tr>
+                        <td><code>general_qa</code></td>
+                        <td>通用问答</td>
+                        <td>"你好"、"谢谢"</td>
+                        <td>Quick (纯 LLM)</td>
+                    </tr>
+                    <tr>
+                        <td><code>emergency</code></td>
+                        <td>紧急情况</td>
+                        <td>"胸闷、呼吸困难"</td>
+                        <td>ReAct (强制)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>路由决策逻辑</h4>
+            <pre><code class="language-typescript">function determineRoute(intents, primaryIntent, riskIndicators): 'quick' | 'react' {
+  // 1. 紧急情况 → ReAct
+  if (primaryIntent === 'emergency' || riskIndicators.hasEmergencyKeywords) {
+    return 'react';
+  }
+
+  // 2. 高风险 (severity: 'severe') → ReAct
+  if (riskIndicators.severity === 'severe') {
+    return 'react';
+  }
+
+  // 3. 多意图 → ReAct
+  if (intents.length > 1) {
+    return 'react';
+  }
+
+  // 4. 单意图 + 低风险 → Quick
+  return 'quick';
+}</code></pre>
+        </div>
+
+        <!-- 5.3 工具系统 -->
+        <div class="card">
+            <h3>5.3 工具系统 (Tool System)</h3>
+            <p>Agent 当前支持 <strong>4 个核心工具 (P0)</strong>：</p>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph "P0 核心工具"
+        T1[📚 query_knowledge_base<br/>知识库查询]
+        T2[🌐 search_web<br/>联网搜索]
+        T3[❓ ask_followup_question<br/>追问用户]
+        T4[✅ finish<br/>结束对话]
+    end
+
+    subgraph "规划中 - P1/P2"
+        T5[⚠️ assess_risk<br/>风险评估]
+        T6[🏥 recommend_hospital<br/>医院推荐]
+        T7[📷 analyze_image<br/>图片分析]
+    end
+
+    style T1 fill:#dbeafe,stroke:#2563eb
+    style T2 fill:#dcfce7,stroke:#10b981
+    style T3 fill:#fef3c7,stroke:#f59e0b
+    style T4 fill:#f3e8ff,stroke:#7c3aed
+                </pre>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>工具名称</th>
+                        <th>功能描述</th>
+                        <th>典型输入</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>query_knowledge_base</code></td>
+                        <td>查询 Coze 医疗知识库</td>
+                        <td><code>{ query: "感冒症状" }</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>search_web</code></td>
+                        <td>调用 Tavily 联网搜索</td>
+                        <td><code>{ query: "协和医院心内科专家" }</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>ask_followup_question</code></td>
+                        <td>向用户追问更多信息</td>
+                        <td><code>{ question: "请问症状持续多久了？" }</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>finish</code></td>
+                        <td>生成最终回复并结束</td>
+                        <td><code>{ summary: "根据您的描述..." }</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- 06. 消息协议 -->
+    <section>
+        <h2>06. 消息协议与事件系统 (Message Protocol)</h2>
+
+        <!-- 6.1 SSE 事件流 -->
+        <div class="card">
+            <h3>6.1 SSE 事件流架构</h3>
+            <p>前后端通过 <strong>Server-Sent Events (SSE)</strong> 实现实时通信：</p>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+sequenceDiagram
+    participant F as Frontend
+    participant B as Backend
+    participant A as Agent
+    participant T as Tools
+
+    F->>B: POST /api/ai-chat/stream
+    B->>A: createAgentGraph().invoke()
+
+    A->>A: classifyIntent
+    A-->>B: agent:intent 事件
+
+    alt Quick 通道
+        A->>T: queryKnowledgeBase
+        T-->>A: 结果
+        A-->>B: tool:call (running/completed)
+        A->>A: LLM 生成
+        A-->>B: message:content (流式)
+    else ReAct 循环
+        loop 最多 5 次
+            A->>A: Think
+            A->>T: 工具调用
+            T-->>A: Observation
+            A-->>B: tool:call 事件
+        end
+        A-->>B: message:content (流式)
+    end
+
+    A-->>B: message:metadata
+    A-->>B: conversation:end
+    B-->>F: SSE 事件流
+                </pre>
+            </div>
+        </div>
+
+        <!-- 6.2 事件类型 -->
+        <div class="card">
+            <h3>6.2 事件类型定义</h3>
+            <p>系统定义了 <strong>7 种核心事件类型</strong>：</p>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0;">
+                <span class="event-type event-status">conversation:status</span>
+                <span class="event-type event-status">message:status</span>
+                <span class="event-type event-content">message:content</span>
+                <span class="event-type event-metadata">message:metadata</span>
+                <span class="event-type event-tool">tool:call</span>
+                <span class="event-type event-error">error</span>
+                <span class="event-type event-status">conversation:end</span>
+            </div>
+
+            <!-- Tabs for event examples -->
+            <div class="tabs">
+                <button class="tab active" onclick="showTab(event, 'tab-content')">message:content</button>
+                <button class="tab" onclick="showTab(event, 'tab-tool')">tool:call</button>
+                <button class="tab" onclick="showTab(event, 'tab-metadata')">message:metadata</button>
+                <button class="tab" onclick="showTab(event, 'tab-end')">conversation:end</button>
+            </div>
+
+            <div id="tab-content" class="tab-content active">
+                <pre><code class="language-typescript">// 消息内容事件（流式输出）
+interface MessageContentEvent {
+  eventId: string;           // "evt_1706512345_abc123"
+  type: 'message:content';
+  data: {
+    conversationId: string;  // "conv-xxx"
+    messageId: string;       // "msg-xxx"
+    delta: string;           // "根据您的描述..."（增量内容）
+    index: number;           // 0, 1, 2...
+    isFirst: boolean;        // true（首个分片）
+    isLast: boolean;         // false
+    timestamp: string;       // ISO 时间戳
+  };
+}</code></pre>
+            </div>
+
+            <div id="tab-tool" class="tab-content">
+                <pre><code class="language-typescript">// 工具调用事件
+interface ToolCallEvent {
+  eventId: string;
+  type: 'tool:call';
+  data: {
+    conversationId: string;
+    toolId: string;          // "tool-search_web-1"
+    toolName: string;        // "search_web"
+    messageId: string;
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    input?: {
+      query: string;         // 工具输入参数
+    };
+    output?: {
+      hasResults: boolean;
+      sources: Array<{ title: string; url: string; content: string }>;
+    };
+    error?: string;          // 失败时的错误信息
+    duration?: number;       // 执行耗时 (ms)
+    iteration?: number;      // ReAct 循环迭代次数
+    timestamp: string;
+  };
+}</code></pre>
+            </div>
+
+            <div id="tab-metadata" class="tab-content">
+                <pre><code class="language-typescript">// 消息元数据事件
+interface MessageMetadataEvent {
+  eventId: string;
+  type: 'message:metadata';
+  data: {
+    conversationId: string;
+    messageId: string;
+    sources?: Array<{           // 信息来源
+      title: string;
+      url: string;
+      snippet: string;
+    }>;
+    actions?: Array<{           // 推荐操作
+      type: 'recommend_doctor' | 'transfer_to_doctor' | 'book_appointment';
+      label: string;            // "推荐医生：张三"
+      data?: {
+        doctorId: string;
+        doctorName: string;
+        hospital: string;
+        department: string;
+      };
+    }>;
+    medicalAdvice?: {           // 医疗建议
+      symptoms: string[];
+      possibleConditions: string[];
+      suggestions: string[];
+      urgencyLevel: 'low' | 'medium' | 'high';
+    };
+    toolsUsed?: string[];       // 使用的工具列表
+    timestamp: string;
+  };
+}</code></pre>
+            </div>
+
+            <div id="tab-end" class="tab-content">
+                <pre><code class="language-typescript">// 会话结束事件
+interface ConversationEndEvent {
+  eventId: string;
+  type: 'conversation:end';
+  data: {
+    conversationId: string;
+    messageId: string;
+    duration: number;        // 会话耗时 (ms)
+    messageCount: number;    // 消息总数
+    timestamp: string;
+  };
+}</code></pre>
+            </div>
+        </div>
+
+        <!-- 6.3 后端事件发射器 -->
+        <div class="card">
+            <h3>6.3 后端事件发射器 (AgentEventEmitter)</h3>
+            <p>后端通过 <code>AgentEventEmitter</code> 类统一管理事件发射：</p>
+
+            <pre><code class="language-typescript">// backend/src/agent/events/AgentEventEmitter.ts
+class AgentEventEmitter extends EventEmitter {
+  // 发射意图识别事件
+  emitIntent(intent: UserIntent, entities: Record<string, any>): void;
+
+  // 发射工具调用事件
+  emitToolCall(
+    tool: ToolType,
+    status: 'running' | 'completed' | 'failed',
+    details?: { input?: any; output?: any; error?: string }
+  ): void;
+
+  // 发射消息内容（流式）
+  emitContent(delta: string): void;
+
+  // 发射元数据
+  emitMetadata(metadata: { sources?: any[]; actions?: any[] }): void;
+
+  // 发射完成事件
+  emitDone(conversationId: string, messageId?: string): void;
+
+  // 发射错误事件
+  emitError(error: string, code?: string): void;
+}</code></pre>
+        </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- 07. 前端状态管理 -->
+    <section>
+        <h2>07. 前端状态管理架构 (Frontend State)</h2>
+
+        <!-- 7.1 MobX 架构 -->
+        <div class="card">
+            <h3>7.1 MobX + Entity View 架构</h3>
+            <p>前端使用 <strong>MobX</strong> 进行响应式状态管理，核心模型类：</p>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+classDiagram
+    class Conversation {
+        +string conversationId
+        +ConversationItem[] items
+        +string status
+        +sendMessage(content, imageUrls)
+        +loadFromHistory()
+        -handleSSEEvent()
+    }
+
+    class ConversationItem {
+        +string id
+        +Date timestamp
+        +string role
+    }
+    note for ConversationItem "Abstract base class"
+
+    class UserMessage {
+        +string content
+        +Attachment[] attachments
+    }
+
+    class AgentResponse {
+        +AgentView view
+        +boolean isComplete
+        +markComplete()
+    }
+
+    class AgentView {
+        +Event[] events
+        +EventGroup[] groups
+        +handleSSEEvent(sseEvent)
+        +hasRunningTools()
+        +getFullMessageContent()
+    }
+
+    class Event {
+        +string id
+        +string type
+        +update(data)
+    }
+    note for Event "Abstract base class"
+
+    Conversation "1" --> "*" ConversationItem : items
+    ConversationItem <|-- UserMessage
+    ConversationItem <|-- AgentResponse
+    AgentResponse "1" --> "1" AgentView : view
+    AgentView "1" --> "*" Event : events
+    Event <|-- MessageContentEvent
+    Event <|-- ToolCallEvent
+    Event <|-- MessageMetadataEvent
+                </pre>
+            </div>
+        </div>
+
+        <!-- 7.2 事件处理流程 -->
+        <div class="card">
+            <h3>7.2 SSE 事件处理流程</h3>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+flowchart LR
+    subgraph "SSE Client"
+        SSE[fetch + EventSourceParser] --> RAW[RawSSEEvent]
+    end
+
+    subgraph "Conversation"
+        RAW --> CONV[handleSSEEvent]
+        CONV --> |conversation_end| COMPLETE[markComplete]
+        CONV --> |其他事件| VIEW[AgentView.handleSSEEvent]
+    end
+
+    subgraph "AgentView"
+        VIEW --> FACTORY[EventFactory.createFromSSE]
+        FACTORY --> |message_content| UPDATE[更新现有 / 创建新]
+        FACTORY --> |tool_call| REPLACE[替换现有 / 创建新]
+        FACTORY --> |其他| ADD[直接添加]
+    end
+
+    subgraph "React 渲染"
+        UPDATE --> GROUPS[computed: groups]
+        REPLACE --> GROUPS
+        ADD --> GROUPS
+        GROUPS --> RENDER[AgentViewRenderer]
+    end
+
+    style SSE fill:#dbeafe
+    style CONV fill:#dcfce7
+    style VIEW fill:#fef3c7
+    style RENDER fill:#f3e8ff
+                </pre>
+            </div>
+
+            <h4>关键代码：AgentView.handleSSEEvent</h4>
+            <pre><code class="language-typescript">@action
+handleSSEEvent(sseEvent: SSEEvent): void {
+  // 1. message_content 特殊处理（流式累加）
+  if (sseEvent.type === 'message_content') {
+    const existingIndex = this.events.findIndex(
+      e => e.id === sseEvent.data.messageId
+    );
+    if (existingIndex >= 0) {
+      // 更新现有消息：追加 delta
+      (this.events[existingIndex] as MessageContentEvent).update({
+        delta: sseEvent.data.delta,
+        isLast: sseEvent.data.isLast,
+      });
+    } else {
+      // 创建新消息
+      this.events.push(EventFactory.createFromSSE(sseEvent));
+    }
+    return;
+  }
+
+  // 2. tool_call 特殊处理（状态更新/替换）
+  if (sseEvent.type === 'tool_call') {
+    const existingIndex = this.events.findIndex(
+      e => (e as ToolCallEvent).toolId === sseEvent.data.toolId
+    );
+    if (existingIndex >= 0) {
+      // 替换为新的 ToolCallEvent 对象
+      this.events[existingIndex] = new ToolCallEvent({
+        ...existingEvent,
+        status: sseEvent.data.status,
+        output: sseEvent.data.output,
+      });
+    } else {
+      this.events.push(EventFactory.createFromSSE(sseEvent));
+    }
+    return;
+  }
+
+  // 3. 其他事件：直接添加
+  const newEvent = EventFactory.createFromSSE(sseEvent);
+  if (newEvent) this.events.push(newEvent);
+}</code></pre>
+        </div>
+
+        <!-- 7.3 分组渲染 -->
+        <div class="card">
+            <h3>7.3 事件分组与 UI 渲染</h3>
+            <p><code>AgentView.groups</code> 计算属性将事件分组为渲染单元：</p>
+
+            <div class="mermaid-container">
+                <pre class="mermaid">
+flowchart TB
+    subgraph "原始事件流"
+        E1[thinking] --> E2[tool_call: running]
+        E2 --> E3[tool_call: completed]
+        E3 --> E4[message_content]
+        E4 --> E5[message_content]
+        E5 --> E6[message_metadata]
+    end
+
+    subgraph "分组结果"
+        G1[thinking 组]
+        G2[tool_group 组<br/>E2, E3]
+        G3[content 组<br/>E4, E5]
+        G4[metadata 组]
+    end
+
+    E1 -.-> G1
+    E2 -.-> G2
+    E3 -.-> G2
+    E4 -.-> G3
+    E5 -.-> G3
+    E6 -.-> G4
+
+    subgraph "渲染组件"
+        R1[ThinkingRenderer]
+        R2[ToolGroup<br/>可折叠]
+        R3[MarkdownRenderer]
+        R4[MetadataRenderer<br/>Actions / Cards]
+    end
+
+    G1 --> R1
+    G2 --> R2
+    G3 --> R3
+    G4 --> R4
+                </pre>
             </div>
         </div>
     </section>
+
+    <div class="section-divider"></div>
+
+    <!-- 08. 总结 -->
+    <section>
+        <h2>08. 技术栈总结</h2>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>层级</th>
+                        <th>技术选型</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>AI Agent</strong></td>
+                        <td>LangGraph + DeepSeek</td>
+                        <td>状态图编排、意图分类、ReAct 循环</td>
+                    </tr>
+                    <tr>
+                        <td><strong>后端框架</strong></td>
+                        <td>Hono + Node.js</td>
+                        <td>轻量级 Web 框架，SSE 流式响应</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据库</strong></td>
+                        <td>Supabase (PostgreSQL)</td>
+                        <td>对话历史、用户数据持久化</td>
+                    </tr>
+                    <tr>
+                        <td><strong>前端框架</strong></td>
+                        <td>React + MobX</td>
+                        <td>响应式状态管理、Entity View 模式</td>
+                    </tr>
+                    <tr>
+                        <td><strong>通信协议</strong></td>
+                        <td>SSE (Server-Sent Events)</td>
+                        <td>实时流式输出、事件推送</td>
+                    </tr>
+                    <tr>
+                        <td><strong>工具集成</strong></td>
+                        <td>Tavily Search + Coze KB</td>
+                        <td>联网搜索、医疗知识库查询</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <div class="footer">
-        <p>Xiaohe AI Doctor Project Presentation Outline</p>
+        <p>Xiaohe AI Doctor Project Presentation · Technical Deep Dive</p>
+        <p style="font-size: 0.8rem; margin-top: 5px;">Powered by Mermaid.js & Highlight.js</p>
     </div>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#dbeafe',
+                primaryTextColor: '#1e40af',
+                primaryBorderColor: '#2563eb',
+                lineColor: '#64748b',
+                secondaryColor: '#dcfce7',
+                tertiaryColor: '#f8fafc'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20
+            },
+            sequence: {
+                actorMargin: 50,
+                messageMargin: 30
+            }
+        });
+
+        // Initialize Highlight.js
+        hljs.highlightAll();
+
+        // Tab switching
+        function showTab(event, tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Deactivate all tabs
+            document.querySelectorAll('.tab').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabId).classList.add('active');
+
+            // Activate clicked tab
+            event.target.classList.add('active');
+
+            // Re-highlight code in the newly visible tab
+            hljs.highlightAll();
+        }
+    </script>
 </body>
 </html>
-
-Comment
-⌥⌘M

@@ -50,12 +50,15 @@ const DoctorTasks = observer(function DoctorTasks() {
       }).catch((error) => {
         console.error('WebSocket 连接失败:', error);
       });
-
-      return () => {
-        ws.disconnect();
-        wsRef.current = null;
-      };
     }
+
+    // Cleanup 必须在条件块外部
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.disconnect();
+        wsRef.current = null;
+      }
+    };
   }, []);
 
   // 切换 Tab
