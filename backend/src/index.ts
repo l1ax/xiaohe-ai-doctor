@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { Server } from 'http';
 import aiChatRouter, { aiChatController } from './routes/aiChat';
 import authRouter from './routes/auth';
@@ -12,8 +12,6 @@ import doctorsRouter from './routes/doctors';
 import { wsManager } from './services/websocket/WebSocketManager';
 import { logger } from './utils/logger';
 import { errorHandler } from './utils/errorHandler';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;

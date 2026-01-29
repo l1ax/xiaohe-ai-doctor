@@ -1,7 +1,6 @@
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { appointmentStore } from '../../store';
 import { appointmentApi, Doctor } from '../../services/appointment';
 
 const Doctors = observer(function Doctors() {
@@ -43,8 +42,14 @@ const Doctors = observer(function Doctors() {
   const getDoctorsByDept = (dept: string) => doctors.filter((d) => d.department === dept);
 
   const handleSelectDoctor = (doctor: Doctor) => {
-    appointmentStore.selectDoctor(doctor);
-    navigate('/appointments/schedule');
+    // 统一使用 URL 参数传递医生信息
+    const params = new URLSearchParams({
+      doctorId: doctor.id,
+      doctorName: doctor.name,
+      hospital: doctor.hospital,
+      department: doctor.department,
+    });
+    navigate(`/appointments/schedule?${params.toString()}`);
   };
 
   return (

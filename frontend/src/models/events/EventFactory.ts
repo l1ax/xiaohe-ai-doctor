@@ -4,6 +4,7 @@ import { MessageContentEvent } from './MessageContentEvent';
 import { ThinkingEvent } from './ThinkingEvent';
 import { ErrorEvent } from './ErrorEvent';
 import { ConversationStatusEvent } from './ConversationStatusEvent';
+import { MessageMetadataEvent } from './MessageMetadataEvent';
 
 /**
  * SSE 事件接口（匹配后端发送的格式）
@@ -87,9 +88,12 @@ export class EventFactory {
         case 'message_status':
           return null;
 
-        // 元数据事件（暂时忽略）
+        // 元数据事件
         case 'message_metadata':
-          return null;
+          return new MessageMetadataEvent({
+            id: sseEvent.eventId || `metadata-${Date.now()}`,
+            actions: sseEvent.data.actions || [],
+          });
 
         default:
           console.warn('Unknown SSE event type:', sseEvent.type);

@@ -35,6 +35,8 @@ describe('Agent Event Flow Integration Tests', () => {
           hasEmergencyKeywords: false,
           severity: 'mild',
         },
+        routeDecision: 'react',
+        imageDescription: '',
         scratchpad: '',
         agentIteration: 0,
         maxIterations: 10,

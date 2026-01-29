@@ -131,7 +131,9 @@ export async function quickResponse(
       console.log('[QuickResponse] llm_only 策略，直接调用 LLM');
       const llm = createDeepSeekLLM(0.7);
       const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent, imageDescription);
-      await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
+      const aiResponse = await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
+      // Note: MessageWriter handles saving the response via event listeners
+      console.log(`[QuickResponse] AI response complete, length: ${aiResponse.length}`);
 
       const duration = startTime ? Date.now() - startTime : 0;
       eventEmitter.emit(
@@ -192,7 +194,9 @@ export async function quickResponse(
       console.log('[QuickResponse] 工具无结果，使用 LLM 兌底回复');
       const llm = createDeepSeekLLM(0.7);
       const prompt = buildDirectResponsePrompt(messages, userQuery, primaryIntent, imageDescription);
-      await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
+      const aiResponse = await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
+      // Note: MessageWriter handles saving the response via event listeners
+      console.log(`[QuickResponse] AI response complete, length: ${aiResponse.length}`);
 
       const duration = startTime ? Date.now() - startTime : 0;
       eventEmitter.emit(
@@ -214,7 +218,9 @@ export async function quickResponse(
     // 4. 流式 LLM 调用并实时发送给用户
     console.log('[QuickResponse] 流式调用 LLM...');
     const llm = createDeepSeekLLM(0.7);
-    await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
+    const aiResponse = await streamLLMResponse(llm, prompt, conversationId, messageId, eventEmitter);
+    // Note: MessageWriter handles saving the response via event listeners
+    console.log(`[QuickResponse] AI response complete, length: ${aiResponse.length}`);
 
     // 6. 发送对话结束事件
     const duration = startTime ? Date.now() - startTime : 0;
@@ -239,6 +245,8 @@ export async function quickResponse(
 
     // 即使出错也要发送对话结束事件
     const duration = startTime ? Date.now() - startTime : 0;
+    // 触发 MessageWriter 保存助手消息（即使出错）
+    eventEmitter.emitDone(conversationId, messageId);
     eventEmitter.emit(
       'conversation:end',
       createConversationEndEvent(

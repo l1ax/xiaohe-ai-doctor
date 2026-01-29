@@ -16,6 +16,7 @@ export class Conversation {
 
   private sseClient: SSEClient | null = null;
   private currentAgentResponse: AgentResponse | null = null;
+  private historyLoaded = false; // Prevent duplicate loading
 
   constructor(conversationId?: string) {
     makeObservable(this);
@@ -211,5 +212,124 @@ export class Conversation {
     this.close();
     this.items = [];
     this.error = null;
+  }
+
+  /**
+   * 从历史记录加载对话
+   */
+  @action
+  async loadFromHistory(conversationId: string): Promise<void> {
+    // Prevent duplicate loading
+    if (this.historyLoaded) {
+      console.log('[Conversation] History already loaded, skipping');
+      return;
+    }
+
+    try {
+      // Import userStore dynamically to avoid circular dependency
+      const { userStore } = await import('../store/userStore');
+      const token = userStore.accessToken;
+      
+      if (!token) {
+        throw new Error('未登录');
+      }
+
+      const response = await fetch(`/api/ai-chat/conversations/${conversationId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.code !== 'SUCCESS') {
+        throw new Error(result.message || '加载对话失败');
+      }
+
+      // Update conversation ID
+      this.conversationId = conversationId;
+      
+      // Clear existing items
+      this.items = [];
+
+      // Reconstruct messages from history
+      const messages = result.data.messages || [];
+      
+      for (const msg of messages) {
+        console.log(`[Conversation] Processing message: senderId=${msg.senderId}, hasMetadata=${!!msg.metadata}, toolCallsCount=${msg.metadata?.toolCalls?.length || 0}`);
+        if (msg.senderId === 'assistant') {
+          // Create agent response with content
+          const agentResponse = new AgentResponse(`agent-${msg.id}`);
+          
+          // Reconstruct tool_call events from metadata
+          if (msg.metadata?.toolCalls && Array.isArray(msg.metadata.toolCalls)) {
+            for (const toolCall of msg.metadata.toolCalls) {
+              agentResponse.view.handleSSEEvent({
+                type: 'tool_call',
+                data: {
+                  toolId: `tool-${toolCall.tool}-${msg.id}`,
+                  name: toolCall.tool,
+                  status: toolCall.status,
+                  input: toolCall.input,
+                  output: toolCall.output,
+                },
+              });
+            }
+          }
+          
+          // Add message content via SSE event simulation
+          agentResponse.view.handleSSEEvent({
+            type: 'message_content',
+            data: {
+              messageId: `msg-${msg.id}`,
+              delta: msg.content,
+              isLast: true,
+            },
+          });
+          
+          // Reconstruct message_metadata event from metadata
+          if (msg.metadata?.sources || msg.metadata?.medicalAdvice || msg.metadata?.actions) {
+            agentResponse.view.handleSSEEvent({
+              type: 'message_metadata',
+              data: {
+                messageId: `msg-${msg.id}`,
+                sources: msg.metadata.sources,
+                medicalAdvice: msg.metadata.medicalAdvice,
+                actions: msg.metadata.actions,
+              },
+            });
+          }
+          
+          agentResponse.markComplete();
+          this.items.push(agentResponse);
+        } else {
+          // Create user message
+          const userMessage = new UserMessage({
+            id: `user-${msg.id}`,
+            content: msg.content,
+            attachments: msg.metadata?.imageUrl 
+              ? [{ type: 'image', url: msg.metadata.imageUrl, name: 'image' }]
+              : undefined,
+          });
+          this.items.push(userMessage);
+        }
+      }
+
+      this.historyLoaded = true;
+      console.log(`[Conversation] Loaded ${messages.length} messages from history`);
+    } catch (error) {
+      console.error('[Conversation] Failed to load from history:', error);
+      this.error = {
+        code: 'LOAD_ERROR',
+        message: error instanceof Error ? error.message : '加载对话失败',
+      };
+      throw error;
+    }
   }
 }

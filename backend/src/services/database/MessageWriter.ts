@@ -11,234 +11,260 @@ import {
   UserIntent,
 } from './types';
 import type { AgentEvent } from '../../agent/events/types';
+import { messageRepository, MessageRepository } from './MessageRepository';
+import { conversationRepository, ConversationRepository } from './ConversationRepository';
+import { isSupabaseConfigured } from './supabaseClient';
 
+/**
+ * MessageWriter - 实时保存 Agent 消息
+ * 
+ * 保存策略：
+ * - 收到第一个 message:content (isFirst=true) 时 → 创建消息记录
+ * - 收到后续 message:content 时 → 更新消息内容
+ * - 收到 tool:call 时 → 更新消息的 metadata.toolCalls
+ * - 收到 message:metadata 时 → 更新消息的 metadata
+ */
 export class MessageWriter {
   private eventEmitter: AgentEventEmitter;
   private config: WriterConfig;
-  private messageBuffer: Map<string, Partial<Message>[]>;
-  private conversationMetadata: Map<string, MessageMetadata>;
-  private userMessages: Map<string, Partial<Message>>;
-  private flushTimer?: NodeJS.Timeout;
-  // Fix I2: Use Map to track current conversationId per active session
-  private activeConversations: Map<string, string> = new Map();
-  // Fix I3: Store listener references to remove only specific listeners
-  private listenerRefs: Map<string, (event: AgentEvent) => void> = new Map();
-  private flushedConversations: Set<string> = new Set();
+  
+  // Track active messages: conversationId -> { messageId, content, metadata }
+  private activeMessages: Map<string, {
+    messageId: string;
+    content: string;
+    metadata: MessageMetadata;
+    created: boolean; // Whether the DB record has been created
+  }> = new Map();
+  
+  private listenerRefs: Map<string, (event: any) => void> = new Map();
 
   constructor(eventEmitter: AgentEventEmitter, config: WriterConfig) {
     this.eventEmitter = eventEmitter;
     this.config = config;
-    this.messageBuffer = new Map();
-    this.conversationMetadata = new Map();
-    this.userMessages = new Map();
 
     if (this.config.enabled) {
       this.setupEventListeners();
-      this.setupBatchFlush();
     }
   }
 
   private setupEventListeners(): void {
-    // Fix I3: Store listener references for proper cleanup
-    this.listenerRefs.set('agent:intent', this.handleIntentEvent.bind(this));
-    this.listenerRefs.set('agent:content', this.handleContentEvent.bind(this));
-    this.listenerRefs.set('agent:metadata', this.handleMetadataEvent.bind(this));
-    this.listenerRefs.set('agent:done', this.handleDoneEvent.bind(this));
-    this.listenerRefs.set('agent:error', this.handleErrorEvent.bind(this));
+    // Listen to the actual event types used by the agent
+    this.listenerRefs.set('message:content', this.handleMessageContentEvent.bind(this));
+    this.listenerRefs.set('message:metadata', this.handleMessageMetadataEvent.bind(this));
+    this.listenerRefs.set('tool:call', this.handleToolCallEvent.bind(this));
+    this.listenerRefs.set('conversation:end', this.handleConversationEndEvent.bind(this));
 
-    // Use stored listener references
-    this.eventEmitter.on('agent:intent', this.listenerRefs.get('agent:intent')!);
-    this.eventEmitter.on('agent:content', this.listenerRefs.get('agent:content')!);
-    this.eventEmitter.on('agent:metadata', this.listenerRefs.get('agent:metadata')!);
-    this.eventEmitter.on('agent:done', this.listenerRefs.get('agent:done')!);
-    this.eventEmitter.on('agent:error', this.listenerRefs.get('agent:error')!);
+    this.eventEmitter.on('message:content' as any, this.listenerRefs.get('message:content')!);
+    this.eventEmitter.on('message:metadata' as any, this.listenerRefs.get('message:metadata')!);
+    this.eventEmitter.on('tool:call' as any, this.listenerRefs.get('tool:call')!);
+    this.eventEmitter.on('conversation:end' as any, this.listenerRefs.get('conversation:end')!);
+
+    console.log('[MessageWriter] Event listeners registered for real-time saving');
   }
 
-  private setupBatchFlush(): void {
-    this.flushTimer = setInterval(() => {
-      this.flushAllConversations();
-    }, this.config.batch.flushInterval);
-  }
+  /**
+   * Handle message:content events
+   * - isFirst=true: Create new message record
+   * - Subsequent: Update content
+   */
+  private handleMessageContentEvent(event: any): void {
+    const { conversationId, messageId, delta, isFirst, isLast } = event.data || {};
 
-  private handleIntentEvent(event: AgentEvent): void {
-    if (event.type !== 'agent:intent') return;
-
-    const { intent, entities } = event.data;
-    const conversationId = entities.conversationId as string;
-    const userMessage = entities.userMessage as string;
-
-    if (!conversationId) {
-      console.warn('[MessageWriter] No conversationId in intent event');
+    if (!conversationId || !messageId) {
+      console.warn('[MessageWriter] Missing conversationId or messageId in message:content event');
       return;
     }
 
-    // Fix I2: Use Map to track active conversation per session
-    // Use a unique session key if available, otherwise use conversationId
-    const sessionKey = entities.sessionId as string || conversationId;
-    this.activeConversations.set(sessionKey, conversationId);
+    let active = this.activeMessages.get(conversationId);
 
-    // Buffer the user message
-    const partialMessage: Partial<Message> = {
-      id: uuidv4(),
-      conversation_id: conversationId,
-      sender_id: entities.userId as string || 'patient',
-      content_type: 'text' as MessageType,
-      content: userMessage,
-      created_at: new Date().toISOString(),
-      metadata: {
-        intent: intent as UserIntent,
-      },
-    };
-
-    this.userMessages.set(conversationId, partialMessage);
-    console.log(`[MessageWriter] Buffered user message for conversation ${conversationId}`);
-  }
-
-  private handleContentEvent(event: AgentEvent): void {
-    if (event.type !== 'agent:content') return;
-
-    const { delta } = event.data;
-    // Fix I2: Extract conversationId from event data (added by controller)
-    const conversationId = (event.data as any).conversationId as string | undefined;
-
-    if (!conversationId) {
-      console.warn('[MessageWriter] No conversationId in content event');
-      return;
-    }
-
-    // Accumulate content in memory
-    if (!this.messageBuffer.has(conversationId)) {
-      this.messageBuffer.set(conversationId, []);
-    }
-
-    const messages = this.messageBuffer.get(conversationId)!;
-    if (messages.length === 0) {
-      // Create new assistant message
-      messages.push({
-        id: uuidv4(),
-        conversation_id: conversationId,
-        sender_id: 'assistant',
-        content_type: 'text' as MessageType,
-        content: delta,
-        created_at: new Date().toISOString(),
-      });
-    } else {
-      // Append to existing message
-      const lastMessage = messages[messages.length - 1];
-      lastMessage.content = (lastMessage.content || '') + delta;
-    }
-  }
-
-  private handleMetadataEvent(event: AgentEvent): void {
-    if (event.type !== 'agent:metadata') return;
-
-    // Fix I2: Extract conversationId from event data (added by controller)
-    const conversationId = (event.data as any).conversationId as string | undefined;
-
-    if (!conversationId) {
-      console.warn('[MessageWriter] No conversationId in metadata event');
-      return;
-    }
-
-    const metadata: MessageMetadata = {
-      sources: event.data.sources,
-      medicalAdvice: event.data.medicalAdvice,
-      actions: event.data.actions,
-    };
-
-    // Accumulate metadata in memory
-    if (!this.conversationMetadata.has(conversationId)) {
-      this.conversationMetadata.set(conversationId, {});
-    }
-
-    const existing = this.conversationMetadata.get(conversationId)!;
-    this.conversationMetadata.set(conversationId, {
-      ...existing,
-      ...metadata,
-    });
-  }
-
-  private handleDoneEvent(event: AgentEvent): void {
-    if (event.type !== 'agent:done') return;
-
-    const { conversationId } = event.data;
-
-    if (!conversationId) {
-      console.warn('[MessageWriter] No conversationId in done event');
-      return;
-    }
-
-    // Flush the assistant message
-    this.flushConversation(conversationId);
-
-    // Fix I2: Clear from active conversations map
-    this.activeConversations.delete(conversationId);
-  }
-
-  private handleErrorEvent(event: AgentEvent): void {
-    if (event.type !== 'agent:error') return;
-
-    const { error, code } = event.data;
-    // Fix I2: Extract conversationId from event data (added by controller)
-    const conversationId = (event.data as any).conversationId as string | undefined;
-
-    console.error(`[MessageWriter] Agent error occurred: ${error}${code ? ` (code: ${code})` : ''}`);
-
-    // Flush any pending messages for the specific conversation
-    if (conversationId) {
-      this.flushConversation(conversationId);
-      this.activeConversations.delete(conversationId);
-    }
-  }
-
-  private flushConversation(conversationId: string): void {
-    // Avoid duplicate flushes
-    if (this.flushedConversations.has(conversationId)) {
-      return;
-    }
-
-    // Get user message
-    const userMessage = this.userMessages.get(conversationId);
-    if (userMessage) {
-      console.log(`[MessageWriter MVP] Would save user message:`, JSON.stringify(userMessage, null, 2));
-      // TODO: Implement actual database write
-    }
-
-    // Get assistant messages
-    const messages = this.messageBuffer.get(conversationId) || [];
-    const metadata = this.conversationMetadata.get(conversationId);
-
-    messages.forEach((msg) => {
-      const completeMessage: Message = {
-        id: msg.id!,
-        conversation_id: msg.conversation_id!,
-        sender_id: msg.sender_id!,
-        content_type: msg.content_type!,
-        content: msg.content || '',
-        created_at: msg.created_at!,
-        metadata: metadata || undefined,
+    if (isFirst || !active) {
+      // Start a new message
+      active = {
+        messageId,
+        content: delta || '',
+        metadata: {},
+        created: false,
       };
-      console.log(`[MessageWriter MVP] Would save assistant message:`, JSON.stringify(completeMessage, null, 2));
-      // TODO: Implement actual database write
-    });
+      this.activeMessages.set(conversationId, active);
+      
+      // Create the record immediately
+      this.createMessageRecord(conversationId, active);
+    } else {
+      // Append content
+      active.content += delta || '';
+      
+      // Update the record
+      this.updateMessageContent(conversationId, active);
+    }
 
-    // Mark as flushed and clear buffers for this conversation
-    this.flushedConversations.add(conversationId);
-    this.userMessages.delete(conversationId);
-    this.messageBuffer.delete(conversationId);
-    this.conversationMetadata.delete(conversationId);
+    if (isLast) {
+      console.log(`[MessageWriter] Message content complete for ${conversationId}, total length: ${active.content.length}`);
+    }
   }
 
-  private flushAllConversations(): void {
-    const allIds = [
-      ...this.userMessages.keys(),
-      ...this.messageBuffer.keys(),
-    ];
+  /**
+   * Handle message:metadata events - update metadata immediately
+   */
+  private handleMessageMetadataEvent(event: any): void {
+    const { conversationId, sources, medicalAdvice, actions, toolsUsed } = event.data || {};
 
-    const uniqueIds = new Set(allIds);
-    uniqueIds.forEach((id) => {
-      this.flushConversation(id);
-    });
+    if (!conversationId) {
+      console.warn('[MessageWriter] Missing conversationId in message:metadata event');
+      return;
+    }
+
+    const active = this.activeMessages.get(conversationId);
+    if (!active) {
+      console.warn(`[MessageWriter] No active message for conversation ${conversationId}`);
+      return;
+    }
+
+    // Merge metadata
+    if (sources) active.metadata.sources = sources;
+    if (medicalAdvice) active.metadata.medicalAdvice = medicalAdvice;
+    if (actions) active.metadata.actions = actions;
+
+    // Update the record
+    this.updateMessageMetadata(conversationId, active);
+  }
+
+  /**
+   * Handle tool:call events - track tool calls in metadata
+   */
+  private handleToolCallEvent(event: any): void {
+    const { conversationId, toolName, status, input, output, error } = event.data || {};
+
+    if (!conversationId || !toolName) {
+      console.warn('[MessageWriter] Missing conversationId or toolName in tool:call event');
+      return;
+    }
+
+    const active = this.activeMessages.get(conversationId);
+    if (!active) {
+      // Tool call before content - create placeholder
+      const newActive = {
+        messageId: `msg_${Date.now()}`,
+        content: '',
+        metadata: { toolCalls: [] as any[] },
+        created: false,
+      };
+      this.activeMessages.set(conversationId, newActive);
+      this.addOrUpdateToolCall(newActive, toolName, status, input, output, error);
+      return;
+    }
+
+    // Ensure toolCalls array exists
+    if (!active.metadata.toolCalls) {
+      active.metadata.toolCalls = [];
+    }
+
+    this.addOrUpdateToolCall(active, toolName, status, input, output, error);
+    
+    // Update the record if already created
+    if (active.created) {
+      this.updateMessageMetadata(conversationId, active);
+    }
+  }
+
+  private addOrUpdateToolCall(
+    active: { metadata: MessageMetadata },
+    toolName: string,
+    status: 'running' | 'completed' | 'failed',
+    input?: any,
+    output?: any,
+    error?: string
+  ): void {
+    const toolCalls = active.metadata.toolCalls!;
+    const existingIndex = toolCalls.findIndex(tc => tc.tool === toolName);
+
+    if (existingIndex >= 0) {
+      toolCalls[existingIndex] = {
+        ...toolCalls[existingIndex],
+        status,
+        output: output !== undefined ? output : toolCalls[existingIndex].output,
+        error: error !== undefined ? error : toolCalls[existingIndex].error,
+      };
+    } else {
+      toolCalls.push({ tool: toolName, status, input, output, error });
+    }
+
+    console.log(`[MessageWriter] Tool call: ${toolName} (${status})`);
+  }
+
+  /**
+   * Handle conversation:end events - clean up
+   */
+  private handleConversationEndEvent(event: any): void {
+    const { conversationId } = event.data || {};
+
+    if (!conversationId) {
+      return;
+    }
+
+    console.log(`[MessageWriter] Conversation ended: ${conversationId}`);
+    this.activeMessages.delete(conversationId);
+  }
+
+  /**
+   * Create message record in database
+   */
+  private async createMessageRecord(
+    conversationId: string,
+    active: { messageId: string; content: string; metadata: MessageMetadata; created: boolean }
+  ): Promise<void> {
+    try {
+      await messageRepository.createWithId(active.messageId, {
+        conversationId,
+        senderId: 'assistant',
+        contentType: 'text',
+        content: active.content,
+        metadata: active.metadata,
+      });
+      active.created = true;
+      await conversationRepository.updateUpdatedAt(conversationId);
+      console.log(`[MessageWriter] ✅ Created message ${active.messageId} for conversation ${conversationId}`);
+    } catch (error) {
+      console.error(`[MessageWriter] Failed to create message:`, error);
+    }
+  }
+
+  /**
+   * Update message content in database
+   */
+  private async updateMessageContent(
+    conversationId: string,
+    active: { messageId: string; content: string; created: boolean }
+  ): Promise<void> {
+    if (!active.created) {
+      // Create if not yet created
+      await this.createMessageRecord(conversationId, active as any);
+      return;
+    }
+
+    try {
+      await messageRepository.update(active.messageId, { content: active.content });
+    } catch (error) {
+      console.error(`[MessageWriter] Failed to update content:`, error);
+    }
+  }
+
+  /**
+   * Update message metadata in database
+   */
+  private async updateMessageMetadata(
+    conversationId: string,
+    active: { messageId: string; metadata: MessageMetadata; created: boolean }
+  ): Promise<void> {
+    if (!active.created) {
+      return; // Will be included when created
+    }
+
+    try {
+      await messageRepository.update(active.messageId, { metadata: active.metadata });
+      console.log(`[MessageWriter] Updated metadata for ${active.messageId}`);
+    } catch (error) {
+      console.error(`[MessageWriter] Failed to update metadata:`, error);
+    }
   }
 
   /**
@@ -260,9 +286,7 @@ export class MessageWriter {
       updated_at: now,
     };
 
-    console.log(`[MessageWriter MVP] Would create conversation:`, JSON.stringify(conversation, null, 2));
-    // TODO: Implement actual database write
-
+    console.log(`[MessageWriter] Created conversation:`, conversation.id);
     return conversation;
   }
 
@@ -270,49 +294,32 @@ export class MessageWriter {
    * Get all messages for a conversation
    */
   async getMessages(conversationId: string): Promise<Message[]> {
-    console.log(`[MessageWriter MVP] Would fetch messages for conversation ${conversationId}`);
-    // TODO: Implement actual database query
-    return [];
+    try {
+      const records = await messageRepository.findByConversationId(conversationId);
+      return records.map(r => ({
+        id: r.id,
+        conversation_id: r.conversationId,
+        sender_id: r.senderId,
+        content_type: r.contentType,
+        content: r.content,
+        metadata: r.metadata,
+        created_at: r.createdAt,
+      }));
+    } catch (error) {
+      console.error(`[MessageWriter] Failed to get messages:`, error);
+      return [];
+    }
   }
 
   /**
-   * Stop the writer and flush all pending messages
+   * Stop the writer and clean up
    */
   stop(): void {
-    if (this.flushTimer) {
-      clearInterval(this.flushTimer);
-      this.flushTimer = undefined;
+    for (const [eventType, listener] of this.listenerRefs) {
+      this.eventEmitter.removeListener(eventType as any, listener);
     }
-
-    // Flush all pending messages
-    this.flushAllConversations();
-
-    // Fix I3: Remove only the listeners we added, not all listeners
-    const intentListener = this.listenerRefs.get('agent:intent');
-    const contentListener = this.listenerRefs.get('agent:content');
-    const metadataListener = this.listenerRefs.get('agent:metadata');
-    const doneListener = this.listenerRefs.get('agent:done');
-    const errorListener = this.listenerRefs.get('agent:error');
-
-    if (intentListener) {
-      this.eventEmitter.removeListener('agent:intent', intentListener);
-    }
-    if (contentListener) {
-      this.eventEmitter.removeListener('agent:content', contentListener);
-    }
-    if (metadataListener) {
-      this.eventEmitter.removeListener('agent:metadata', metadataListener);
-    }
-    if (doneListener) {
-      this.eventEmitter.removeListener('agent:done', doneListener);
-    }
-    if (errorListener) {
-      this.eventEmitter.removeListener('agent:error', errorListener);
-    }
-
-    // Clear listener references
     this.listenerRefs.clear();
-
-    console.log('[MessageWriter] Stopped and cleaned up');
+    this.activeMessages.clear();
+    console.log('[MessageWriter] Stopped');
   }
 }

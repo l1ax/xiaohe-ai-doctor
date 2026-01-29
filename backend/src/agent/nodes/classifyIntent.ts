@@ -86,16 +86,12 @@ export async function classifyIntent(
       intentConfidence[intent] = 1.0 - (index * 0.2);
     });
 
-    // 发送意图识别事件
-    eventEmitter.emit('agent:intent', {
+    // 发送意图识别事件（包含 MessageWriter 所需的信息）
+    eventEmitter.emitIntent(primaryIntent, {
+      ...parsed.entities,
       conversationId,
-      intents,
-      primaryIntent,
-      entities: parsed.entities || {},
-      riskIndicators: parsed.riskIndicators || {
-        hasEmergencyKeywords: false,
-        severity: 'mild',
-      },
+      userMessage: latestMessage.content,
+      userId: state.userId || 'patient',  // 使用 state 中的 userId
     });
 
     // ========== 路由决策 ==========
@@ -117,6 +113,11 @@ export async function classifyIntent(
       },
       routeDecision,
       imageDescription,  // 保存图片描述供后续节点使用
+      // 重置状态字段，确保新一轮对话从头开始
+      isFinished: false,
+      agentIteration: 0,
+      scratchpad: '',
+      toolsUsed: [],
     };
   } catch (error) {
     console.error('[ClassifyIntent] Error:', error);
@@ -132,6 +133,11 @@ export async function classifyIntent(
         severity: 'mild',
       },
       routeDecision: 'react', // 默认走 ReAct
+      // 重置状态字段
+      isFinished: false,
+      agentIteration: 0,
+      scratchpad: '',
+      toolsUsed: [],
     };
   }
 }

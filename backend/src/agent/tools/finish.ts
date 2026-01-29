@@ -170,12 +170,29 @@ export const finishTool: Tool = {
       },
       actions: {
         type: 'array',
-        description: '附带的操作按钮',
+        description: `附带的操作按钮。可用类型：
+- recommend_doctor: 推荐医生（需要 data 包含 doctorId, doctorName, hospital, department）
+- book_appointment: 预约挂号
+- transfer_to_doctor: 转人工医生
+- view_more: 查看更多
+- retry: 重试
+- cancel: 取消`,
         items: {
           type: 'object',
           properties: {
-            type: { type: 'string' },
-            label: { type: 'string' },
+            type: {
+              type: 'string',
+              enum: ['recommend_doctor', 'book_appointment', 'transfer_to_doctor', 'view_more', 'retry', 'cancel'],
+              description: '操作类型，必须是枚举值之一',
+            },
+            label: {
+              type: 'string',
+              description: '按钮显示文本',
+            },
+            data: {
+              type: 'object',
+              description: '操作相关数据（recommend_doctor 类型必需）',
+            },
           },
           required: ['type', 'label'],
         },

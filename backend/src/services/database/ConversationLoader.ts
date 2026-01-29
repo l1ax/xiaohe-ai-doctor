@@ -1,5 +1,7 @@
 import type { BaseMessage } from '@langchain/core/messages';
 import { HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
+import { messageRepository } from './MessageRepository';
+import { isSupabaseConfigured } from './supabaseClient';
 
 /**
  * 从数据库加载对话历史
@@ -13,16 +15,25 @@ export async function loadConversationHistory(
   limit: number = 20
 ): Promise<BaseMessage[]> {
   try {
-    // TODO: 当数据库启用后,从 Supabase 加载
-    // const { data: messages } = await supabase
-    //   .from('messages')
-    //   .select('*')
-    //   .eq('conversation_id', conversationId)
-    //   .order('created_at', { ascending: false })
-    //   .limit(limit);
+    if (!isSupabaseConfigured()) {
+      console.log('[ConversationLoader] Supabase not configured, returning empty array');
+      return [];
+    }
 
-    // MVP 阶段:返回空数组
-    return [];
+    const messages = await messageRepository.findByConversationId(conversationId, limit);
+    
+    if (messages.length === 0) {
+      console.log(`[ConversationLoader] No history found for conversation ${conversationId}`);
+      return [];
+    }
+
+    console.log(`[ConversationLoader] Loaded ${messages.length} messages for conversation ${conversationId}`);
+    
+    return messages.map((msg) => toBaseMessage({
+      role: msg.senderId === 'assistant' ? 'assistant' : 'user',
+      content: msg.content,
+      image_urls: msg.metadata?.imageUrl ? [msg.metadata.imageUrl] : [],
+    }));
   } catch (error) {
     console.error('[ConversationLoader] Failed to load history:', error);
     return [];

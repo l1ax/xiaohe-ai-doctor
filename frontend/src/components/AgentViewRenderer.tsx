@@ -4,6 +4,8 @@ import { AgentView } from '../models/AgentView';
 import { EventRenderer, ToolCallRenderer, ThinkingRenderer } from './EventRenderer';
 import { ThinkingEvent } from '../models/events/ThinkingEvent';
 import { ToolCallEvent } from '../models/events/ToolCallEvent';
+import { MessageMetadataEvent } from '../models/events/MessageMetadataEvent';
+import { DoctorRecommendCard } from './message/DoctorRecommendCard';
 import { ChevronDown, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
@@ -31,13 +33,17 @@ export const AgentViewRenderer: React.FC<AgentViewRendererProps> = observer(({ v
         }
 
         if (group.type === 'content') {
-           return group.events.map(e => <EventRenderer key={e.id} event={e} />); 
+           return group.events.map(e => <EventRenderer key={e.id} event={e} />);
+        }
+
+        if (group.type === 'metadata') {
+           return <MetadataRenderer key={`metadata-${groupIndex}`} events={group.events as MessageMetadataEvent[]} />;
         }
 
         if (group.type === 'error') {
            return group.events.map(e => <EventRenderer key={e.id} event={e} />);
         }
-        
+
         return null;
       })}
 
@@ -114,5 +120,69 @@ const ToolGroup: React.FC<{ events: ToolCallEvent[] }> = observer(({ events }) =
          ))}
       </CollapsibleContent>
     </Collapsible>
+  );
+});
+
+/**
+ * 元数据渲染器：渲染 actions（医生推荐卡片等）
+ */
+const MetadataRenderer: React.FC<{ events: MessageMetadataEvent[] }> = observer(({ events }) => {
+  return (
+    <div className="w-full">
+      {events.map((event) => (
+        <div key={event.id} className="w-full">
+          {event.actions.map((action, index) => {
+            console.log('[MetadataRenderer] Rendering action:', action.type, action.label);
+
+            // 渲染医生推荐卡片
+            if (action.type === 'recommend_doctor' && action.data) {
+              return (
+                <DoctorRecommendCard
+                  key={`${event.id}-action-${index}`}
+                  doctorId={action.data.doctorId || ''}
+                  doctorName={action.data.doctorName || '未知医生'}
+                  hospital={action.data.hospital || '未知医院'}
+                  department={action.data.department || '未知科室'}
+                  label={action.label}
+                />
+              );
+            }
+
+            // 其他已知的 action 类型渲染为通用按钮
+            const knownTypes = ['view_more', 'book_appointment', 'transfer_to_doctor', 'retry', 'cancel'];
+            if (knownTypes.includes(action.type)) {
+              return (
+                <div key={`${event.id}-action-${index}`} className="mt-2">
+                  <button
+                    onClick={() => {
+                      console.log('[MetadataRenderer] Button clicked:', action);
+                      // TODO: 根据 action.type 执行相应操作
+                    }}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                  >
+                    {action.label}
+                  </button>
+                </div>
+              );
+            }
+
+            // 未知类型：防御性渲染（不应该发生）
+            console.warn('[MetadataRenderer] Unknown action type:', action.type);
+            return (
+              <div key={`${event.id}-action-${index}`} className="mt-2">
+                <button
+                  onClick={() => {
+                    console.log('[MetadataRenderer] Unknown action clicked:', action);
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+                >
+                  {action.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
   );
 });

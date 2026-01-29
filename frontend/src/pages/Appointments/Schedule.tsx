@@ -1,6 +1,6 @@
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { appointmentStore } from '../../store';
 import { appointmentApi, TimeSlot } from '../../services/appointment';
 import { useSmartNavigation } from '../../utils/navigation';
@@ -8,19 +8,39 @@ import { useSmartNavigation } from '../../utils/navigation';
 const Schedule = observer(function Schedule() {
   const navigate = useNavigate();
   const { navigateBack } = useSmartNavigation();
+  const [searchParams] = useSearchParams();
   const [schedule, setSchedule] = useState<{ date: string; availableSlots: TimeSlot[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // 从 URL 参数读取医生信息
+    const doctorId = searchParams.get('doctorId');
+    const doctorName = searchParams.get('doctorName');
+    const hospital = searchParams.get('hospital');
+    const department = searchParams.get('department');
+
+    // 如果 URL 中有医生信息，设置到 store 中
+    if (doctorId && doctorName && hospital && department) {
+      appointmentStore.selectDoctor({
+        id: doctorId,
+        name: doctorName,
+        title: '', // AI 推荐的医生暂时没有 title 信息
+        hospital,
+        department,
+        rating: 5.0, // AI 推荐的医生默认评分
+        available: true, // AI 推荐的医生默认可用
+      });
+    }
+
     loadSchedule();
     // 每分钟更新一次当前时间，确保时间段过滤准确
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
     return () => clearInterval(timer);
-  }, []);
+  }, [searchParams]);
 
   const loadSchedule = async () => {
     if (!appointmentStore.selectedDoctor) {

@@ -7,7 +7,7 @@ import { EventFactory, SSEEvent } from './events/EventFactory'
 /**
  * 事件分组类型
  */
-export type EventGroupType = 'thinking' | 'tool_group' | 'content' | 'error';
+export type EventGroupType = 'thinking' | 'tool_group' | 'content' | 'error' | 'metadata';
 
 /**
  * 事件分组接口
@@ -56,6 +56,8 @@ export class AgentView {
         } else {
           grouped.push({ type: 'content', events: [event] });
         }
+      } else if (event.type === 'message_metadata') {
+        grouped.push({ type: 'metadata', events: [event] });
       } else if (event.type === 'error') {
         grouped.push({ type: 'error', events: [event] });
       } else {

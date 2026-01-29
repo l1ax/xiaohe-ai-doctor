@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小和 AI 医生项目演示大纲</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: var(--secondary-color);
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        h3 {
+            color: var(--text-primary);
+            margin-top: 25px;
+            font-size: 1.4rem;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        .badge-patient {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-doctor {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        li::before {
+            content: "•";
+            color: var(--primary-color);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        .tech-stack {
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9rem;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>小和 AI 医生项目演示</h1>
+        <p>基于 AI Agent 与实时通信的全流程医疗健康平台</p>
+    </header>
+    <section>
+        <h2>01. 项目概览 (Project Overview)</h2>
+        <div class="card">
+            <p><strong>项目简介：</strong> 小和 AI 医生是一个集成了人工智能与传统医疗服务的综合平台。</p>
+            <p><strong>核心三大模块：</strong></p>
+            <ol style="list-style-type: decimal; padding-left: 20px;">
+                <li><strong>AI 医生对话：</strong> 7x24小时智能初诊与咨询。</li>
+                <li><strong>专家问诊：</strong> 复杂病例的真人医生在线咨询。</li>
+                <li><strong>预约挂号：</strong> 线上预约线下门诊服务。</li>
+            </ol>
+        </div>
+    </section>
+
+    <section>
+        <h2>02. 演示模块一：AI 医生对话 (AI Consultation)</h2>
+        <div class="card">
+            <h3>演示场景 (Demo Cases)</h3>
+            <ul>
+                <li>
+                    <strong>Case 1: 常见病咨询 / 药品建议</strong>
+                    <br>
+                    <em>用户提问：</em> “感冒吃这个药可以吗”
+                    <br>
+                    <em>演示重点：</em> Agent 识别“用药咨询”意图，分析药物适用性，给出安全建议。
+                </li>
+                <li>
+                    <strong>Case 2: 就医导诊 / 医生推荐</strong>
+                    <br>
+                    <em>用户提问：</em> “北京协和医院看心脏病推荐哪个医生”
+                    <br>
+                    <em>演示重点：</em> Agent 调用联网搜索或内部数据库工具，检索特定医院科室信息，推荐合适专家。
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>03. 演示模块二：预约挂号 (Appointment System)</h2>
+        <div class="card">
+            <h3>演示流程</h3>
+            <p>用户从推荐医生或直接浏览排班进入预约流程：</p>
+            <ol>
+                <li><strong>查看排班：</strong> 展示医生可预约的时间段。</li>
+                <li><strong>提交预约：</strong> 用户选择时间，确认信息。</li>
+                <li><strong>状态流转：</strong> 演示“待确认” -> “预约成功”的状态变化（医生端/后台审核）。</li>
+            </ol>
+        </div>
+    </section>
+
+    <section>
+        <h2>04. 演示模块三：专家问诊 (Expert Consultation)</h2>
+        <div class="card">
+            <h3>演示流程</h3>
+            <p>对于 AI 无法完全解决的复杂问题，无缝转接专家：</p>
+            <ul>
+                <li><strong>即时通讯：</strong> 患者与医生进行实时图文对话。</li>
+                <li><strong>信息同步：</strong> 医生端查看患者之前的 AI 问诊摘要（上下文）。</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>05. 核心技术实现 (Technical Implementation)</h2>
+        <div class="card">
+            <h3>🤖 AI Agent 技术详解</h3>
+            <p><strong>技术重心：</strong> 构建基于 LangGraph 的可控智能体。</p>
+            <div class="tech-stack">
+                <ul>
+                    <li><strong>Agent 编排 (Orchestration)：</strong> 使用 StateGraph 定义工作流，管理对话状态与状态转换。</li>
+                    <li><strong>意图分类 (Intent Classification)：</strong>
+                        <ul>
+                            <li>轻量级分类器：区分“闲聊”、“普通问诊”、“复杂病例”、“需要工具支持”等意图。</li>
+                            <li>动态路由：根据分类结果决定走 QuickResponse（快速回复）还是 ReAct Loop（推理循环）。</li>
+                        </ul>
+                    </li>
+                    <li><strong>工具调用 (Tool Usage)：</strong>
+                        <ul>
+                            <li>Search Tools：联网搜索医院/医生信息。</li>
+                            <li>Database Tools：查询排班、药品库存等内部数据。</li>
+                        </ul>
+                    </li>
+                    <li><strong>多 Agent 协作 (扩展)：</strong> 规划中的分诊 Agent 与 问诊 Agent 的协作模式。</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    <div class="footer">
+        <p>Xiaohe AI Doctor Project Presentation Outline</p>
+    </div>
+</body>
+</html>
+
+Comment
+⌥⌘M
