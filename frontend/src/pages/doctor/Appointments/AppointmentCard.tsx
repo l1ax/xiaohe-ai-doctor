@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatAppointmentTime } from '../../../utils/dateUtils';
 import type { Appointment } from './types';
 
 interface AppointmentCardProps {
@@ -57,23 +58,7 @@ export const AppointmentCard = ({ appointment, onConfirm, onCancel }: Appointmen
     }
   };
 
-  // 格式化预约时间
-  const formatAppointmentTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hour = date.getHours();
-    const minute = date.getMinutes();
 
-    // 格式化时段
-    const getPeriod = (hour: number) => {
-      if (hour >= 8 && hour < 12) return '上午';
-      if (hour >= 14 && hour < 18) return '下午';
-      return '晚上';
-    };
-
-    return `${month}月${day}日 ${getPeriod(hour)} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-  };
 
   // 处理确认预约
   const handleConfirm = async () => {

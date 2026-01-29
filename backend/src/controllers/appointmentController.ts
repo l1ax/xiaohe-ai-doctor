@@ -125,7 +125,7 @@ export const createAppointmentHandler = async (req: Request, res: Response): Pro
     if (!appointmentTime && date && timeSlot) {
       // 构造完整的 ISO 8601 时间（当天 timeSlot 选定的时间）
       // timeSlot 格式为 "HH:MM"，构造为当天该时间的 ISO 字符串
-      finalAppointmentTime = `${date}T${timeSlot}:00Z`;
+      finalAppointmentTime = `${date}T${timeSlot}:00+08:00`;
     }
 
     if (!finalAppointmentTime) {

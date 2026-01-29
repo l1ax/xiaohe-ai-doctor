@@ -32,8 +32,9 @@ export interface Appointment {
   doctorTitle: string;
   hospital: string;
   department: string;
-  date: string;
-  timeSlot: string;
+  date?: string;
+  timeSlot?: string;
+  appointmentTime: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: string;
 }

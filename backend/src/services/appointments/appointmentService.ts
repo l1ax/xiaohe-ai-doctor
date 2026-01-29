@@ -48,7 +48,7 @@ class SeededRandom {
 export function isValidISODate(dateString: string): boolean {
   if (!dateString) return false;
 
-  const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+  const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[\+\-]\d{2}:\d{2})?$/;
   if (!isoRegex.test(dateString)) return false;
 
   const date = new Date(dateString);
@@ -272,10 +272,10 @@ export function createAppointment(
   // Check if the time slot is available and not already booked
   const appointmentDate = new Date(appointmentTime);
   const dateStr = appointmentDate.toISOString().split('T')[0];
-  // Extract time in UTC to match the stored format
-  const hours = String(appointmentDate.getUTCHours()).padStart(2, '0');
-  const minutes = String(appointmentDate.getUTCMinutes()).padStart(2, '0');
-  const timeStr = `${hours}:${minutes}`; // HH:MM format
+  // Extract time from the string itself to preserve the intended local time
+  // Format is "YYYY-MM-DDTHH:MM:SS+08:00"
+  // We want the HH:MM part which is at index 1 after splitting by T, and taking 5 chars
+  const timeStr = appointmentTime.split('T')[1].substring(0, 5); // HH:MM format
 
   const scheduleKey = `${doctorId}_${dateStr}`;
   const allSlots = mockSchedules.get(scheduleKey) || [];

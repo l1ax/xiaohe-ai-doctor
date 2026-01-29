@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentStore } from '../../store';
 import { useSmartNavigation } from '../../utils/navigation';
+import { formatAppointmentTime } from '../../utils/dateUtils';
 
 const AppointmentDetail = observer(function AppointmentDetail() {
   const navigate = useNavigate();
@@ -109,12 +110,8 @@ const AppointmentDetail = observer(function AppointmentDetail() {
           <h2 className="font-semibold text-lg mb-4">预约信息</h2>
           <div className="space-y-4">
             <div className="flex justify-between">
-              <span className="text-gray-500">预约日期</span>
-              <span className="font-medium">{detail.date}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-gray-500">预约时间</span>
-              <span className="font-medium">{detail.timeSlot}</span>
+              <span className="font-medium">{formatAppointmentTime(detail.appointmentTime)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">预约时间</span>
